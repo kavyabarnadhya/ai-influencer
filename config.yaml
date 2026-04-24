@@ -1,0 +1,48 @@
+comfyui:
+  path: "C:/ComfyUI"
+  host: "127.0.0.1"
+  port: 8188
+  startup_timeout: 90
+
+models:
+  dir: "C:/ComfyUI/models"
+  sdxl_checkpoint: "checkpoints/juggernautXL_v10RunDiffusion.safetensors"  # RunDiffusion/Juggernaut-X-v10
+  lora: "loras/KaviB_v1_Prod.safetensors"       # placed manually after cloud training
+  lora_trigger: "KaviB"                          # trigger word, always first token in prompt
+  lora_strength: 0.85
+  ipadapter: "ipadapter/ip-adapter-plus-face_sdxl_vit-h.bin"
+  clip_vision: "clip_vision/EVA02_CLIP_E_plus.pt"
+  controlnet_openpose: "controlnet/OpenPoseXL2.safetensors"
+  flux_unet: "unet/flux1-schnell-Q4_K_S.gguf"
+  flux_vae: "vae/ae.safetensors"
+  flux_clip_l: "clip/clip_l.safetensors"
+  flux_t5: "clip/t5xxl_fp8_e4m3fn.safetensors"
+  vae: "vae/sdxl_vae.safetensors"
+  adetailer_model: "ultralytics/face_yolov8n.pt"  # Impact Pack FaceDetailer — no insightface
+
+generation:
+  default_workflow: "t2i_sdxl_lora"
+  output_dir: "output"
+  default_steps: 30
+  default_cfg: 7.0
+  default_width: 832
+  default_height: 1216
+  default_sampler: "dpmpp_2m"
+  default_scheduler: "karras"
+  adetailer_enabled: true
+  adetailer_denoise: 0.25
+
+character:
+  seeds_dir: "character/seeds"
+  base_prompt_file: "character/prompts/base_prompt.txt"
+  lora_trigger: "KaviB"
+
+gpu:
+  vram_gb: 6
+  use_lowvram: true
+  tile_vae: true
+
+logging:
+  level: "INFO"
+  log_dir: "logs"
+  save_metadata: true

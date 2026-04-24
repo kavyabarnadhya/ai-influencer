@@ -1,0 +1,14 @@
+# Adult-tier prompts — Fanvue / Telegram ONLY. Never post to Instagram.
+# IMPORTANT: batch_generate.py requires --category adult --adult-consent-confirmed to use these.
+# All outputs are written to output/private/ — never mixed with lifestyle content.
+# Persona age: always stated as 23 in captions and profile bio.
+# Required disclosure: AI-generated content label on every post.
+#
+# Keep prompts tasteful for the initial Fanvue tier; explicit content
+# is only appropriate after verifying platform policy and age compliance.
+
+sitting on a window ledge in lingerie, soft backlit morning light, tasteful pose
+wearing a silk robe, holding a coffee cup, intimate bedroom setting, warm tones
+poolside in a swimsuit, late afternoon golden light, relaxed and confident
+in a cozy oversized sweater, sitting on a rug by the fireplace, soft candlelight
+wearing a fitted bodycon dress, rooftop bar setting, city lights at night

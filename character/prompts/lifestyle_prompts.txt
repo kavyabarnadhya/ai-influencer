@@ -1,0 +1,19 @@
+# Lifestyle prompts — Instagram-safe scenes
+# One prompt per line. Lines starting with # are ignored by batch_generate.py.
+# generate.py auto-prepends the base_prompt.txt fragment (including "KaviB, ").
+
+sitting at a sunlit cafe with a matcha latte, warm bokeh background, casual outfit
+walking through a farmer's market on a bright morning, carrying fresh flowers
+reading a book on a rooftop terrace at golden hour, city skyline in the distance
+stretching on a yoga mat by a large window, soft morning light
+laughing with friends at an outdoor restaurant, summer evening, fairy lights
+standing in front of a colorful mural, street art backdrop, casual streetwear
+working on a laptop at a minimalist home desk, plants in the background
+exploring a night market, paper lanterns, vibrant street food stalls
+hiking on a scenic trail with mountain views, athletic wear, backpack
+sitting cross-legged on a beach at sunrise, journaling in a notebook
+shopping at a vintage clothing store, browsing racks, relaxed expression
+cooking in a bright modern kitchen, fresh vegetables on the counter
+attending a gallery opening, elegant but approachable outfit, wine glass
+cycling through a city park on a sunny afternoon, casual dress
+at a cozy bookshop, holding a stack of books, cozy lighting

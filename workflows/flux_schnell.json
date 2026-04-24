@@ -1,0 +1,89 @@
+{
+  "_note": [
+    "FLUX Schnell — text-only, NO LoRA.",
+    "SDXL LoRA tensors are architecturally incompatible with the FLUX UNet.",
+    "Loading KaviB_v1_Prod.safetensors here will crash ComfyUI.",
+    "Use t2i_sdxl_lora.json for face-consistent KaviB images.",
+    "This workflow is for high-quality art shots, backgrounds, and objects only.",
+    "",
+    "Hardware note: Q4_K_S UNet is ~6.2GB — marginally over 6GB VRAM.",
+    "T5 and VAE must offload to system RAM. Expect 5-15 min/image on RTX 3050.",
+    "Fall back to flux1-schnell-Q3_K_S.gguf (~4.7GB) in flux_unet below if OOM.",
+    "FaceDetailer is intentionally disabled — FLUX is already VRAM-constrained."
+  ],
+  "1": {
+    "class_type": "UnetLoaderGGUF",
+    "_meta": { "title": "FLUX UNet GGUF Loader" },
+    "inputs": {
+      "unet_name": "unet/flux1-schnell-Q4_K_S.gguf"
+    }
+  },
+  "2": {
+    "class_type": "DualCLIPLoader",
+    "_meta": { "title": "FLUX CLIP Loader" },
+    "inputs": {
+      "clip_name1": "clip/t5xxl_fp8_e4m3fn.safetensors",
+      "clip_name2": "clip/clip_l.safetensors",
+      "type": "flux"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "_meta": { "title": "FLUX VAE Loader" },
+    "inputs": {
+      "vae_name": "vae/ae.safetensors"
+    }
+  },
+  "4": {
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "_claude_inject_prompt" },
+    "inputs": {
+      "text": "a photorealistic scene, high quality, detailed",
+      "clip": ["2", 0]
+    }
+  },
+  "5": {
+    "class_type": "EmptyLatentImage",
+    "_meta": { "title": "_claude_inject_latent" },
+    "inputs": {
+      "width": 832,
+      "height": 1216,
+      "batch_size": 1
+    }
+  },
+  "6": {
+    "class_type": "KSamplerAdvanced",
+    "_meta": { "title": "_claude_inject_seed" },
+    "inputs": {
+      "add_noise": "enable",
+      "noise_seed": 42,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "start_at_step": 0,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable",
+      "model": ["1", 0],
+      "positive": ["4", 0],
+      "negative": ["4", 0],
+      "latent_image": ["5", 0]
+    }
+  },
+  "7": {
+    "class_type": "VAEDecode",
+    "_meta": { "title": "VAE Decode" },
+    "inputs": {
+      "samples": ["6", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "8": {
+    "class_type": "SaveImage",
+    "_meta": { "title": "Save Image" },
+    "inputs": {
+      "filename_prefix": "flux_schnell",
+      "images": ["7", 0]
+    }
+  }
+}
