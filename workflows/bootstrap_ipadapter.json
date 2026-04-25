@@ -1,0 +1,104 @@
+{
+  "1": {
+    "_meta": {"title": "_claude_inject_checkpoint"},
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
+    }
+  },
+  "2": {
+    "_meta": {"title": "IPAdapter Model Loader"},
+    "class_type": "IPAdapterModelLoader",
+    "inputs": {
+      "ipadapter_file": "sdxl_models\\ip-adapter-plus-face_sdxl_vit-h.safetensors"
+    }
+  },
+  "3": {
+    "_meta": {"title": "CLIP Vision Loader"},
+    "class_type": "CLIPVisionLoader",
+    "inputs": {
+      "clip_name": "CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"
+    }
+  },
+  "4": {
+    "_meta": {"title": "_claude_inject_ipadapter_image"},
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "reference.png",
+      "upload": "image"
+    }
+  },
+  "5": {
+    "_meta": {"title": "_claude_inject_ipadapter_strength"},
+    "class_type": "IPAdapterAdvanced",
+    "inputs": {
+      "model": ["1", 0],
+      "ipadapter": ["2", 0],
+      "image": ["4", 0],
+      "clip_vision": ["3", 0],
+      "weight": 0.6,
+      "weight_type": "linear",
+      "combine_embeds": "concat",
+      "start_at": 0.0,
+      "end_at": 1.0,
+      "embeds_scaling": "V only"
+    }
+  },
+  "6": {
+    "_meta": {"title": "_claude_inject_prompt"},
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "north indian woman, photorealistic editorial fashion photography, natural lighting",
+      "clip": ["1", 1]
+    }
+  },
+  "7": {
+    "_meta": {"title": "_claude_inject_negative"},
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "worst quality, low quality, blurry, deformed, ugly, extra limbs, bad anatomy, watermark",
+      "clip": ["1", 1]
+    }
+  },
+  "8": {
+    "_meta": {"title": "_claude_inject_latent"},
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 896,
+      "height": 1152,
+      "batch_size": 1
+    }
+  },
+  "9": {
+    "_meta": {"title": "_claude_inject_seed"},
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["5", 0],
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "latent_image": ["8", 0],
+      "seed": 0,
+      "steps": 30,
+      "cfg": 7.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0
+    }
+  },
+  "10": {
+    "_meta": {"title": "VAE Decode"},
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["9", 0],
+      "vae": ["1", 2]
+    }
+  },
+  "11": {
+    "_meta": {"title": "Save Image"},
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["10", 0],
+      "filename_prefix": "bootstrap_ipadapter"
+    }
+  }
+}

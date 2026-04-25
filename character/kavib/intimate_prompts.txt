@@ -1,0 +1,9 @@
+# Intimate prompts — Fanvue / Telegram only. NEVER post to Instagram.
+# Adult consent required: use --adult-consent-confirmed flag with batch_generate.py
+# One prompt per line. Lines starting with # are ignored.
+
+lounging in a luxury hotel room, silk robe, champagne on nightstand, soft candlelight, elegant and seductive
+sitting on a window sill in lingerie, sheer curtains, morning light, confident gaze
+on a velvet chaise lounge, wearing a satin slip dress, moody dramatic lighting, roses nearby
+in a clawfoot bathtub with rose petals, bubble bath, sultry expression, candles around the rim
+standing in a doorway wearing a sheer bodysuit, backlit silhouette, evening glow

@@ -1,0 +1,68 @@
+# Kohya SS — Dreambooth LoRA config for KaviB
+# Upload this alongside training_data.zip to RunPod or Civitai trainer
+# Adjust YOUR_* placeholders before training
+
+[general]
+enable_bucket = true
+min_bucket_reso = 768
+max_bucket_reso = 1024
+bucket_reso_steps = 64
+bucket_no_upscale = false
+
+[datasets.[[datasets]]]
+image_dir = "YOUR_DATASET_PATH/img/10_KaviB woman"
+caption_extension = ".txt"
+num_repeats = 10
+
+[model_arguments]
+pretrained_model_name_or_path = "YOUR_SDXL_CHECKPOINT_PATH/juggernautXL_v10RunDiffusion.safetensors"
+v2 = false
+v_parameterization = false
+
+[saving_arguments]
+save_model_as = "safetensors"
+save_precision = "fp16"
+output_dir = "YOUR_OUTPUT_PATH/loras"
+output_name = "KaviB_v1_Prod"
+save_every_n_steps = 200
+
+[training_arguments]
+mixed_precision = "fp16"
+xformers = true
+cache_latents = true
+cache_latents_to_disk = true
+persistent_data_loader_workers = true
+
+max_train_steps = 2400
+train_batch_size = 1
+gradient_accumulation_steps = 1
+gradient_checkpointing = true
+max_grad_norm = 1.0
+
+seed = 42
+logging_dir = "YOUR_OUTPUT_PATH/logs"
+
+[network_arguments]
+network_module = "networks.lora"
+network_dim = 32
+network_alpha = 16
+
+[optimizer_arguments]
+optimizer_type = "prodigy"
+learning_rate = 1.0
+unet_lr = 1.0
+text_encoder_lr = 1.0
+
+optimizer_args = [
+  "d_coef=2",
+  "use_bias_correction=True",
+  "safeguard_warmup=True",
+]
+
+lr_scheduler = "constant"
+lr_warmup_steps = 0
+
+[caption_arguments]
+keep_tokens = 1
+shuffle_caption = true
+caption_dropout_rate = 0.05

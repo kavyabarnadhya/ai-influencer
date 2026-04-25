@@ -1,0 +1,20 @@
+# Ananya — Free Tier (Public Instagram)
+# Aspirational fashion and lifestyle. Instagram-safe.
+# Post-LoRA: remove physical descriptors — only clothing, setting, pose, lighting.
+# One prompt per line. Lines starting with # are ignored.
+
+sitting at a sunlit Delhi cafe, iced coffee on the table, white linen kurta, candid half-smile, warm morning light, shot from across the table
+rooftop portrait at golden hour, Delhi skyline behind her, flowy indo-western co-ord set in terracotta, wind in hair, looking slightly off-camera
+wedding guest look, embroidered lehenga in dusty rose, outdoor venue with string lights, laughing mid-motion, candid editorial
+solo Goa trip, white linen beach dress, warm sand, afternoon sun, relaxed expression, candid walking shot from behind and side
+mirror OOTD in hotel room, casual deep-V kurta in sage green, phone in hand, slight smirk, natural overhead light
+Himachal weekend, oversized sweater and jeans, misty mountain background, coffee mug in hands, sitting on a wooden railing, candid
+festive look — silk anarkali kurta in deep mustard, Diwali lights behind her, golden warm light, looking down at diyas, editorial lifestyle
+Delhi metro style, street fashion, oversized blazer over bralette and wide-leg pants, city street background, walking candid shot
+weekend brunch, floral midi dress, outdoor patio seating, laughing at something off-camera, natural dappled light through leaves
+airport departure — casual chic, beige trench coat, jeans, tote bag, departure hall background, hair pulled back, confident walk shot
+rooftop evening in South Delhi, embroidered kurta set in ivory, fairy lights, warm golden ambience, candid leaning on railing
+Sunday morning, oversized white shirt dress, balcony with coffee, plant-filled corner, soft diffused morning light
+Rajasthan trip, printed block-print co-ord in orange, haveliwall behind her, afternoon desert light, relaxed editorial
+Delhi winter morning, mustard wool shawl over printed kurta, foggy background, cup in both hands, steaming breath, candid
+Indo-western street style, cropped embroidered jacket over flared pants, market lane, natural afternoon light, candid walk shot

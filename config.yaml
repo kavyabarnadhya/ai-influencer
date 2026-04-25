@@ -1,0 +1,59 @@
+comfyui:
+  host: 127.0.0.1
+  port: 8000
+  comfyui_path: C:/ComfyUI
+  timeout: 300
+
+models:
+  dir: C:/Users/barna/Documents/ComfyUI/models
+  checkpoint: Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors
+  ipadapter: ip-adapter-plus-face_sdxl_vit-h.safetensors
+  flux_gguf_q4: flux1-schnell-Q4_K_S.gguf
+  flux_gguf_q3: flux1-schnell-Q3_K_S.gguf
+  flux_vae: ae.safetensors
+  clip_l: clip_l.safetensors
+  t5xxl: t5xxl_fp8_e4m3fn.safetensors
+
+characters:
+  ananya:
+    trigger_word: AnanyaAI
+    lora: AnanyaAI_v1_Prod.safetensors
+    lora_strength: 0.85
+    ipadapter_strength: 0.6
+    base_prompt_file: character/ananya/base_prompt.txt
+    output_subdir: ananya
+    seeds_dir: character/ananya/seeds
+  kavib:
+    trigger_word: KaviB
+    lora: KaviB_v1_Prod.safetensors
+    lora_strength: 0.85
+    ipadapter_strength: 0.6
+    base_prompt_file: character/kavib/base_prompt.txt
+    output_subdir: kavib
+    seeds_dir: character/kavib/seeds
+
+generation:
+  workflow: t2i_sdxl_lora
+  steps: 30
+  cfg: 7.0
+  width: 896
+  height: 1152
+  sampler: dpmpp_2m
+  scheduler: karras
+  negative_prompt: "worst quality, low quality, blurry, deformed, ugly, extra limbs, bad anatomy, watermark, text, signature, bindi, tikka, maang tikka, jhumka, chandbaali, heavy necklace, traditional jewelry, dupatta, kurta, anarkali, salwar, heavily embroidered, bridal, deformed hands, extra fingers, bad hands, malformed hands, bad lips, deformed mouth, crooked teeth, asymmetrical eyes, uneven eyes, cross-eyed, lazy eye, wall-eyed, different sized eyes, strabismus"
+
+gpu:
+  use_lowvram: true
+  tile_vae: true
+  vram_limit_gb: 6
+
+rescue_mode:
+  width: 768
+  height: 1152
+  steps: 24
+  workflow: bootstrap_seeds
+
+paths:
+  output_dir: output
+  log_dir: logs
+  workflows_dir: workflows

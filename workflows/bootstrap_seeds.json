@@ -1,0 +1,66 @@
+{
+  "1": {
+    "_meta": {"title": "_claude_inject_checkpoint"},
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
+    }
+  },
+  "2": {
+    "_meta": {"title": "_claude_inject_prompt"},
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "KaviB, 23 year old woman, photorealistic, 8k, sharp focus",
+      "clip": ["1", 1]
+    }
+  },
+  "3": {
+    "_meta": {"title": "_claude_inject_negative"},
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "worst quality, low quality, blurry, deformed, ugly, extra limbs, bad anatomy, watermark",
+      "clip": ["1", 1]
+    }
+  },
+  "4": {
+    "_meta": {"title": "_claude_inject_latent"},
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 896,
+      "height": 1152,
+      "batch_size": 1
+    }
+  },
+  "5": {
+    "_meta": {"title": "_claude_inject_seed"},
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["1", 0],
+      "positive": ["2", 0],
+      "negative": ["3", 0],
+      "latent_image": ["4", 0],
+      "seed": 0,
+      "steps": 30,
+      "cfg": 7.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0
+    }
+  },
+  "6": {
+    "_meta": {"title": "VAE Decode"},
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["5", 0],
+      "vae": ["1", 2]
+    }
+  },
+  "7": {
+    "_meta": {"title": "Save Image"},
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["6", 0],
+      "filename_prefix": "bootstrap"
+    }
+  }
+}

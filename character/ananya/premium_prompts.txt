@@ -1,0 +1,22 @@
+# Ananya — Premium Tier (Instagram Subscriptions — Subscriber-Exclusive)
+# More editorial, more body-confident. Fully clothed, Instagram-compliant.
+# All outputs require human review before posting.
+# Post-LoRA: remove physical descriptors — only clothing, setting, pose, lighting.
+# One prompt per line. Lines starting with # are ignored.
+
+editorial shoot, silk backless saree in emerald green, blouse with deep back cutout, arched back pose against white wall, dramatic side lighting, moody
+hotel room evening, satin slip dress in champagne, sitting on bed edge, direct soft gaze at camera, warm bedside lamp light, exclusive glam
+rooftop night shoot, fitted bodycon dress in deep red, city lights below, confident standing pose, cool blue-toned evening light, editorial
+bathroom vanity shot, post-shower glam, silk robe loosely worn, wet-hair look, soft warm light, mirror reflection composition
+hotel corridor walk, backless halter mini dress in black, looking back over shoulder, dramatic corridor lighting, cinematic editorial
+private glam shoot, sleeveless fitted blouse and high-waist skirt, midriff styling, bold lip, studio-style lighting against dark backdrop
+balcony golden hour, sheer embroidered saree in ivory, blouse with keyhole back, leaning on railing, soft warm backlight, dreamy editorial
+late night look — deep plunge mini dress in burgundy, subtle shimmer, standing at full-length mirror, dim warm light, confidence pose
+silky co-ord set in cobalt blue, crop top and mini skirt, sitting cross-legged on hotel bed, direct gaze, natural window morning light
+rooftop editorial, plunging wrap dress in deep teal, confident posture, soft evening wind, bokeh city lights behind her
+hotel suite morning, silk chemise in blush, sitting at dressing table, gold jewellery catch the light, soft diffused morning window light
+backless lehenga blouse, intricate gold embroidery, standing in ornate haveli corridor, warm diya light, editorial fashion
+sleeveless fitted kurta set in ivory, side slit detail, hotel lobby marble background, confident walk, editorial lighting
+sheer embroidered dupatta draped loosely over bare shoulders, rooftop silhouette against purple dusk sky, editorial mood
+# NOTE: Pool swimsuit prompt is high-review-risk — manual review required before posting; borderline for Instagram public
+pool evening, strappy one-piece swimsuit, sitting on pool edge, feet in water, golden sunset reflection, tasteful editorial

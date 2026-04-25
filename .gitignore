@@ -1,0 +1,12 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Generated outputs
+output/
+logs/
+
+# Local env
+.env
