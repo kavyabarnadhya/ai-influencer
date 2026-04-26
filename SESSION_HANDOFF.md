@@ -111,13 +111,19 @@ photorealistic backgrounds AND a perfect Ananya face in one go.
 - Output file size: approximately 150MB to 500MB
 
 ### Training Data
-Reference images already prepared at:
-`C:\Users\barna\Projects\ai-influencer\character\ananya\reference_board\`
-- `primary_ref_200138.png` — primary identity reference
-- `face_ref_001_2890463320.png` — secondary close-up
+I have initialized a fresh folder for your training set:
+`C:\Users\barna\Projects\ai-influencer\character\ananya\training_data\`
+- Currently contains **7 curated images** (2 ground truths + 5 best SDXL seeds).
+- **Target:** 25 high-quality images.
 
-The user should prepare **15–30 cropped, clean face images** before the RunPod session.
-Diverse lighting and angles are important for a robust LoRA.
+### Next Session: Prepare Training Data (Phase 1)
+Before starting the RunPod pod, we need to generate the remaining ~18 images.
+1. **Run a batch of diverse closeups:** We need to generate images with varied lighting (e.g., "neon night", "harsh sun", "office interior", "candlelight") and varied angles ("profile view", "looking up", "looking down").
+2. **Curate and Rename:** Select only the perfect face matches and move them to the `training_data` folder.
+3. **Captioning:** I will help you write the `.txt` caption files for each image (e.g., "photo of AnanyaAI, a woman with dark brown hair, wearing a black dress, in a nightclub") which is required for high-quality FLUX training.
+
+### Next Session: RunPod Training (Phase 2)
+Once the folder has ~25 images and captions, follow the RunPod steps in Section 4.
 
 ### Step-by-Step RunPod Plan
 1. Go to https://www.runpod.io/console/pods
