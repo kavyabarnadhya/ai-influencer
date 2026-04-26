@@ -3,7 +3,7 @@
     "_meta": {"title": "UNET Loader (GGUF)"},
     "class_type": "UnetLoaderGGUF",
     "inputs": {
-      "unet_name": "flux1-schnell-q4_k_s.gguf"
+      "unet_name": "flux1-schnell-Q3_K_S.gguf"
     }
   },
   "2": {

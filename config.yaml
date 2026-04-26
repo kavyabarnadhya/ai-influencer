@@ -2,7 +2,7 @@ comfyui:
   host: 127.0.0.1
   port: 8002
   comfyui_path: C:/ComfyUI
-  timeout: 300
+  timeout: 1200
 
 models:
   dir: C:/Users/barna/Documents/ComfyUI/models
@@ -18,7 +18,7 @@ characters:
   ananya:
     trigger_word: AnanyaAI
     lora: AnanyaAI_v1_Prod.safetensors
-    lora_strength: 0.70
+    lora_strength: 0.95
     ipadapter_strength: 0.6
     base_prompt_file: character/ananya/base_prompt.txt
     output_subdir: ananya
@@ -40,7 +40,7 @@ generation:
   height: 1152
   sampler: dpmpp_2m
   scheduler: karras
-  negative_prompt: "worst quality, low quality, deformed, ugly, extra limbs, bad anatomy, watermark, text, signature, bindi, tikka, maang tikka, jhumka, chandbaali, heavy necklace, traditional jewelry, dupatta, kurta, anarkali, salwar, heavily embroidered, bridal, deformed hands, extra fingers, bad hands, malformed hands, mutated hands, missing fingers, fused fingers, too many fingers, poorly drawn hands, mangled hands, floating hands, disembodied hands, hands near face, hand on chin, fingers touching face, bad lips, deformed mouth, crooked teeth, asymmetrical eyes, uneven eyes, cross-eyed, lazy eye, wall-eyed, different sized eyes, strabismus, dusky skin, dark skin, tan skin, olive complexion, brown skin, tanned, dark complexion, dark tone, unpainted nails, chipped nails, no makeup, completely blurred background, fully out of focus background, gaussian blur, flat chest, small bust, petite chest, boyish figure, shiny jewelry, reflective jewelry, oversized jewelry, chunky jewelry, statement jewelry"
+  negative_prompt: "(studio photography, plain background, solid color background, seamless paper, blank background, isolated subject, simple background:1.4), cgi, 3d, render, cartoon, illustration, drawing, painting, bad proportions, bad quality, low quality, deformed, ugly, extra limbs, bad anatomy, watermark, text, signature, bindi, tikka, maang tikka, jhumka, chandbaali, heavy necklace, traditional jewelry, dupatta, kurta, anarkali, salwar, heavily embroidered, bridal, deformed hands, extra fingers, bad hands, malformed hands, mutated hands, missing fingers, fused fingers, too many fingers, poorly drawn hands, mangled hands, floating hands, disembodied hands, hands near face, hand on chin, fingers touching face, bad lips, deformed mouth, crooked teeth, asymmetrical eyes, uneven eyes, cross-eyed, lazy eye, wall-eyed, different sized eyes, strabismus, dusky skin, dark skin, tan skin, olive complexion, brown skin, tanned, dark complexion, dark tone, unpainted nails, chipped nails, no makeup, shiny jewelry, reflective jewelry, oversized jewelry, chunky jewelry, statement jewelry"
 
 gpu:
   use_lowvram: true
@@ -49,9 +49,9 @@ gpu:
 
 rescue_mode:
   width: 768
-  height: 1152
-  steps: 24
-  workflow: bootstrap_seeds
+  height: 1024
+  steps: 26
+  workflow: t2i_sdxl_lora
 
 paths:
   output_dir: output

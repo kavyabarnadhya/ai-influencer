@@ -31,6 +31,9 @@ class ComfyUIClient:
         try:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 return json.loads(resp.read())
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode("utf-8")
+            raise ComfyUIError(f"POST to {path} failed: {e}\nResponse: {error_body}")
         except urllib.error.URLError as e:
             raise ComfyUIError(f"POST to {path} failed: {e}")
 
