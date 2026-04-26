@@ -1,6 +1,6 @@
 comfyui:
   host: 127.0.0.1
-  port: 8000
+  port: 8002
   comfyui_path: C:/ComfyUI
   timeout: 300
 

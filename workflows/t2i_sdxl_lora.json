@@ -12,7 +12,7 @@
     "inputs": {
       "model": ["1", 0],
       "clip": ["1", 1],
-      "lora_name": "KaviB_v1_Prod.safetensors",
+      "lora_name": "AnanyaAI_v1_Prod.safetensors",
       "strength_model": 0.85,
       "strength_clip": 0.85
     }
@@ -100,14 +100,15 @@
       "sam_mask_hint_use_negative": "False",
       "drop_size": 10,
       "refiner_ratio": 0.2,
+      "wildcard": "",
       "cycle": 1
     }
   },
   "9": {
     "_meta": {"title": "BBOX Detector (YOLOv8)"},
-    "class_type": "UltraBBoxDetector",
+    "class_type": "UltralyticsDetectorProvider",
     "inputs": {
-      "bbox_detector": "bbox/face_yolov8m.pt"
+      "model_name": "bbox/face_yolov8m.pt"
     }
   },
   "10": {
@@ -115,7 +116,7 @@
     "class_type": "SaveImage",
     "inputs": {
       "images": ["8", 0],
-      "filename_prefix": "kavib"
+      "filename_prefix": "ananya"
     }
   }
 }

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "ananya": {
+      "command": "C:\\Users\\barna\\Projects\\ai-influencer\\.venv\\Scripts\\python.exe",
+      "args": ["C:\\Users\\barna\\Projects\\ai-influencer\\scripts\\mcp_server.py"]
+    }
+  }
+}
