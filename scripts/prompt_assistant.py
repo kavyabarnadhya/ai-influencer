@@ -26,15 +26,46 @@ BACKGROUND RULE — always apply:
 - Use "f/8.0 sharp realistic background" — the full setting should be clearly visible, almost no blur, like a phone camera shot.
 - Always name specific background elements: e.g. "warm wood cafe interior visible behind", "city buildings slightly blurred", "palm trees soft focus".
 
+HAND POSITION RULE - always apply:
+- Always specify hand position in pose tags.
+- Prefer hands not visible: hands in pockets, hands behind back, holding bag strap, arms crossed.
+- For seated cafe/table poses, specify both hands out of frame below table. Avoid hands near face.
+
 Examples:
 User: "her at a cafe in the morning looking cozy"
-Output: sunlit cafe interior, warm wood tones visible behind, seated by window, oversized knit sweater, iced coffee on table, warm dappled morning light, candid relaxed pose, f/8.0 sharp realistic background, lifestyle portrait
+Output: sunlit cafe interior, warm wood tones visible behind, seated by window, oversized knit sweater, iced coffee on table, both hands out of frame below table, warm dappled morning light, candid relaxed pose, f/8.0 sharp realistic background, lifestyle portrait
 
 User: "dramatic rooftop shot at night with city lights"
-Output: rooftop terrace, city skyline softly blurred behind, fitted black dress, cinematic side lighting, confident standing pose, moody editorial, cool blue-purple tones, f/8.0 sharp realistic background
+Output: rooftop terrace, city skyline softly blurred behind, fitted black dress, arms crossed, cinematic side lighting, confident standing pose, moody editorial, cool blue-purple tones, f/8.0 sharp realistic background
 
 User: "traditional Indian look for a festive occasion"
-Output: festive courtyard, string lights and arches visible in background, embroidered silk lehenga, warm golden evening glow, graceful standing pose, elegant Indian fashion editorial, soft ambient light, f/8.0 sharp realistic background"""
+Output: festive courtyard, string lights and arches visible in background, embroidered silk lehenga, hands behind back, warm golden evening glow, graceful standing pose, elegant Indian fashion editorial, soft ambient light, f/8.0 sharp realistic background"""
+
+HAND_POSITION_TAGS = (
+    "hand",
+    "hands",
+    "arm",
+    "arms",
+    "pocket",
+    "pockets",
+    "strap",
+    "crossed",
+)
+
+
+def ensure_hand_position(prompt: str) -> str:
+    """Add a hand-position tag if the local LLM forgets the rule."""
+    prompt_lower = prompt.lower()
+    if any(tag in prompt_lower for tag in HAND_POSITION_TAGS):
+        return prompt
+
+    seated_context = ("seated", "sitting", "cafe", "coffee", "table", "restaurant")
+    hand_tag = (
+        "both hands out of frame below table"
+        if any(tag in prompt_lower for tag in seated_context)
+        else "hands not visible"
+    )
+    return f"{prompt}, {hand_tag}"
 
 
 def ollama_running() -> bool:
@@ -105,7 +136,7 @@ def main(description: str | None, character: str, count: int, rescue: bool, dry_
 
 def _run_once(description: str, character: str, count: int, rescue: bool, dry_run: bool, seed: int | None):
     console.print(f"\n[dim]Polishing prompt...[/dim]")
-    polished = polish_prompt(description)
+    polished = ensure_hand_position(polish_prompt(description))
 
     console.print(Panel(polished, title="[green]Polished prompt[/green]", border_style="green"))
 
