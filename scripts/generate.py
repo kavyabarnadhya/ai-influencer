@@ -56,20 +56,22 @@ def pick_jewelry() -> str:
 
 def build_prompt(base: str, user_prompt: str, trigger: str) -> str:
     jewelry = pick_jewelry()
-    full = f"{base}, {jewelry}, {user_prompt}"
-    if not full.startswith(trigger):
-        full = f"{trigger}, {full}"
+    # Move user_prompt to the front (after trigger) to give it maximum weight
+    # and strip the trigger from the base if it exists to avoid double-triggering.
+    clean_base = base.replace(trigger, "").strip().strip(",")
+    full = f"{trigger}, {user_prompt}, {jewelry}, {clean_base}"
     return full
 
 
 @click.command()
 @click.option("--prompt", required=True, help="Scene description (no anatomy — LoRA handles that)")
+@click.option("--image", help="Optional reference image path for IP-Adapter (e.g. a FLUX background)")
 @click.option("--count", default=1, show_default=True, help="Number of images to generate")
 @click.option("--seed", default=None, type=int, help="Seed (random if omitted)")
 @click.option("--workflow", default=None, help="Workflow name (overrides config default)")
 @click.option("--rescue", is_flag=True, help="Low-VRAM mode: 768x1152, 24 steps, no FaceDetailer")
 @click.option("--character", default="ananya", show_default=True, help="Character to generate [ananya|kavib]")
-def main(prompt: str, count: int, seed: int | None, workflow: str | None, rescue: bool, character: str):
+def main(prompt: str, image: str | None, count: int, seed: int | None, workflow: str | None, rescue: bool, character: str):
     cfg = load_config()
     char_cfg = load_character(cfg, character)
     comfy_cfg = cfg["comfyui"]
@@ -81,7 +83,12 @@ def main(prompt: str, count: int, seed: int | None, workflow: str | None, rescue
         console.print("[red]ComfyUI is not running. Start it first.[/red]")
         raise SystemExit(1)
 
-    workflow_name = workflow or (rescue_cfg["workflow"] if rescue else gen_cfg["workflow"])
+    # If an image is provided but no workflow is specified, default to t2i_img2img
+    if image and not workflow:
+        workflow_name = "t2i_img2img"
+    else:
+        workflow_name = workflow or (rescue_cfg["workflow"] if rescue else gen_cfg["workflow"])
+
     workflow_path = ROOT / cfg["paths"]["workflows_dir"] / f"{workflow_name}.json"
     if not workflow_path.exists():
         console.print(f"[red]Workflow not found: {workflow_path}[/red]")
@@ -100,16 +107,33 @@ def main(prompt: str, count: int, seed: int | None, workflow: str | None, rescue
 
     workflow_data = load_workflow(str(workflow_path))
 
+    # Handle image upload if provided
+    uploaded_filename = None
+    if image:
+        img_path = Path(image)
+        if not img_path.exists():
+            console.print(f"[red]Reference image not found: {image}[/red]")
+            raise SystemExit(1)
+        console.print(f"[dim]Uploading reference image: {img_path.name}...[/dim]")
+        uploaded_filename = client.upload_image(str(img_path))
+
     for i in range(count):
         img_seed = seed if seed is not None else random.randint(0, 2**32 - 1)
+
+        is_flux = workflow_name == "flux_schnell"
+        current_steps = 4 if is_flux else steps
+        current_cfg = 1.0 if is_flux else gen_cfg["cfg"]
 
         overrides = {
             "_claude_inject_prompt": {"inputs.text": full_prompt},
             "_claude_inject_negative": {"inputs.text": gen_cfg["negative_prompt"]},
-            "_claude_inject_seed": {"inputs.seed": img_seed, "inputs.steps": steps, "inputs.cfg": gen_cfg["cfg"]},
+            "_claude_inject_seed": {"inputs.seed": img_seed, "inputs.steps": current_steps, "inputs.cfg": current_cfg},
             "_claude_inject_latent": {"inputs.width": width, "inputs.height": height},
             "_claude_inject_checkpoint": {"inputs.ckpt_name": cfg["models"]["checkpoint"]},
         }
+
+        if uploaded_filename:
+            overrides["_claude_inject_ipadapter_image"] = {"inputs.image": uploaded_filename}
 
         if workflow_name not in ("bootstrap_seeds", "flux_schnell"):
             overrides["_claude_inject_lora"] = {
