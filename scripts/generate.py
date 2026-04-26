@@ -29,8 +29,34 @@ def load_character(cfg: dict, character: str) -> dict:
     return chars[character]
 
 
+JEWELRY_POOL = [
+    "tiny understated gold stud earrings, barely visible thin gold chain necklace",
+    "small matte gold hoop earrings, delicate thin gold pendant necklace",
+    "tiny diamond stud earrings, subtle thin gold necklace",
+    "small pearl stud earrings, no necklace",
+    "small subtle gold drop earrings, delicate thin gold chain necklace",
+    "tiny gold huggie earrings, barely visible thin gold necklace",
+    "small silver stud earrings, no necklace",
+    "no earrings, no necklace",
+]
+
+RING_BRACELET_POOL = [
+    "thin subtle gold ring",
+    "no rings, no bracelet",
+    "no rings, no bracelet",
+    "no rings, no bracelet",
+]
+
+
+def pick_jewelry() -> str:
+    earring_necklace = random.choice(JEWELRY_POOL)
+    ring_bracelet = random.choice(RING_BRACELET_POOL)
+    return f"{earring_necklace}, {ring_bracelet}"
+
+
 def build_prompt(base: str, user_prompt: str, trigger: str) -> str:
-    full = f"{base}, {user_prompt}"
+    jewelry = pick_jewelry()
+    full = f"{base}, {jewelry}, {user_prompt}"
     if not full.startswith(trigger):
         full = f"{trigger}, {full}"
     return full

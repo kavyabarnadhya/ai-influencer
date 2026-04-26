@@ -77,7 +77,7 @@
       "positive": ["3", 0],
       "negative": ["4", 0],
       "bbox_detector": ["9", 0],
-      "guide_size": 512,
+      "guide_size": 768,
       "guide_size_for": true,
       "max_size": 1024,
       "seed": 0,

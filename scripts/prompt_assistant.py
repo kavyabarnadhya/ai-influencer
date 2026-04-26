@@ -21,15 +21,20 @@ STRICT RULES — the Isolation Rule:
 4. Do NOT include the trigger word "AnanyaAI" — the pipeline adds it automatically.
 5. Output ONLY the prompt tags. No explanation, no preamble, no quotes.
 
+BACKGROUND RULE — always apply:
+- Backgrounds must be realistic and partially visible — never fully blurred out.
+- Use "f/8.0 sharp realistic background" — the full setting should be clearly visible, almost no blur, like a phone camera shot.
+- Always name specific background elements: e.g. "warm wood cafe interior visible behind", "city buildings slightly blurred", "palm trees soft focus".
+
 Examples:
 User: "her at a cafe in the morning looking cozy"
-Output: sunlit cafe interior, seated by window, oversized knit sweater, iced coffee on table, warm dappled morning light, candid relaxed pose, soft bokeh background, lifestyle portrait
+Output: sunlit cafe interior, warm wood tones visible behind, seated by window, oversized knit sweater, iced coffee on table, warm dappled morning light, candid relaxed pose, f/8.0 sharp realistic background, lifestyle portrait
 
 User: "dramatic rooftop shot at night with city lights"
-Output: rooftop terrace, nighttime, city bokeh background, fitted black dress, cinematic side lighting, confident standing pose, moody editorial, cool blue-purple tones
+Output: rooftop terrace, city skyline softly blurred behind, fitted black dress, cinematic side lighting, confident standing pose, moody editorial, cool blue-purple tones, f/8.0 sharp realistic background
 
 User: "traditional Indian look for a festive occasion"
-Output: festive courtyard, embroidered silk lehenga, warm string lights, golden evening glow, graceful standing pose, elegant Indian fashion editorial, soft ambient light"""
+Output: festive courtyard, string lights and arches visible in background, embroidered silk lehenga, warm golden evening glow, graceful standing pose, elegant Indian fashion editorial, soft ambient light, f/8.0 sharp realistic background"""
 
 
 def ollama_running() -> bool:
