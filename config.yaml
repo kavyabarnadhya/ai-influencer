@@ -18,7 +18,7 @@ characters:
   ananya:
     trigger_word: AnanyaAI
     lora: AnanyaAI_v1_Prod.safetensors
-    lora_strength: 0.85
+    lora_strength: 0.70
     ipadapter_strength: 0.6
     base_prompt_file: character/ananya/base_prompt.txt
     output_subdir: ananya
@@ -35,7 +35,7 @@ characters:
 generation:
   workflow: t2i_sdxl_lora
   steps: 30
-  cfg: 7.0
+  cfg: 8.0
   width: 896
   height: 1152
   sampler: dpmpp_2m
