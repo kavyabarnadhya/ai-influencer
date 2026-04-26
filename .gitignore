@@ -1,5 +1,6 @@
 # Python
 .venv/
+.uv-cache/
 __pycache__/
 *.pyc
 *.pyo
@@ -7,6 +8,8 @@ __pycache__/
 # Generated outputs
 output/
 logs/
+training_data_*.zip
 
 # Local env
 .env
+.claude/

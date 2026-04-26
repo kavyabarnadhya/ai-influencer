@@ -1,6 +1,6 @@
 comfyui:
   host: 127.0.0.1
-  port: 8000
+  port: 8002
   comfyui_path: C:/ComfyUI
   timeout: 300
 
@@ -40,7 +40,7 @@ generation:
   height: 1152
   sampler: dpmpp_2m
   scheduler: karras
-  negative_prompt: "worst quality, low quality, blurry, deformed, ugly, extra limbs, bad anatomy, watermark, text, signature, bindi, tikka, maang tikka, jhumka, chandbaali, heavy necklace, traditional jewelry, dupatta, kurta, anarkali, salwar, heavily embroidered, bridal, deformed hands, extra fingers, bad hands, malformed hands, bad lips, deformed mouth, crooked teeth, asymmetrical eyes, uneven eyes, cross-eyed, lazy eye, wall-eyed, different sized eyes, strabismus"
+  negative_prompt: "worst quality, low quality, deformed, ugly, extra limbs, bad anatomy, watermark, text, signature, bindi, tikka, maang tikka, jhumka, chandbaali, heavy necklace, traditional jewelry, dupatta, kurta, anarkali, salwar, heavily embroidered, bridal, deformed hands, extra fingers, bad hands, malformed hands, mutated hands, missing fingers, fused fingers, too many fingers, poorly drawn hands, mangled hands, floating hands, disembodied hands, hands near face, hand on chin, fingers touching face, bad lips, deformed mouth, crooked teeth, asymmetrical eyes, uneven eyes, cross-eyed, lazy eye, wall-eyed, different sized eyes, strabismus, dusky skin, dark skin, tan skin, olive complexion, brown skin, tanned, dark complexion, dark tone, unpainted nails, chipped nails, no makeup, completely blurred background, fully out of focus background, gaussian blur, flat chest, small bust, petite chest, boyish figure, shiny jewelry, reflective jewelry, oversized jewelry, chunky jewelry, statement jewelry"
 
 gpu:
   use_lowvram: true
