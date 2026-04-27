@@ -120,12 +120,20 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
     overrides maps sentinel title → dict of {field_path: value}.
     field_path uses dot notation: "inputs.text", "inputs.seed", etc.
     """
-    workflow = json.loads(json.dumps(workflow))  # deep copy
+    # Performance Optimization: Instead of deep-copying the entire workflow,
+    # we shallow copy the top-level dict and only deep-copy nodes that need patching.
+    # This significantly reduces overhead for large workflows where only a few nodes change.
+    workflow = workflow.copy()
 
     for node_id, node in workflow.items():
         title = node.get("_meta", {}).get("title", "")
         if title not in overrides:
             continue
+
+        # Deep copy only the node being modified to preserve the original workflow object
+        node = json.loads(json.dumps(node))
+        workflow[node_id] = node
+
         patches = overrides[title]
         for field_path, value in patches.items():
             parts = field_path.split(".")
