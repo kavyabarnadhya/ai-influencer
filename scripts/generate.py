@@ -54,13 +54,25 @@ def pick_jewelry() -> str:
     return f"{earring_necklace}, {ring_bracelet}"
 
 
-def build_prompt(base: str, user_prompt: str, trigger: str) -> str:
+def build_prompt(base: str, user_prompt: str, trigger: str, include_base: bool = True) -> str:
     jewelry = pick_jewelry()
+    if not include_base:
+        return f"{trigger}, {user_prompt}, {jewelry}"
+
     # Move user_prompt to the front (after trigger) to give it maximum weight
     # and strip the trigger from the base if it exists to avoid double-triggering.
     clean_base = base.replace(trigger, "").strip().strip(",")
     full = f"{trigger}, {user_prompt}, {jewelry}, {clean_base}"
     return full
+
+
+def is_flux_workflow(workflow_name: str) -> bool:
+    return workflow_name.startswith("flux")
+
+
+def is_background_prompt(prompt: str) -> bool:
+    lowered = prompt.lower()
+    return "empty scene" in lowered or "no people" in lowered or "no humans" in lowered
 
 
 @click.command()
@@ -70,8 +82,9 @@ def build_prompt(base: str, user_prompt: str, trigger: str) -> str:
 @click.option("--seed", default=None, type=int, help="Seed (random if omitted)")
 @click.option("--workflow", default=None, help="Workflow name (overrides config default)")
 @click.option("--rescue", is_flag=True, help="Low-VRAM mode: 768x1152, 24 steps, no FaceDetailer")
+@click.option("--reel-anchor", is_flag=True, help="Generate a vertical still for image-to-video reels")
 @click.option("--character", default="ananya", show_default=True, help="Character to generate [ananya|kavib]")
-def main(prompt: str, image: str | None, count: int, seed: int | None, workflow: str | None, rescue: bool, character: str):
+def main(prompt: str, image: str | None, count: int, seed: int | None, workflow: str | None, rescue: bool, reel_anchor: bool, character: str):
     cfg = load_config()
     char_cfg = load_character(cfg, character)
     comfy_cfg = cfg["comfyui"]
@@ -94,15 +107,29 @@ def main(prompt: str, image: str | None, count: int, seed: int | None, workflow:
         console.print(f"[red]Workflow not found: {workflow_path}[/red]")
         raise SystemExit(1)
 
+    is_flux = is_flux_workflow(workflow_name)
+    background_only = is_flux and is_background_prompt(prompt)
     base_prompt = (ROOT / char_cfg["base_prompt_file"]).read_text(encoding="utf-8").strip()
-    full_prompt = build_prompt(base_prompt, prompt, char_cfg["trigger_word"])
+    full_prompt = prompt if background_only else build_prompt(
+        base_prompt,
+        prompt,
+        char_cfg["trigger_word"],
+        include_base=not is_flux,
+    )
 
-    width = rescue_cfg["width"] if rescue else gen_cfg["width"]
-    height = rescue_cfg["height"] if rescue else gen_cfg["height"]
+    reels_cfg = cfg.get("reels", {})
+    if reel_anchor:
+        width = reels_cfg.get("anchor_width", gen_cfg["width"])
+        height = reels_cfg.get("anchor_height", gen_cfg["height"])
+    else:
+        width = rescue_cfg["width"] if rescue else gen_cfg["width"]
+        height = rescue_cfg["height"] if rescue else gen_cfg["height"]
     steps = rescue_cfg["steps"] if rescue else gen_cfg["steps"]
 
     today = datetime.now().strftime("%Y-%m-%d")
     out_dir = ROOT / cfg["paths"]["output_dir"] / today / char_cfg["output_subdir"]
+    if reel_anchor:
+        out_dir = out_dir / reels_cfg.get("anchor_subdir", "reels/anchors")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     workflow_data = load_workflow(str(workflow_path))
@@ -120,7 +147,6 @@ def main(prompt: str, image: str | None, count: int, seed: int | None, workflow:
     for i in range(count):
         img_seed = seed if seed is not None else random.randint(0, 2**32 - 1)
 
-        is_flux = workflow_name == "flux_schnell"
         current_steps = 4 if is_flux else steps
         current_cfg = 1.0 if is_flux else gen_cfg["cfg"]
 
@@ -134,6 +160,16 @@ def main(prompt: str, image: str | None, count: int, seed: int | None, workflow:
 
         if uploaded_filename:
             overrides["_claude_inject_ipadapter_image"] = {"inputs.image": uploaded_filename}
+
+        if is_flux and not background_only:
+            flux_lora = char_cfg.get("flux_lora")
+            if flux_lora:
+                flux_strength = char_cfg.get("flux_lora_strength", char_cfg.get("lora_strength", 0.85))
+                overrides["_claude_inject_flux_lora"] = {
+                    "inputs.lora_name": flux_lora,
+                    "inputs.strength_model": flux_strength,
+                    "inputs.strength_clip": flux_strength,
+                }
 
         if workflow_name not in ("bootstrap_seeds", "flux_schnell"):
             overrides["_claude_inject_lora"] = {

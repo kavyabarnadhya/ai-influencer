@@ -135,7 +135,7 @@ def polish_prompt(user_input: str) -> str:
         "stream": False,
         "options": {"temperature": 0.4, "num_predict": 250},
     }
-    r = requests.post(OLLAMA_URL, json=payload, timeout=60)
+    r = requests.post(OLLAMA_URL, json=payload, timeout=120)
     r.raise_for_status()
     return _clean_response(r.json()["response"])
 
@@ -151,7 +151,7 @@ def extract_bg_prompt(polished_prompt: str) -> str:
         "options": {"temperature": 0.1, "num_predict": 100},
     }
     try:
-        r = requests.post(OLLAMA_URL, json=payload, timeout=60)
+        r = requests.post(OLLAMA_URL, json=payload, timeout=120)
         r.raise_for_status()
         bg_tags = _clean_response(r.json()["response"])
         return f"empty scene, no people, no humans, {bg_tags}"
@@ -167,10 +167,11 @@ def extract_bg_prompt(polished_prompt: str) -> str:
 @click.option("--use-flux-bg", is_flag=True, help="Automate 2-pass: Generate background with FLUX, then character with SDXL")
 @click.option("--count", default=1, show_default=True, help="Number of images to generate")
 @click.option("--rescue", is_flag=True, help="Low-VRAM mode")
+@click.option("--reel-anchor", is_flag=True, help="Save a vertical still under reels/anchors for image-to-video")
 @click.option("--dry-run", is_flag=True, help="Print polished prompt only, do not generate")
 @click.option("--review", is_flag=True, help="Review loop: edit → re-polish → approve before generating")
 @click.option("--seed", default=None, type=int, help="Seed for generation")
-def main(description: str | None, character: str, image: str | None, use_flux_bg: bool, count: int, rescue: bool, dry_run: bool, review: bool, seed: int | None):
+def main(description: str | None, character: str, image: str | None, use_flux_bg: bool, count: int, rescue: bool, reel_anchor: bool, dry_run: bool, review: bool, seed: int | None):
     """Convert natural language to an Ananya prompt and generate an image.
 
     DESCRIPTION: Natural language scene description, e.g. "her at a cafe in the morning"
@@ -191,15 +192,15 @@ def main(description: str | None, character: str, image: str | None, use_flux_bg
                 description = console.input("\n[bold]Scene:[/bold] ").strip()
                 if not description:
                     continue
-                _run_once(description, character, image, use_flux_bg, count, rescue, dry_run, review, seed)
+                _run_once(description, character, image, use_flux_bg, count, rescue, reel_anchor, dry_run, review, seed)
             except KeyboardInterrupt:
                 console.print("\n[dim]Exiting.[/dim]")
                 break
     else:
-        _run_once(description, character, image, use_flux_bg, count, rescue, dry_run, review, seed)
+        _run_once(description, character, image, use_flux_bg, count, rescue, reel_anchor, dry_run, review, seed)
 
 
-def _run_once(description: str, character: str, image: str | None, use_flux_bg: bool, count: int, rescue: bool, dry_run: bool, review: bool, seed: int | None):
+def _run_once(description: str, character: str, image: str | None, use_flux_bg: bool, count: int, rescue: bool, reel_anchor: bool, dry_run: bool, review: bool, seed: int | None):
     console.print(f"\n[dim]Polishing prompt...[/dim]")
     polished = ensure_hand_position(polish_prompt(description))
 
@@ -256,6 +257,8 @@ def _run_once(description: str, character: str, image: str | None, use_flux_bg: 
         cmd.extend(["--image", image])
     if rescue:
         cmd.append("--rescue")
+    if reel_anchor:
+        cmd.append("--reel-anchor")
     if seed is not None:
         cmd.extend(["--seed", str(seed)])
 

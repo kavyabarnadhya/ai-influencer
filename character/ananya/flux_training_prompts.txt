@@ -1,0 +1,35 @@
+# Ananya FLUX LoRA Training Candidate Prompts
+# Goal: generate diverse candidates for character/ananya/training_data.
+# Keep the final curated set balanced: face identity first, premium range second.
+# One prompt per line. Lines starting with # are ignored.
+
+# Existing gap fillers: traditional / Indian fashion
+close-up portrait, modern emerald silk saree with sleeveless blouse, small gold earrings, hair tied in low bun, rooftop terrace at golden hour, warm backlight, relaxed confident expression
+waist-up portrait, lightweight ivory cotton saree with contemporary blouse, loose wavy hair, artsy cafe interior, soft morning window light, candid seated pose
+full-body portrait, flowing midnight blue chiffon saree with fitted blouse, hair swept over one shoulder, luxury hotel lounge, warm amber evening light, elegant standing pose
+waist-up portrait, straight-cut sage green kurta set with subtle side slit, hair in neat low ponytail, marble hotel lobby, soft editorial lighting, confident walk
+full-body portrait, relaxed cotton salwar suit in powder blue, braided hair, Delhi market lane, natural afternoon light, candid walking pose
+waist-up portrait, Indo-western crop top with long embroidered skirt, loose glossy hair, haveli courtyard, late afternoon sun, relaxed hand-on-waist pose
+
+# Angle / lighting / framing diversity
+close-up portrait, black structured blazer over white top, sleek pulled-back hair, modern office interior, cool overhead office light, slight profile angle
+close-up portrait, red satin blouse, loose wavy hair, neon-lit street at night, blue and magenta ambient light, looking slightly off-camera
+waist-up portrait, white linen shirt and high-waist jeans, hair tied back, harsh noon sunlight on a clean city sidewalk, direct confident pose
+full-body portrait, beige trench coat over fitted top and wide-leg jeans, low camera angle, glass office facade, afternoon city light, walking pose
+close-up portrait, cream sweater, messy bun, candlelit restaurant table, warm low light, soft smiling expression
+waist-up portrait, black ribbed top and silver hoop earrings, high camera angle from cafe balcony, bright daylight, relaxed seated pose
+
+# Premium non-nude / subscriber-safe glamour
+waist-up portrait, champagne satin slip dress with tasteful low neckline, loose glossy hair, luxury hotel lounge, warm amber lamp light, confident seductive expression
+full-body portrait, fitted black mini dress with long sleeves, hair in sleek waves, hotel corridor at night, cinematic side lighting, one hip shifted in confident pose
+waist-up portrait, deep burgundy wrap dress with visible neckline, small gold earrings, rooftop bar at dusk, city lights in background, poised direct gaze
+full-body portrait, ivory draped saree with modern sleeveless blouse and tasteful neckline, hair tied in low bun, candlelit terrace, elegant sensual pose
+waist-up seated portrait, black satin camisole under an oversized blazer, loose wavy hair, dressing table mirror, soft warm vanity lights, confident expression
+full-body portrait, short emerald cocktail dress, hair swept to one side, upscale restaurant entryway, warm evening light, legs visible, relaxed standing pose
+
+# Public lifestyle / reels anchor variety
+waist-up portrait, oversized white shirt dress, messy bun, plant-filled balcony with coffee cup, soft diffused morning light, relaxed lifestyle pose
+full-body portrait, floral midi dress, loose wavy hair, outdoor brunch patio, dappled light through trees, laughing candid pose
+waist-up portrait, terracotta Indo-western co-ord set, hair moving in breeze, South Delhi rooftop, golden hour skyline, looking away from camera
+full-body portrait, printed block-print co-ord in orange, hair in low ponytail, Rajasthan haveli wall, dry afternoon light, travel editorial pose
+close-up portrait, black turtleneck and tiny gold earrings, hair tucked behind one ear, rainy car window at night, moody street reflections, quiet expression
