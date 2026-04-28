@@ -114,33 +114,63 @@ class ComfyUIClient:
             raise ComfyUIError(f"Failed to upload image {path.name}: {e}")
 
 
+# Global cache for workflow title-to-ID mappings to speed up batch injections
+_WORKFLOW_TITLE_CACHE: dict[int, dict[str, list[str]]] = {}
+
+
 def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
     """
     Patch workflow nodes by matching _meta.title sentinels.
     overrides maps sentinel title → dict of {field_path: value}.
     field_path uses dot notation: "inputs.text", "inputs.seed", etc.
     """
+    if not overrides:
+        return workflow
+
+    # Optimization: Use a cached mapping of title -> node_ids for the workflow object.
+    # This avoids O(N) scan of all nodes for every injection in a batch.
+    wf_id = id(workflow)
+    if wf_id not in _WORKFLOW_TITLE_CACHE:
+        # Limit cache size to avoid memory leaks if many different workflows are loaded
+        if len(_WORKFLOW_TITLE_CACHE) > 10:
+            _WORKFLOW_TITLE_CACHE.clear()
+
+        mapping = {}
+        for node_id, node in workflow.items():
+            title = node.get("_meta", {}).get("title")
+            if title:
+                if title not in mapping:
+                    mapping[title] = []
+                mapping[title].append(node_id)
+        _WORKFLOW_TITLE_CACHE[wf_id] = mapping
+
+    title_to_ids = _WORKFLOW_TITLE_CACHE[wf_id]
+
     # Performance Optimization: Instead of deep-copying the entire workflow,
-    # we shallow copy the top-level dict and only deep-copy nodes that need patching.
-    # This significantly reduces overhead for large workflows where only a few nodes change.
+    # we shallow copy the top-level dict and only deep-copy branches that need patching.
     workflow = workflow.copy()
 
-    for node_id, node in workflow.items():
-        title = node.get("_meta", {}).get("title", "")
-        if title not in overrides:
+    for title, patches in overrides.items():
+        if title not in title_to_ids:
             continue
 
-        # Deep copy only the node being modified to preserve the original workflow object
-        node = json.loads(json.dumps(node))
-        workflow[node_id] = node
+        for node_id in title_to_ids[title]:
+            node = workflow[node_id]
+            # Selective copy: To optimize for speed while maintaining correctness,
+            # we only deep-copy the branches of the node's dictionary that are
+            # actually being modified by the patches.
+            node = node.copy()
+            workflow[node_id] = node
 
-        patches = overrides[title]
-        for field_path, value in patches.items():
-            parts = field_path.split(".")
-            target = node
-            for part in parts[:-1]:
-                target = target[part]
-            target[parts[-1]] = value
+            for field_path, value in patches.items():
+                parts = field_path.split(".")
+                target = node
+                # Traverse and shallow-copy as we go to ensure we don't mutate original
+                for part in parts[:-1]:
+                    prev_target = target
+                    target = target[part].copy()
+                    prev_target[part] = target
+                target[parts[-1]] = value
 
     return workflow
 
