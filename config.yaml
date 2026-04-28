@@ -19,18 +19,24 @@ characters:
     trigger_word: AnanyaAI
     lora: AnanyaAI_v1_Prod.safetensors
     lora_strength: 0.95
+    flux_lora: AnanyaAI_FLUX_v1.safetensors
+    flux_lora_strength: 0.85
     ipadapter_strength: 0.6
     base_prompt_file: character/ananya/base_prompt.txt
     output_subdir: ananya
     seeds_dir: character/ananya/seeds
+    training_data_dir: character/ananya/training_data
   kavib:
     trigger_word: KaviB
     lora: KaviB_v1_Prod.safetensors
     lora_strength: 0.85
+    flux_lora: KaviB_FLUX_v1.safetensors
+    flux_lora_strength: 0.85
     ipadapter_strength: 0.6
     base_prompt_file: character/kavib/base_prompt.txt
     output_subdir: kavib
     seeds_dir: character/kavib/seeds
+    training_data_dir: character/kavib/training_data
 
 generation:
   workflow: t2i_sdxl_lora
@@ -41,6 +47,11 @@ generation:
   sampler: dpmpp_2m
   scheduler: karras
   negative_prompt: "(studio photography, plain background, solid color background, seamless paper, blank background, isolated subject, simple background:1.4), cgi, 3d, render, cartoon, illustration, drawing, painting, bad proportions, bad quality, low quality, deformed, ugly, extra limbs, bad anatomy, watermark, text, signature, bindi, tikka, maang tikka, jhumka, chandbaali, heavy necklace, traditional jewelry, dupatta, kurta, anarkali, salwar, heavily embroidered, bridal, deformed hands, extra fingers, bad hands, malformed hands, mutated hands, missing fingers, fused fingers, too many fingers, poorly drawn hands, mangled hands, floating hands, disembodied hands, hands near face, hand on chin, fingers touching face, bad lips, deformed mouth, crooked teeth, asymmetrical eyes, uneven eyes, cross-eyed, lazy eye, wall-eyed, different sized eyes, strabismus, dusky skin, dark skin, tan skin, olive complexion, brown skin, tanned, dark complexion, dark tone, unpainted nails, chipped nails, no makeup, shiny jewelry, reflective jewelry, oversized jewelry, chunky jewelry, statement jewelry"
+
+reels:
+  anchor_width: 768
+  anchor_height: 1360
+  anchor_subdir: reels/anchors
 
 gpu:
   use_lowvram: true
@@ -57,3 +68,4 @@ paths:
   output_dir: output
   log_dir: logs
   workflows_dir: workflows
+  reels_dir: reels
