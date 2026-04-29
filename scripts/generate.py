@@ -116,6 +116,8 @@ def main(prompt: str, image: str | None, count: int, seed: int | None, workflow:
         char_cfg["trigger_word"],
         include_base=not is_flux,
     )
+    if is_flux:
+        full_prompt += ", fair complexion, soft bright lighting, no text, no watermark"
 
     reels_cfg = cfg.get("reels", {})
     if reel_anchor:
