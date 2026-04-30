@@ -258,6 +258,90 @@ def _run_generate_captured(cmd: list[str]) -> list[str]:
     return saved_paths
 
 
+def _list_poses() -> list[str]:
+    poses_dir = ROOT / "character" / "ananya" / "poses"
+    if not poses_dir.exists():
+        return []
+    return sorted(p.name for p in poses_dir.glob("*.png"))
+
+
+SHOT_FRAMING = {
+    "1": ("close-up portrait, face and shoulders only", False),
+    "2": ("waist-up shot, medium framing", True),
+    "3": ("full body shot, head to toe, legs and feet visible", True),
+}
+
+
+def _guided_session() -> dict:
+    """Ask the user all generation options interactively. Returns kwargs for _run_once."""
+    console.rule("[bold cyan]New Shot[/bold cyan]")
+
+    description = ""
+    while not description:
+        description = console.input("\n[bold]Scene description:[/bold] ").strip()
+
+    console.print("\n[cyan]Shot type?[/cyan]")
+    console.print("  [bold]1[/bold] Close-up   (face + shoulders)")
+    console.print("  [bold]2[/bold] Waist-up   (default)")
+    console.print("  [bold]3[/bold] Full-body  (head to toe)")
+    shot_choice = console.input("[bold]Pick [1/2/3] or Enter for waist-up:[/bold] ").strip()
+    if shot_choice not in SHOT_FRAMING:
+        shot_choice = "2"
+    framing_tag, needs_pose = SHOT_FRAMING[shot_choice]
+    description = f"{framing_tag}, {description}"
+
+    pose = None
+    if needs_pose:
+        poses = _list_poses()
+        if poses:
+            console.print("\n[cyan]Pose reference?[/cyan]")
+            for i, p in enumerate(poses, 1):
+                console.print(f"  [bold]{i:2}[/bold] {p}")
+            console.print(f"  [bold] 0[/bold] No pose")
+            pose_input = console.input("[bold]Pick number or Enter to skip:[/bold] ").strip()
+            if pose_input.isdigit() and 1 <= int(pose_input) <= len(poses):
+                pose = str(ROOT / "character" / "ananya" / "poses" / poses[int(pose_input) - 1])
+                console.print(f"[dim]Using: {poses[int(pose_input) - 1]}[/dim]")
+
+    console.print("\n[cyan]Quality?[/cyan]")
+    console.print("  [bold]1[/bold] Draft  — 15 steps, no upscale  (~30s, iterate ideas)")
+    console.print("  [bold]2[/bold] Final  — 30 steps + 4x upscale (~90s, post-ready)")
+    quality = console.input("[bold]Pick [1/2] or Enter for Draft:[/bold] ").strip()
+    is_final = quality == "2"
+    draft = not is_final
+    if is_final and pose:
+        workflow = "t2i_sdxl_controlnet_upscale"
+    elif is_final:
+        workflow = "t2i_sdxl_upscale"
+    elif pose:
+        workflow = "t2i_sdxl_controlnet"
+    else:
+        workflow = "t2i_sdxl_lora"
+
+    var_input = console.input("\n[bold]Variations? [1]:[/bold] ").strip()
+    variations = int(var_input) if var_input.isdigit() and int(var_input) > 0 else 1
+
+    review_input = console.input("\n[bold]Review prompt before generating? (type 'y' to edit/approve, Enter to skip):[/bold] ").strip().lower()
+    review = review_input in ("y", "yes")
+
+    return dict(
+        description=description,
+        character="ananya",
+        workflow=workflow,
+        image=None,
+        use_flux_bg=False,
+        variations=variations,
+        rescue=False,
+        reel_anchor=False,
+        dry_run=False,
+        review=review,
+        seed=None,
+        upscale=is_final,
+        pose=pose,
+        draft=draft,
+    )
+
+
 @click.command()
 @click.argument("description", required=False)
 @click.option("--character", default="ananya", show_default=True, help="Character [ananya|kavib]")
@@ -268,15 +352,17 @@ def _run_generate_captured(cmd: list[str]) -> list[str]:
 @click.option("--rescue", is_flag=True, help="Low-VRAM mode")
 @click.option("--reel-anchor", is_flag=True, help="Save vertical still under reels/anchors")
 @click.option("--dry-run", is_flag=True, help="Print polished prompt only, do not generate")
-@click.option("--review", is_flag=True, help="Review loop: edit → re-polish → approve before generating")
+@click.option("--review", is_flag=True, help="Review loop: edit, re-polish, approve before generating")
 @click.option("--seed", default=None, type=int, help="Fixed seed (omit for random)")
+@click.option("--upscale", is_flag=True, help="4x upscale output with 4x-UltraSharp")
+@click.option("--pose", default=None, help="Path to pose reference image for ControlNet")
 def main(description: str | None, character: str, workflow: str | None, image: str | None,
          use_flux_bg: bool, variations: int, rescue: bool, reel_anchor: bool,
-         dry_run: bool, review: bool, seed: int | None):
+         dry_run: bool, review: bool, seed: int | None, upscale: bool, pose: str | None):
     """Convert natural language to an Ananya prompt and generate an image.
 
     DESCRIPTION: Natural language scene description, e.g. "her at a cafe in the morning"
-    If omitted, enters interactive mode.
+    If omitted, enters guided interactive mode.
     """
     if not ollama_running():
         console.print("[red]Ollama is not running. Start it with: ollama serve[/red]")
@@ -287,23 +373,25 @@ def main(description: str | None, character: str, workflow: str | None, image: s
         subprocess.run(["ollama", "pull", MODEL], check=True)
 
     if description is None:
-        console.print("[cyan]Interactive mode — type your scene description (Ctrl+C to exit)[/cyan]")
         while True:
             try:
-                description = console.input("\n[bold]Scene:[/bold] ").strip()
-                if not description:
-                    continue
-                _run_once(description, character, workflow, image, use_flux_bg, variations, rescue, reel_anchor, dry_run, review, seed)
+                kwargs = _guided_session()
+                _run_once(**kwargs)
+                again = console.input("\n[bold cyan]Generate another shot? [Y/n]:[/bold cyan] ").strip().lower()
+                if again == "n":
+                    console.print("[dim]Done.[/dim]")
+                    break
             except KeyboardInterrupt:
                 console.print("\n[dim]Exiting.[/dim]")
                 break
     else:
-        _run_once(description, character, workflow, image, use_flux_bg, variations, rescue, reel_anchor, dry_run, review, seed)
+        _run_once(description, character, workflow, image, use_flux_bg, variations, rescue, reel_anchor, dry_run, review, seed, upscale, pose)
 
 
 def _run_once(description: str, character: str, workflow: str | None, image: str | None,
               use_flux_bg: bool, variations: int, rescue: bool, reel_anchor: bool,
-              dry_run: bool, review: bool, seed: int | None):
+              dry_run: bool, review: bool, seed: int | None, upscale: bool = False,
+              pose: str | None = None, draft: bool = False):
     is_flux = workflow is not None and workflow.startswith("flux")
 
     # Shot type selector (FLUX only — SDXL framing is handled by the system prompt)
@@ -377,6 +465,12 @@ def _run_once(description: str, character: str, workflow: str | None, image: str
         cmd.append("--rescue")
     if reel_anchor:
         cmd.append("--reel-anchor")
+    if upscale:
+        cmd.append("--upscale")
+    if pose:
+        cmd.extend(["--pose", pose])
+    if draft:
+        cmd.extend(["--steps", "15"])
     if seed is not None:
         cmd.extend(["--seed", str(seed)])
 

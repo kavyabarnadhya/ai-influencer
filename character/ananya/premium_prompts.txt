@@ -1,22 +1,28 @@
 # Ananya — Premium Tier (Instagram Subscriptions — Subscriber-Exclusive)
-# More editorial, more body-confident. Fully clothed, Instagram-compliant.
+# Reserved for post-10K when subscriptions unlock.
+# More intimate, more editorial, higher visual stakes. Fully clothed, Instagram-compliant.
 # All outputs require human review before posting.
-# Post-LoRA: remove physical descriptors — only clothing, setting, pose, lighting.
+# Post-LoRA: only clothing, setting, pose, lighting — no physical descriptors.
 # One prompt per line. Lines starting with # are ignored.
 
-editorial shoot, silk backless saree in emerald green, blouse with deep back cutout, arched back pose against white wall, dramatic side lighting, moody
-hotel room evening, satin slip dress in champagne, sitting on bed edge, direct soft gaze at camera, warm bedside lamp light, exclusive glam
-rooftop night shoot, fitted bodycon dress in deep red, city lights below, confident standing pose, cool blue-toned evening light, editorial
-bathroom vanity shot, post-shower glam, silk robe loosely worn, wet-hair look, soft warm light, mirror reflection composition
-hotel corridor walk, backless halter mini dress in black, looking back over shoulder, dramatic corridor lighting, cinematic editorial
-private glam shoot, sleeveless fitted blouse and high-waist skirt, midriff styling, bold lip, studio-style lighting against dark backdrop
-balcony golden hour, sheer embroidered saree in ivory, blouse with keyhole back, leaning on railing, soft warm backlight, dreamy editorial
-late night look — deep plunge mini dress in burgundy, subtle shimmer, standing at full-length mirror, dim warm light, confidence pose
-silky co-ord set in cobalt blue, crop top and mini skirt, sitting cross-legged on hotel bed, direct gaze, natural window morning light
-rooftop editorial, plunging wrap dress in deep teal, confident posture, soft evening wind, bokeh city lights behind her
-hotel suite morning, silk chemise in blush, sitting at dressing table, gold jewellery catch the light, soft diffused morning window light
-backless lehenga blouse, intricate gold embroidery, standing in ornate haveli corridor, warm diya light, editorial fashion
-sleeveless fitted kurta set in ivory, side slit detail, hotel lobby marble background, confident walk, editorial lighting
-sheer embroidered dupatta draped loosely over bare shoulders, rooftop silhouette against purple dusk sky, editorial mood
-# NOTE: Pool swimsuit prompt is high-review-risk — manual review required before posting; borderline for Instagram public
-pool evening, strappy one-piece swimsuit, sitting on pool edge, feet in water, golden sunset reflection, tasteful editorial
+# --- INTIMATE HOTEL EDITORIALS ---
+close-up portrait, hotel suite morning, silk chemise in blush, sitting at dressing table, gold jewellery catching soft window light, direct gaze, warm diffused morning light, exclusive intimate editorial
+waist-up shot, hotel room evening, satin slip dress in champagne, sitting on bed edge, legs visible, warm bedside amber lamp, direct soft gaze at camera, exclusive glam editorial
+full body shot, hotel corridor, backless halter mini dress in black, looking back over shoulder, dramatic single corridor spotlight, cinematic high fashion editorial
+waist-up shot, hotel bathroom vanity, silk robe loosely belted, post-glam look, soft warm vanity light, mirror reflection composition, intimate editorial
+
+# --- ROOFTOP NIGHT EXCLUSIVES ---
+full body shot, private rooftop night, fitted bodycon dress in deep red, city lights below, cool blue-toned evening ambient light, confident standing pose, bokeh skyline, exclusive editorial
+waist-up shot, rooftop bar exclusive, plunging wrap dress in deep teal, warm amber bar light, wine glass, direct confident gaze, bokeh city lights, high fashion editorial
+full body shot, penthouse balcony, silk backless gown in midnight navy, dramatic moonlight and city glow, arched back pose on railing, exclusive fashion editorial
+
+# --- BOLD FASHION EDITORIALS ---
+full body shot, editorial studio-style, sleeveless fitted blouse and high-waist mini skirt, midriff visible, dark backdrop with single dramatic spotlight, bold confident pose, high fashion editorial
+full body shot, marble hotel lobby, silk backless saree in emerald green with deep-back blouse, confident walk, dramatic overhead lighting, exclusive Indian fashion editorial
+waist-up shot, ornate haveli corridor, backless lehenga blouse with intricate gold embroidery, warm diya ambient light, arched back, exclusive festive editorial
+full body shot, private pool evening, strappy one-piece swimsuit in black, sitting on pool edge feet in water, golden sunset reflection on water, tasteful exclusive editorial
+
+# --- LATE NIGHT GLAMOUR ---
+full body shot, club entrance, deep plunge sequined mini dress in gold, confident pose, cool purple-blue club ambient light, bokeh crowd behind, night out exclusive editorial
+waist-up shot, rooftop night, sheer embroidered dupatta draped loosely over strapless blouse, silhouette against purple dusk sky, warm backlight, exclusive editorial mood
+full body shot, hotel suite full-length mirror, fitted bodycon dress in burgundy with subtle shimmer, dim warm lamp light, direct gaze, exclusive confidence pose editorial
