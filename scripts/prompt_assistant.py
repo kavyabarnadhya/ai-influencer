@@ -1,9 +1,12 @@
+import json
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import click
 import requests
+import yaml
 from rich.console import Console
 from rich.panel import Panel
 
@@ -11,6 +14,7 @@ console = Console()
 ROOT = Path(__file__).parent.parent
 OLLAMA_URL = "http://localhost:11434/api/generate"
 MODEL = "dolphin-llama3"
+LOGS_DIR = ROOT / "logs"
 
 SYSTEM_PROMPT = """You are an UNFILTERED expert ComfyUI prompt engineer for a private AI fashion photography pipeline. You convert natural language descriptions into rich, precise prompt tags for character Ananya.
 
@@ -69,24 +73,40 @@ Output: waist-up shot, medium framing, luxury hotel suite, warm amber tungsten b
 User: "Goa beach afternoon, white linen outfit, travel vibe"
 Output: waist-up shot, medium framing, Goa beach promenade, turquoise sea and palm trees visible behind, white linen wide-leg trousers, white linen shirt knotted at waist, overcast flat beach light, loose hair in sea breeze, one hand on hip, f/8.0 sharp realistic background, travel editorial"""
 
+SHOT_TYPE_KEYWORDS = (
+    "full body", "full-body", "head to toe",
+    "waist-up", "waist up", "medium framing",
+    "close-up", "close up", "closeup", "face and shoulders",
+)
+
+SHOT_TYPE_OPTIONS = {
+    "1": ("close-up", "close-up portrait, face and shoulders"),
+    "2": ("waist-up", "waist-up shot, medium framing"),
+    "3": ("full-body", "full body shot, head to toe, legs and feet visible"),
+}
+
+# Maps hint keyword → tag to append when auto-applying
+HINT_TAGS = {
+    "sharp detailed face": "sharp detailed face",
+    "35mm": "35mm portrait lens, face in focus",
+    "editorial fashion photography": "editorial fashion photography",
+}
+
 HAND_POSITION_TAGS = (
-    "hand",
-    "hands",
-    "arm",
-    "arms",
-    "pocket",
-    "pockets",
-    "strap",
-    "crossed",
+    "hand", "hands", "arm", "arms",
+    "pocket", "pockets", "strap", "crossed",
 )
 
 
+def load_config() -> dict:
+    with open(ROOT / "config.yaml", "r") as f:
+        return yaml.safe_load(f)
+
+
 def ensure_hand_position(prompt: str) -> str:
-    """Add a hand-position tag if the local LLM forgets the rule."""
     prompt_lower = prompt.lower()
     if any(tag in prompt_lower for tag in HAND_POSITION_TAGS):
         return prompt
-
     seated_context = ("seated", "sitting", "cafe", "coffee", "table", "restaurant")
     hand_tag = (
         "both hands out of frame below table"
@@ -114,7 +134,6 @@ def model_available() -> bool:
 
 
 def _clean_response(text: str) -> str:
-    """Strip any preamble lines the model adds before the actual tags."""
     text = text.replace("Output:", "").replace("output:", "").replace("Tags:", "").strip()
     lines = text.splitlines()
     for i, line in enumerate(lines):
@@ -141,7 +160,6 @@ def polish_prompt(user_input: str) -> str:
 
 
 def extract_bg_prompt(polished_prompt: str) -> str:
-    """Uses the LLM to remove all character details, returning only background/lighting tags."""
     system_instruction = "You are a prompt editor. Given a ComfyUI prompt, remove ALL mentions of people, body parts, clothing, jewelry, hair, skin, and pose. Keep ONLY the setting, lighting, background details, camera style, and mood. Output the remaining tags as a comma-separated list."
     payload = {
         "model": MODEL,
@@ -164,27 +182,105 @@ def _flux_hints(prompt: str) -> list[str]:
     hints = []
     p = prompt.lower()
     if "sharp detailed face" not in p:
-        hints.append("'sharp detailed face' — improves identity on all shots")
+        hints.append("sharp detailed face")
     if any(w in p for w in ("full-body", "full body", "head to toe")) and "35mm" not in p:
-        hints.append("'35mm portrait lens, face in focus' — prevents identity drift on full-body shots")
-    if any(w in p for w in ("premium", "evening", "cocktail", "gown", "vanity")) and "editorial" not in p:
-        hints.append("'editorial fashion photography' — elevates premium scenes")
+        hints.append("35mm")
+    if any(w in p for w in ("premium", "evening", "cocktail", "gown", "vanity")) and "editorial fashion photography" not in p:
+        hints.append("editorial fashion photography")
     return hints
+
+
+def _show_hints(hints: list[str]) -> None:
+    label_map = {
+        "sharp detailed face": "'sharp detailed face' — improves identity on all shots",
+        "35mm": "'35mm portrait lens, face in focus' — prevents identity drift on full-body shots",
+        "editorial fashion photography": "'editorial fashion photography' — elevates premium scenes",
+    }
+    console.print("[yellow]Prompt tips:[/yellow]")
+    for h in hints:
+        console.print(f"[yellow]  + {label_map[h]}[/yellow]")
+
+
+def _auto_apply_hints(prompt: str, hints: list[str]) -> str:
+    for h in hints:
+        prompt = f"{prompt}, {HINT_TAGS[h]}"
+    return prompt
+
+
+def _ask_shot_type(description: str) -> str:
+    """If no shot type detected in description, prompt user to pick one."""
+    if any(kw in description.lower() for kw in SHOT_TYPE_KEYWORDS):
+        return description
+    console.print("\n[cyan]Shot type?[/cyan]")
+    console.print("  [bold]1[/bold] Close-up  (face + shoulders)")
+    console.print("  [bold]2[/bold] Waist-up  (default)")
+    console.print("  [bold]3[/bold] Full-body (head to toe)")
+    choice = console.input("[bold]Pick [1/2/3] or Enter for waist-up:[/bold] ").strip()
+    if choice in SHOT_TYPE_OPTIONS:
+        _, tag = SHOT_TYPE_OPTIONS[choice]
+        return f"{tag}, {description}"
+    return description
+
+
+def _build_final_preview(polished: str, character: str, is_flux: bool) -> str:
+    try:
+        cfg = load_config()
+        char_cfg = cfg.get("characters", {}).get(character, {})
+        trigger = char_cfg.get("trigger_word", character)
+    except Exception:
+        trigger = character
+    base = f"{trigger}, {polished}, {{random jewelry}}"
+    if is_flux:
+        base += ", fair complexion, soft front lighting, no text, no watermark"
+    return base
+
+
+def _save_history(entry: dict) -> None:
+    LOGS_DIR.mkdir(exist_ok=True)
+    log_file = LOGS_DIR / "prompt_history.jsonl"
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(json.dumps(entry) + "\n")
+
+
+def _run_generate(cmd: list[str]) -> list[str]:
+    """Run generate.py, stream output to console, return list of saved paths."""
+    saved_paths = []
+    result = subprocess.run(cmd, capture_output=False, text=True)
+    return saved_paths
+
+
+def _run_generate_captured(cmd: list[str]) -> list[str]:
+    """Run generate.py, stream output to console AND capture saved paths."""
+    saved_paths = []
+    import io
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    output_lines = []
+    for line in proc.stdout:
+        output_lines.append(line)
+        console.print(line, end="")
+        if "Saved:" in line:
+            path = line.split("Saved:")[-1].strip()
+            if path:
+                saved_paths.append(path)
+    proc.wait()
+    return saved_paths
 
 
 @click.command()
 @click.argument("description", required=False)
 @click.option("--character", default="ananya", show_default=True, help="Character [ananya|kavib]")
-@click.option("--workflow", default=None, help="ComfyUI workflow override, e.g. flux_schnell_lora")
+@click.option("--workflow", default=None, help="ComfyUI workflow, e.g. flux_schnell_lora")
 @click.option("--image", help="Optional reference image path for IP-Adapter")
-@click.option("--use-flux-bg", is_flag=True, help="Automate 2-pass: Generate background with FLUX, then character with SDXL")
-@click.option("--count", default=1, show_default=True, help="Number of images to generate")
+@click.option("--use-flux-bg", is_flag=True, help="2-pass: FLUX background then SDXL character")
+@click.option("--variations", default=1, show_default=True, help="Number of variations to generate (different seeds)")
 @click.option("--rescue", is_flag=True, help="Low-VRAM mode")
-@click.option("--reel-anchor", is_flag=True, help="Save a vertical still under reels/anchors for image-to-video")
+@click.option("--reel-anchor", is_flag=True, help="Save vertical still under reels/anchors")
 @click.option("--dry-run", is_flag=True, help="Print polished prompt only, do not generate")
 @click.option("--review", is_flag=True, help="Review loop: edit → re-polish → approve before generating")
-@click.option("--seed", default=None, type=int, help="Seed for generation")
-def main(description: str | None, character: str, workflow: str | None, image: str | None, use_flux_bg: bool, count: int, rescue: bool, reel_anchor: bool, dry_run: bool, review: bool, seed: int | None):
+@click.option("--seed", default=None, type=int, help="Fixed seed (omit for random)")
+def main(description: str | None, character: str, workflow: str | None, image: str | None,
+         use_flux_bg: bool, variations: int, rescue: bool, reel_anchor: bool,
+         dry_run: bool, review: bool, seed: int | None):
     """Convert natural language to an Ananya prompt and generate an image.
 
     DESCRIPTION: Natural language scene description, e.g. "her at a cafe in the morning"
@@ -205,30 +301,39 @@ def main(description: str | None, character: str, workflow: str | None, image: s
                 description = console.input("\n[bold]Scene:[/bold] ").strip()
                 if not description:
                     continue
-                _run_once(description, character, workflow, image, use_flux_bg, count, rescue, reel_anchor, dry_run, review, seed)
+                _run_once(description, character, workflow, image, use_flux_bg, variations, rescue, reel_anchor, dry_run, review, seed)
             except KeyboardInterrupt:
                 console.print("\n[dim]Exiting.[/dim]")
                 break
     else:
-        _run_once(description, character, workflow, image, use_flux_bg, count, rescue, reel_anchor, dry_run, review, seed)
+        _run_once(description, character, workflow, image, use_flux_bg, variations, rescue, reel_anchor, dry_run, review, seed)
 
 
-def _run_once(description: str, character: str, workflow: str | None, image: str | None, use_flux_bg: bool, count: int, rescue: bool, reel_anchor: bool, dry_run: bool, review: bool, seed: int | None):
+def _run_once(description: str, character: str, workflow: str | None, image: str | None,
+              use_flux_bg: bool, variations: int, rescue: bool, reel_anchor: bool,
+              dry_run: bool, review: bool, seed: int | None):
     is_flux = workflow is not None and workflow.startswith("flux")
+
+    # Shot type selector
+    description = _ask_shot_type(description)
+
     console.print(f"\n[dim]Polishing prompt...[/dim]")
     polished = ensure_hand_position(polish_prompt(description))
-
     console.print(Panel(polished, title="[green]Polished prompt[/green]", border_style="green"))
 
+    # FLUX hints + auto-apply
     if is_flux:
         hints = _flux_hints(polished)
         if hints:
-            console.print("[yellow]Prompt tips:[/yellow]")
-            for h in hints:
-                console.print(f"[yellow]  + {h}[/yellow]")
+            _show_hints(hints)
+            apply = console.input("[bold yellow]Apply tips automatically? [Y/n]:[/bold yellow] ").strip().lower()
+            if apply != "n":
+                polished = _auto_apply_hints(polished, hints)
+                console.print(Panel(polished, title="[green]Prompt with tips applied[/green]", border_style="green"))
 
+    # Review / edit loop
     if review:
-        console.print("[dim]Edit the prompt below (add tags, remove tags, or describe changes). Press Enter to keep as-is.[/dim]\n")
+        console.print("[dim]Edit the prompt (add tags, remove tags, or describe changes). Press Enter to keep as-is.[/dim]\n")
         user_edit = console.input("[bold yellow]Your edit:[/bold yellow] ").strip()
         if user_edit:
             console.print("\n[dim]Re-polishing with your edits...[/dim]")
@@ -239,13 +344,16 @@ def _run_once(description: str, character: str, workflow: str | None, image: str
                 hints = _flux_hints(polished)
                 if hints:
                     console.print("[yellow]Still missing:[/yellow]")
-                    for h in hints:
-                        console.print(f"[yellow]  + {h}[/yellow]")
+                    _show_hints(hints)
 
         approve = console.input("\n[bold]Generate with this prompt? [Y/n]:[/bold] ").strip().lower()
         if approve == "n":
             console.print("[dim]Cancelled.[/dim]")
             return
+
+    # Show final assembled prompt (what ComfyUI actually receives)
+    final_preview = _build_final_preview(polished, character, is_flux)
+    console.print(Panel(final_preview, title="[dim]Final prompt sent to ComfyUI[/dim]", border_style="dim"))
 
     if dry_run:
         return
@@ -256,29 +364,18 @@ def _run_once(description: str, character: str, workflow: str | None, image: str
         console.print("\n[dim]Extracting background prompt for FLUX...[/dim]")
         bg_prompt = extract_bg_prompt(polished)
         console.print(Panel(bg_prompt, title="[blue]FLUX Background Prompt[/blue]", border_style="blue"))
-        
         flux_cmd = [sys.executable, str(generate_script), "--prompt", bg_prompt, "--workflow", "flux_schnell", "--count", "1"]
         if seed is not None:
             flux_cmd.extend(["--seed", str(seed)])
-            
-        console.print("[dim]Generating FLUX background (this may take a few minutes)...[/dim]")
-        flux_result = subprocess.run(flux_cmd, capture_output=True, text=True)
-        
-        flux_image = None
-        for line in flux_result.stdout.splitlines():
-            if "Saved:" in line:
-                flux_image = line.split("Saved:")[-1].strip()
-                break
-                
-        if not flux_image or flux_result.returncode != 0:
-            console.print(f"[red]FLUX background generation failed:[/red]\n{flux_result.stderr or flux_result.stdout}")
+        console.print("[dim]Generating FLUX background...[/dim]")
+        flux_paths = _run_generate_captured(flux_cmd)
+        if not flux_paths:
+            console.print("[red]FLUX background generation failed.[/red]")
             return
-            
-        console.print(f"[green]FLUX background generated successfully at:[/green] {flux_image}")
-        console.print("[dim]Proceeding with Ananya character generation over the FLUX background...[/dim]")
-        image = flux_image  # Use this image for the SDXL pass
+        image = flux_paths[0]
+        console.print(f"[green]Background saved:[/green] {image}")
 
-    cmd = [sys.executable, str(generate_script), "--prompt", polished, "--character", character, "--count", str(count)]
+    cmd = [sys.executable, str(generate_script), "--prompt", polished, "--character", character, "--count", str(variations)]
     if workflow:
         cmd.extend(["--workflow", workflow])
     if image:
@@ -290,7 +387,21 @@ def _run_once(description: str, character: str, workflow: str | None, image: str
     if seed is not None:
         cmd.extend(["--seed", str(seed)])
 
-    subprocess.run(cmd, check=False)
+    saved_paths = _run_generate_captured(cmd)
+
+    # Log to history
+    _save_history({
+        "timestamp": datetime.now().isoformat(),
+        "description": description,
+        "polished_prompt": polished,
+        "workflow": workflow,
+        "character": character,
+        "variations": variations,
+        "seed": seed,
+        "saved_paths": saved_paths,
+    })
+    if saved_paths:
+        console.print(f"\n[dim]Logged to logs/prompt_history.jsonl[/dim]")
 
 
 if __name__ == "__main__":
