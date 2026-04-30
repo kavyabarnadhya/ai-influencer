@@ -70,6 +70,21 @@ def is_flux_workflow(workflow_name: str) -> bool:
     return workflow_name.startswith("flux")
 
 
+def _flux_prompt_hints(prompt: str) -> None:
+    hints = []
+    p = prompt.lower()
+    if "sharp detailed face" not in p:
+        hints.append("'sharp detailed face' — improves identity on all shots")
+    if any(w in p for w in ("full-body", "full body")) and "35mm" not in p:
+        hints.append("'35mm portrait lens, face in focus' — prevents identity drift on full-body shots")
+    if any(w in p for w in ("premium", "evening", "cocktail", "gown", "vanity")) and "editorial" not in p:
+        hints.append("'editorial fashion photography' — elevates premium scenes")
+    if hints:
+        console.print("[yellow]Prompt tips:[/yellow]")
+        for h in hints:
+            console.print(f"[yellow]  + {h}[/yellow]")
+
+
 def is_background_prompt(prompt: str) -> bool:
     lowered = prompt.lower()
     return "empty scene" in lowered or "no people" in lowered or "no humans" in lowered
@@ -182,6 +197,8 @@ def main(prompt: str, image: str | None, count: int, seed: int | None, workflow:
 
         patched = inject_workflow_values(workflow_data, overrides)
 
+        if is_flux and i == 0:
+            _flux_prompt_hints(prompt)
         console.print(f"[cyan]Generating image {i + 1}/{count} (seed {img_seed})...[/cyan]")
         try:
             prompt_id = client.submit_workflow(patched)
