@@ -85,6 +85,24 @@ def main(prompts: Path, count_per_prompt: int, category: str, character: str):
     workflow_path = ROOT / cfg["paths"]["workflows_dir"] / f"{workflow_name}.json"
     workflow_data = load_workflow(str(workflow_path))
 
+    # Performance Optimization: Pre-patch constant workflow values outside the loop
+    # to avoid redundant dictionary traversals and copies for every image.
+    base_overrides = {
+        "_claude_inject_negative": {"inputs.text": gen_cfg["negative_prompt"]},
+        "_claude_inject_latent": {"inputs.width": gen_cfg["width"], "inputs.height": gen_cfg["height"]},
+        "_claude_inject_checkpoint": {"inputs.ckpt_name": cfg["models"]["checkpoint"]},
+        "_claude_inject_lora": {
+            "inputs.lora_name": char_cfg["lora"],
+            "inputs.strength_model": char_cfg["lora_strength"],
+            "inputs.strength_clip": char_cfg["lora_strength"],
+        },
+        "_claude_inject_seed": {
+            "inputs.steps": gen_cfg["steps"],
+            "inputs.cfg": gen_cfg["cfg"]
+        },
+    }
+    workflow_data = inject_workflow_values(workflow_data, base_overrides)
+
     total = len(prompt_list) * count_per_prompt
     done = 0
 
@@ -99,17 +117,11 @@ def main(prompts: Path, count_per_prompt: int, category: str, character: str):
             for _ in range(count_per_prompt):
                 seed = random.randint(0, 2**32 - 1)
 
+                # Only patch dynamic values (prompt and seed) inside the loop.
+                # All other values were pre-patched into workflow_data.
                 overrides = {
                     "_claude_inject_prompt": {"inputs.text": full_prompt},
-                    "_claude_inject_negative": {"inputs.text": gen_cfg["negative_prompt"]},
-                    "_claude_inject_seed": {"inputs.seed": seed, "inputs.steps": gen_cfg["steps"], "inputs.cfg": gen_cfg["cfg"]},
-                    "_claude_inject_latent": {"inputs.width": gen_cfg["width"], "inputs.height": gen_cfg["height"]},
-                    "_claude_inject_checkpoint": {"inputs.ckpt_name": cfg["models"]["checkpoint"]},
-                    "_claude_inject_lora": {
-                        "inputs.lora_name": char_cfg["lora"],
-                        "inputs.strength_model": char_cfg["lora_strength"],
-                        "inputs.strength_clip": char_cfg["lora_strength"],
-                    },
+                    "_claude_inject_seed": {"inputs.seed": seed},
                 }
 
                 patched = inject_workflow_values(workflow_data, overrides)

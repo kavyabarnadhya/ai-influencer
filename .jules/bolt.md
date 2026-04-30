@@ -15,3 +15,7 @@
 **Learning:** When multiple fields within the same node or sub-dictionary are patched in one `inject_workflow_values` call, the naive traversal logic performs redundant `copy()` calls and dictionary lookups for the shared parent paths.
 
 **Action:** Group overrides by `node_id` first. During traversal of each node, use a local cache (`copied_sub_dicts`) to track already-copied dictionary branches. This ensures that each level of the dictionary hierarchy is shallow-copied at most once per function call, reducing redundant object creation and memory overhead by ~10% in common multi-patch scenarios (like updating seed, width, height, and prompt in one go).
+
+## 2025-01-27 - Connection Pooling and Loop Optimization
+**Learning:** For batch image generation, the overhead of TCP handshakes (using urllib) and exponential polling backoff (up to 15s) can waste minutes of time per batch. Additionally, re-calculating static workflow patches inside the inner loop is redundant.
+**Action:** Use `requests.Session` for connection pooling and Keep-Alive. Implement a low, fixed polling interval (e.g., 1.5s) for job completion. Pre-patch constant workflow values outside of generation loops to minimize dictionary operations.
