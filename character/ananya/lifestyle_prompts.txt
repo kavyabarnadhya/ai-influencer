@@ -1,20 +1,54 @@
-# Ananya — Free Tier (Public Instagram)
-# Aspirational fashion and lifestyle. Instagram-safe.
-# Post-LoRA: remove physical descriptors — only clothing, setting, pose, lighting.
+# Ananya — Public Instagram (Growth Phase, pre-10K)
+# Full mix: lifestyle + editorial + glam. All Instagram-compliant, fully clothed.
+# Target: Indian male audience 18-30. Optimised for saves and DM shares.
+# Post-LoRA: only clothing, setting, pose, lighting — no physical descriptors.
 # One prompt per line. Lines starting with # are ignored.
 
-sitting at a sunlit Delhi cafe, iced coffee on the table, white linen kurta, candid half-smile, warm morning light, shot from across the table
-rooftop portrait at golden hour, Delhi skyline behind her, flowy indo-western co-ord set in terracotta, wind in hair, looking slightly off-camera
-wedding guest look, embroidered lehenga in dusty rose, outdoor venue with string lights, laughing mid-motion, candid editorial
-solo Goa trip, white linen beach dress, warm sand, afternoon sun, relaxed expression, candid walking shot from behind and side
-mirror OOTD in hotel room, casual deep-V kurta in sage green, phone in hand, slight smirk, natural overhead light
-Himachal weekend, oversized sweater and jeans, misty mountain background, coffee mug in hands, sitting on a wooden railing, candid
-festive look — silk anarkali kurta in deep mustard, Diwali lights behind her, golden warm light, looking down at diyas, editorial lifestyle
-Delhi metro style, street fashion, oversized blazer over bralette and wide-leg pants, city street background, walking candid shot
-weekend brunch, floral midi dress, outdoor patio seating, laughing at something off-camera, natural dappled light through leaves
-airport departure — casual chic, beige trench coat, jeans, tote bag, departure hall background, hair pulled back, confident walk shot
-rooftop evening in South Delhi, embroidered kurta set in ivory, fairy lights, warm golden ambience, candid leaning on railing
-Sunday morning, oversized white shirt dress, balcony with coffee, plant-filled corner, soft diffused morning light
-Rajasthan trip, printed block-print co-ord in orange, haveliwall behind her, afternoon desert light, relaxed editorial
-Delhi winter morning, mustard wool shawl over printed kurta, foggy background, cup in both hands, steaming breath, candid
-Indo-western street style, cropped embroidered jacket over flared pants, market lane, natural afternoon light, candid walk shot
+# --- CLOSE-UP PORTRAITS ---
+close-up portrait, rooftop golden hour, fitted deep-V ribbed knit top in ivory, soft warm backlight, direct confident gaze at camera, bokeh city skyline behind, lifestyle portrait
+close-up portrait, cafe window seat, oversized cream linen shirt, morning side light, candid half-smile looking off-camera, warm timber walls behind, candid Instagram editorial
+close-up portrait, hotel room mirror, silk slip dress in champagne, warm bedside lamp, soft direct gaze, subtle smirk, intimate editorial portrait
+close-up portrait, balcony evening, spaghetti-strap top in sage green, soft golden hour backlight, slight smile, bokeh fairy lights behind, lifestyle portrait
+
+# --- MIRROR / OOTD ---
+full length mirror OOTD, fitted black bodycon mini dress, sleeveless, hotel room, warm ambient lamp light, phone in hand, confident direct gaze, candid Instagram editorial
+full length mirror OOTD, white crop top and high-waist wide-leg trousers, morning natural window light, relaxed pose, slight smirk, lifestyle portrait
+mirror selfie, fitted deep-V silk blouse in burgundy and tailored trousers, hotel corridor mirror, dramatic corridor lighting, direct confident gaze, high fashion editorial
+bathroom mirror, post-glam look, sequined mini dress in silver, bright vanity lights, bold lip, direct gaze, night out editorial
+
+# --- NIGHT OUT / BAR / LOUNGE ---
+waist-up shot, dimly lit rooftop bar, fitted satin wrap dress in deep red, city lights below, warm amber bar lighting, wine glass in hand, confident relaxed pose, candid editorial
+waist-up shot, upscale lounge, sleeveless fitted blouse in cobalt blue and tailored skirt, cool blue ambient lighting, leaning on bar counter, direct gaze, high fashion editorial
+full body shot, hotel lobby, fitted blazer dress in emerald green, marble lobby background, confident walk, editorial lighting, high fashion editorial
+waist-up shot, restaurant evening, silk wrap top in deep teal and fitted trousers, warm candlelight, seated at table, candid smile, lifestyle editorial
+
+# --- HOTEL EDITORIALS ---
+waist-up shot, hotel room evening, satin slip dress in champagne, sitting on bed edge, warm bedside amber lamp, direct soft gaze at camera, exclusive glam editorial
+full body shot, hotel corridor, backless halter mini dress in black, looking back over shoulder, dramatic single corridor spotlight, cinematic high fashion editorial
+close-up portrait, hotel suite morning, silk chemise in blush, sitting at dressing table, gold jewellery catching soft window light, direct gaze, warm diffused morning light, intimate editorial
+full body shot, hotel suite full-length mirror, fitted bodycon dress in burgundy with subtle shimmer, dim warm lamp light, direct gaze, confidence pose editorial
+
+# --- ROOFTOP NIGHT EDITORIALS ---
+full body shot, private rooftop night, fitted bodycon dress in deep red, city lights below, cool blue-toned evening ambient light, confident standing pose, bokeh skyline, editorial
+waist-up shot, rooftop night, sheer embroidered dupatta draped loosely over strapless blouse, silhouette against purple dusk sky, warm backlight, editorial mood
+full body shot, penthouse balcony, silk backless gown in midnight navy, dramatic moonlight and city glow, arched back pose on railing, fashion editorial
+
+# --- GYM / ATHLEISURE ---
+close-up portrait, gym interior, fitted sports bra in black and high-waist leggings, soft natural gym light, hair tied up, confident direct gaze, candid fitness editorial
+waist-up shot, building rooftop post-workout, sports crop top in coral and leggings, morning golden light, water bottle in hand, relaxed candid smile, lifestyle portrait
+full body shot, outdoor park path, fitted athleisure co-ord in slate grey, morning soft light, walking candid shot, street style editorial
+
+# --- TRAVEL / LOCATION ---
+waist-up shot, Goa beach shack, white linen off-shoulder top and denim shorts, warm afternoon sun, candid laughing, bokeh ocean behind, travel editorial
+full body shot, Jaipur rooftop, printed co-ord set in terracotta and rust, afternoon golden light, ornate railing and pink city skyline behind, travel editorial
+waist-up shot, Mumbai Marine Drive, fitted crop blazer in camel and wide-leg trousers, overcast sea light, windswept, confident gaze, street style editorial
+waist-up shot, Delhi Hauz Khas cafe, oversized printed shirt dress in olive, warm dappled afternoon light, coffee in hand, candid smile, lifestyle portrait
+
+# --- BOLD FASHION ---
+full body shot, editorial, sleeveless fitted blouse and high-waist mini skirt, midriff visible, dark backdrop with single dramatic spotlight, bold confident pose, high fashion editorial
+full body shot, marble hotel lobby, silk backless saree in emerald green with deep-back blouse, confident walk, dramatic overhead lighting, Indian fashion editorial
+full body shot, club entrance, deep plunge sequined mini dress in gold, confident pose, cool purple-blue club ambient light, bokeh crowd behind, night out editorial
+
+# --- FESTIVE ---
+waist-up shot, Diwali evening, silk kurta set in deep mustard with subtle gold embroidery, warm diya light, golden ambient glow, soft smile, festive lifestyle editorial
+waist-up shot, wedding guest, embroidered lehenga blouse in dusty rose, string lights behind, laughing candid, warm golden evening light, candid editorial

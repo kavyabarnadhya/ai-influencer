@@ -111,6 +111,16 @@ class ComfyUIClient:
             raise ComfyUIError(f"Failed to upload image {path.name}: {e}")
 
 
+def find_comfyui_port(host: str = "127.0.0.1", candidates: list[int] | None = None) -> int | None:
+    """Try candidate ports and return the first one where ComfyUI responds."""
+    if candidates is None:
+        candidates = [8000, 8188, 8002]
+    for port in candidates:
+        if ComfyUIClient(host, port).is_running():
+            return port
+    return None
+
+
 # Global cache for workflow title-to-ID mappings to speed up batch injections
 _WORKFLOW_TITLE_CACHE: dict[int, dict[str, list[str]]] = {}
 

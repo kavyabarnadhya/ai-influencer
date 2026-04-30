@@ -13,6 +13,8 @@ models:
   flux_vae: ae.safetensors
   clip_l: clip_l.safetensors
   t5xxl: t5xxl_fp8_e4m3fn.safetensors
+  upscaler: 4x-UltraSharp.pth
+  controlnet_openpose: control-lora-openposeXL2-rank256.safetensors
 
 characters:
   ananya:
