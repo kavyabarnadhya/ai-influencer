@@ -1,9 +1,7 @@
 import json
 import time
 import random
-import urllib.parse
-import urllib.request
-import urllib.error
+import requests
 from typing import Any
 
 
@@ -12,29 +10,35 @@ class ComfyUIError(Exception):
 
 
 class ComfyUIClient:
+    """
+    Client for interacting with the ComfyUI API.
+    Uses requests.Session for connection pooling (Keep-Alive), which provides
+    significant performance benefits when performing multiple requests in a row
+    (e.g., polling history or downloading multiple images in a batch).
+    """
     def __init__(self, host: str = "127.0.0.1", port: int = 8188):
         self.base_url = f"http://{host}:{port}"
         self.client_id = str(random.randint(100000, 999999))
+        self.session = requests.Session()
 
     def _get(self, path: str) -> Any:
         url = f"{self.base_url}{path}"
         try:
-            with urllib.request.urlopen(url, timeout=10) as resp:
-                return json.loads(resp.read())
-        except urllib.error.URLError as e:
-            raise ComfyUIError(f"ComfyUI unreachable at {self.base_url}: {e}")
+            resp = self.session.get(url, timeout=10)
+            resp.raise_for_status()
+            return resp.json()
+        except requests.exceptions.RequestException as e:
+            raise ComfyUIError(f"GET {path} failed: {e}")
 
     def _post(self, path: str, data: dict) -> Any:
         url = f"{self.base_url}{path}"
-        payload = json.dumps(data).encode("utf-8")
-        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                return json.loads(resp.read())
-        except urllib.error.HTTPError as e:
-            error_body = e.read().decode("utf-8")
-            raise ComfyUIError(f"POST to {path} failed: {e}\nResponse: {error_body}")
-        except urllib.error.URLError as e:
+            resp = self.session.post(url, json=data, timeout=30)
+            resp.raise_for_status()
+            return resp.json()
+        except requests.exceptions.HTTPError as e:
+            raise ComfyUIError(f"POST to {path} failed: {e}\nResponse: {e.response.text}")
+        except requests.exceptions.RequestException as e:
             raise ComfyUIError(f"POST to {path} failed: {e}")
 
     def is_running(self) -> bool:
@@ -62,8 +66,13 @@ class ComfyUIClient:
         return prompt_id
 
     def wait_for_completion(self, prompt_id: str, timeout: int = 300) -> list[dict]:
+        """
+        Poll the /history/{prompt_id} endpoint until the job is complete.
+        Uses a fixed 1.5s polling interval to minimize idle time in batch generation
+        compared to exponential backoff.
+        """
         deadline = time.time() + timeout
-        delay = 2.0
+        polling_interval = 1.5
         while time.time() < deadline:
             history = self._get(f"/history/{prompt_id}")
             if prompt_id in history:
@@ -74,43 +83,31 @@ class ComfyUIClient:
                     for img in node_output.get("images", []):
                         images.append(img)
                 return images
-            time.sleep(delay)
-            delay = min(delay * 1.3, 15.0)
+            time.sleep(polling_interval)
         raise ComfyUIError(f"Prompt {prompt_id} did not complete within {timeout}s")
 
     def download_image(self, filename: str, subfolder: str = "", img_type: str = "output") -> bytes:
-        params = f"filename={urllib.parse.quote(filename)}&subfolder={urllib.parse.quote(subfolder)}&type={img_type}"
-        url = f"{self.base_url}/view?{params}"
+        params = {"filename": filename, "subfolder": subfolder, "type": img_type}
+        url = f"{self.base_url}/view"
         try:
-            with urllib.request.urlopen(url, timeout=30) as resp:
-                return resp.read()
-        except urllib.error.URLError as e:
+            resp = self.session.get(url, params=params, timeout=30)
+            resp.raise_for_status()
+            return resp.content
+        except requests.exceptions.RequestException as e:
             raise ComfyUIError(f"Failed to download image {filename}: {e}")
 
     def upload_image(self, image_path: str) -> str:
         """Upload an image to ComfyUI's input folder. Returns the filename ComfyUI assigned."""
         from pathlib import Path
         path = Path(image_path)
-        boundary = f"ComfyBoundary{random.randint(100000, 999999)}"
-        with open(path, "rb") as f:
-            file_data = f.read()
-        body = (
-            f"--{boundary}\r\n"
-            f'Content-Disposition: form-data; name="image"; filename="{path.name}"\r\n'
-            f"Content-Type: image/png\r\n"
-            f"\r\n"
-        ).encode("utf-8") + file_data + f"\r\n--{boundary}--\r\n".encode("utf-8")
         url = f"{self.base_url}/upload/image"
-        req = urllib.request.Request(
-            url,
-            data=body,
-            headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
-        )
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                result = json.loads(resp.read())
-                return result["name"]
-        except urllib.error.URLError as e:
+            with open(path, "rb") as f:
+                files = {"image": (path.name, f, "image/png")}
+                resp = self.session.post(url, files=files, timeout=30)
+                resp.raise_for_status()
+                return resp.json()["name"]
+        except requests.exceptions.RequestException as e:
             raise ComfyUIError(f"Failed to upload image {path.name}: {e}")
 
 
