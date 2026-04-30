@@ -131,7 +131,7 @@ def main(prompt: str, image: str | None, count: int, seed: int | None, workflow:
         char_cfg["trigger_word"],
         include_base=not is_flux,
     )
-    if is_flux:
+    if is_flux and not background_only:
         full_prompt += ", fair complexion, soft front lighting, no text, no watermark"
 
     reels_cfg = cfg.get("reels", {})
@@ -197,8 +197,8 @@ def main(prompt: str, image: str | None, count: int, seed: int | None, workflow:
 
         patched = inject_workflow_values(workflow_data, overrides)
 
-        if is_flux and i == 0:
-            _flux_prompt_hints(prompt)
+        if is_flux and not background_only and i == 0:
+            _flux_prompt_hints(full_prompt)
         console.print(f"[cyan]Generating image {i + 1}/{count} (seed {img_seed})...[/cyan]")
         try:
             prompt_id = client.submit_workflow(patched)
@@ -215,7 +215,7 @@ def main(prompt: str, image: str | None, count: int, seed: int | None, workflow:
             filename = f"{character}_{today}_{timestamp}_{img_seed}.png"
             dest = out_dir / filename
             dest.write_bytes(img_bytes)
-            console.print(f"[green]Saved:[/green] {dest}")
+            print(f"Saved: {dest}")
 
 
 if __name__ == "__main__":

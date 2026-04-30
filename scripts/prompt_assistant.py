@@ -242,17 +242,9 @@ def _save_history(entry: dict) -> None:
         f.write(json.dumps(entry) + "\n")
 
 
-def _run_generate(cmd: list[str]) -> list[str]:
-    """Run generate.py, stream output to console, return list of saved paths."""
-    saved_paths = []
-    result = subprocess.run(cmd, capture_output=False, text=True)
-    return saved_paths
-
-
 def _run_generate_captured(cmd: list[str]) -> list[str]:
     """Run generate.py, stream output to console AND capture saved paths."""
     saved_paths = []
-    import io
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     output_lines = []
     for line in proc.stdout:
@@ -314,8 +306,9 @@ def _run_once(description: str, character: str, workflow: str | None, image: str
               dry_run: bool, review: bool, seed: int | None):
     is_flux = workflow is not None and workflow.startswith("flux")
 
-    # Shot type selector
-    description = _ask_shot_type(description)
+    # Shot type selector (FLUX only — SDXL framing is handled by the system prompt)
+    if is_flux:
+        description = _ask_shot_type(description)
 
     console.print(f"\n[dim]Polishing prompt...[/dim]")
     polished = ensure_hand_position(polish_prompt(description))
@@ -390,17 +383,17 @@ def _run_once(description: str, character: str, workflow: str | None, image: str
     saved_paths = _run_generate_captured(cmd)
 
     # Log to history
-    _save_history({
-        "timestamp": datetime.now().isoformat(),
-        "description": description,
-        "polished_prompt": polished,
-        "workflow": workflow,
-        "character": character,
-        "variations": variations,
-        "seed": seed,
-        "saved_paths": saved_paths,
-    })
     if saved_paths:
+        _save_history({
+            "timestamp": datetime.now().isoformat(),
+            "description": description,
+            "polished_prompt": polished,
+            "workflow": workflow,
+            "character": character,
+            "variations": variations,
+            "seed": seed,
+            "saved_paths": saved_paths,
+        })
         console.print(f"\n[dim]Logged to logs/prompt_history.jsonl[/dim]")
 
 
