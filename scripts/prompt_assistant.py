@@ -160,9 +160,22 @@ def extract_bg_prompt(polished_prompt: str) -> str:
         return "empty scene, no people, no humans, highly detailed realistic background, 8k"
 
 
+def _flux_hints(prompt: str) -> list[str]:
+    hints = []
+    p = prompt.lower()
+    if "sharp detailed face" not in p:
+        hints.append("'sharp detailed face' — improves identity on all shots")
+    if any(w in p for w in ("full-body", "full body", "head to toe")) and "35mm" not in p:
+        hints.append("'35mm portrait lens, face in focus' — prevents identity drift on full-body shots")
+    if any(w in p for w in ("premium", "evening", "cocktail", "gown", "vanity")) and "editorial" not in p:
+        hints.append("'editorial fashion photography' — elevates premium scenes")
+    return hints
+
+
 @click.command()
 @click.argument("description", required=False)
 @click.option("--character", default="ananya", show_default=True, help="Character [ananya|kavib]")
+@click.option("--workflow", default=None, help="ComfyUI workflow override, e.g. flux_schnell_lora")
 @click.option("--image", help="Optional reference image path for IP-Adapter")
 @click.option("--use-flux-bg", is_flag=True, help="Automate 2-pass: Generate background with FLUX, then character with SDXL")
 @click.option("--count", default=1, show_default=True, help="Number of images to generate")
@@ -171,7 +184,7 @@ def extract_bg_prompt(polished_prompt: str) -> str:
 @click.option("--dry-run", is_flag=True, help="Print polished prompt only, do not generate")
 @click.option("--review", is_flag=True, help="Review loop: edit → re-polish → approve before generating")
 @click.option("--seed", default=None, type=int, help="Seed for generation")
-def main(description: str | None, character: str, image: str | None, use_flux_bg: bool, count: int, rescue: bool, reel_anchor: bool, dry_run: bool, review: bool, seed: int | None):
+def main(description: str | None, character: str, workflow: str | None, image: str | None, use_flux_bg: bool, count: int, rescue: bool, reel_anchor: bool, dry_run: bool, review: bool, seed: int | None):
     """Convert natural language to an Ananya prompt and generate an image.
 
     DESCRIPTION: Natural language scene description, e.g. "her at a cafe in the morning"
@@ -192,29 +205,42 @@ def main(description: str | None, character: str, image: str | None, use_flux_bg
                 description = console.input("\n[bold]Scene:[/bold] ").strip()
                 if not description:
                     continue
-                _run_once(description, character, image, use_flux_bg, count, rescue, reel_anchor, dry_run, review, seed)
+                _run_once(description, character, workflow, image, use_flux_bg, count, rescue, reel_anchor, dry_run, review, seed)
             except KeyboardInterrupt:
                 console.print("\n[dim]Exiting.[/dim]")
                 break
     else:
-        _run_once(description, character, image, use_flux_bg, count, rescue, reel_anchor, dry_run, review, seed)
+        _run_once(description, character, workflow, image, use_flux_bg, count, rescue, reel_anchor, dry_run, review, seed)
 
 
-def _run_once(description: str, character: str, image: str | None, use_flux_bg: bool, count: int, rescue: bool, reel_anchor: bool, dry_run: bool, review: bool, seed: int | None):
+def _run_once(description: str, character: str, workflow: str | None, image: str | None, use_flux_bg: bool, count: int, rescue: bool, reel_anchor: bool, dry_run: bool, review: bool, seed: int | None):
+    is_flux = workflow is not None and workflow.startswith("flux")
     console.print(f"\n[dim]Polishing prompt...[/dim]")
     polished = ensure_hand_position(polish_prompt(description))
 
     console.print(Panel(polished, title="[green]Polished prompt[/green]", border_style="green"))
 
+    if is_flux:
+        hints = _flux_hints(polished)
+        if hints:
+            console.print("[yellow]Prompt tips:[/yellow]")
+            for h in hints:
+                console.print(f"[yellow]  + {h}[/yellow]")
+
     if review:
-        console.print("[dim]Edit the prompt below (press Enter twice to keep as-is, or type changes):[/dim]")
-        console.print("[dim]You can add tags, remove tags, or describe changes in plain English.[/dim]\n")
+        console.print("[dim]Edit the prompt below (add tags, remove tags, or describe changes). Press Enter to keep as-is.[/dim]\n")
         user_edit = console.input("[bold yellow]Your edit:[/bold yellow] ").strip()
         if user_edit:
             console.print("\n[dim]Re-polishing with your edits...[/dim]")
             refine_input = f"Original prompt: {polished}\nUser changes: {user_edit}\nOutput a refined final prompt incorporating the changes."
             polished = ensure_hand_position(polish_prompt(refine_input))
             console.print(Panel(polished, title="[green]Refined prompt[/green]", border_style="green"))
+            if is_flux:
+                hints = _flux_hints(polished)
+                if hints:
+                    console.print("[yellow]Still missing:[/yellow]")
+                    for h in hints:
+                        console.print(f"[yellow]  + {h}[/yellow]")
 
         approve = console.input("\n[bold]Generate with this prompt? [Y/n]:[/bold] ").strip().lower()
         if approve == "n":
@@ -253,6 +279,8 @@ def _run_once(description: str, character: str, image: str | None, use_flux_bg: 
         image = flux_image  # Use this image for the SDXL pass
 
     cmd = [sys.executable, str(generate_script), "--prompt", polished, "--character", character, "--count", str(count)]
+    if workflow:
+        cmd.extend(["--workflow", workflow])
     if image:
         cmd.extend(["--image", image])
     if rescue:
