@@ -1,6 +1,7 @@
 import json
 import time
 import random
+import functools
 import requests
 from typing import Any
 
@@ -135,9 +136,13 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
     Optimized to group patches by node and cache copied paths to avoid redundant
     copies when multiple fields in the same sub-dictionary are modified.
     (Reduces overhead by ~10% for common multi-patch scenarios).
+
+    Note: Always returns a new dictionary object (shallow copy at minimum) to
+    ensure original workflow data remains immutable and prevent state leakage
+    when using cached workflow templates.
     """
     if not overrides:
-        return workflow
+        return workflow.copy()
 
     # Optimization: Use a cached mapping of title -> node_ids for the workflow object.
     # This avoids O(N) scan of all nodes for every injection in a batch.
@@ -205,5 +210,16 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
 
 
 def load_workflow(path: str) -> dict:
+    """
+    Load a ComfyUI workflow JSON from disk.
+    Cached to avoid redundant I/O and JSON parsing when the same workflow
+    is used repeatedly in a batch. Returns a shallow copy to prevent
+    modifications to the cached object from leaking across iterations.
+    """
+    return _load_workflow_cached(path).copy()
+
+
+@functools.lru_cache(maxsize=16)
+def _load_workflow_cached(path: str) -> dict:
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)

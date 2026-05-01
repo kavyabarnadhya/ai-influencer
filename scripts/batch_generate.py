@@ -162,24 +162,6 @@ def main(prompts: Path, count_per_prompt: int, category: str, character: str, wo
     clean_base = base_prompt.replace(trigger, "").strip().strip(",")
     poses_dir = ROOT / "character" / character / "poses"
 
-    # Performance Optimization: Pre-patch constant workflow values outside the loop
-    # to avoid redundant dictionary traversals and copies for every image.
-    base_overrides = {
-        "_claude_inject_negative": {"inputs.text": gen_cfg["negative_prompt"]},
-        "_claude_inject_latent": {"inputs.width": gen_cfg["width"], "inputs.height": gen_cfg["height"]},
-        "_claude_inject_checkpoint": {"inputs.ckpt_name": cfg["models"]["checkpoint"]},
-        "_claude_inject_lora": {
-            "inputs.lora_name": char_cfg["lora"],
-            "inputs.strength_model": char_cfg["lora_strength"],
-            "inputs.strength_clip": char_cfg["lora_strength"],
-        },
-        "_claude_inject_seed": {
-            "inputs.steps": gen_cfg["steps"],
-            "inputs.cfg": gen_cfg["cfg"]
-        },
-    }
-    workflow_data = inject_workflow_values(workflow_data, base_overrides)
-
     total = len(prompt_list) * count_per_prompt
     done = 0
 
@@ -212,6 +194,24 @@ def main(prompts: Path, count_per_prompt: int, category: str, character: str, wo
                 console.print(f"[red]Workflow not found: {workflow_path}[/red]")
                 raise SystemExit(1)
             workflow_data = load_workflow(str(workflow_path))
+
+            # Performance Optimization: Pre-patch constant workflow values for this scene
+            # (once per scene instead of for every image variation) to reduce overhead.
+            base_overrides = {
+                "_claude_inject_negative": {"inputs.text": gen_cfg["negative_prompt"]},
+                "_claude_inject_latent": {"inputs.width": gen_cfg["width"], "inputs.height": gen_cfg["height"]},
+                "_claude_inject_checkpoint": {"inputs.ckpt_name": cfg["models"]["checkpoint"]},
+                "_claude_inject_lora": {
+                    "inputs.lora_name": char_cfg["lora"],
+                    "inputs.strength_model": char_cfg["lora_strength"],
+                    "inputs.strength_clip": char_cfg["lora_strength"],
+                },
+                "_claude_inject_seed": {
+                    "inputs.steps": gen_cfg["steps"],
+                    "inputs.cfg": gen_cfg["cfg"]
+                },
+            }
+            workflow_data = inject_workflow_values(workflow_data, base_overrides)
 
             # Upload pose image once per scene (reused across count_per_prompt variations)
             uploaded_pose_name = None
