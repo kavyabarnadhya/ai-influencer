@@ -170,6 +170,9 @@ def main(mode: str, count: int, character: str, output_dir: Path | None, ipadapt
     with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), BarColumn(), TaskProgressColumn(), console=console) as progress:
         task = progress.add_task(f"Bootstrap {mode}", total=count)
 
+        # Queuing Optimization: Submit all variations first to hide latency.
+        pending_prompts: list[tuple[str, int, int]] = []
+
         for i in range(count):
             context = pool[i % len(pool)]
             # Bootstrap: full physical description + mode framing + per-image context. No trigger word — pre-LoRA.
@@ -198,17 +201,25 @@ def main(mode: str, count: int, character: str, output_dir: Path | None, ipadapt
 
             try:
                 prompt_id = client.submit_workflow(patched)
+                pending_prompts.append((prompt_id, seed, i))
+            except ComfyUIError as e:
+                console.print(f"[yellow]Submission {i+1} failed: {e}[/yellow]")
+                progress.advance(task)
+
+        # Download pass
+        for prompt_id, seed, idx in pending_prompts:
+            try:
                 images = client.wait_for_completion(prompt_id, timeout=comfy_cfg["timeout"])
                 for img_meta in images:
                     img_bytes = client.download_image(
                         img_meta["filename"], img_meta.get("subfolder", ""), img_meta.get("type", "output")
                     )
                     suffix = "_ipadapter" if ipadapter_ref else ""
-                    filename = f"seed_{mode}{suffix}_{i+1:03d}_{seed}.png"
+                    filename = f"seed_{mode}{suffix}_{idx+1:03d}_{seed}.png"
                     dest = out_dir / filename
                     dest.write_bytes(img_bytes)
             except ComfyUIError as e:
-                console.print(f"[yellow]Seed {i+1} failed: {e}[/yellow]")
+                console.print(f"[yellow]Completion {idx+1} failed: {e}[/yellow]")
 
             progress.advance(task)
 
