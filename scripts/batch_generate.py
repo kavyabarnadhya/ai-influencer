@@ -222,11 +222,12 @@ def main(prompts: Path, count_per_prompt: int, category: str, character: str, wo
                     console.print(f"[yellow]Pose upload failed, skipping pose: {e}[/yellow]")
                     log.warning("Pose upload failed for %s: %s", pose_path.name, e)
 
+            # Queuing Optimization: Submit all variations for this scene to the ComfyUI queue first.
+            # This hides download/polling latency and lets the GPU work back-to-back.
+            pending_prompts: list[tuple[str, int]] = []
             for _ in range(count_per_prompt):
                 seed = random.randint(0, 2**32 - 1)
 
-                # Only patch dynamic values (prompt and seed) inside the loop.
-                # All other values were pre-patched into workflow_data.
                 overrides = {
                     "_claude_inject_prompt": {"inputs.text": full_prompt},
                     "_claude_inject_seed": {"inputs.seed": seed},
@@ -243,6 +244,15 @@ def main(prompts: Path, count_per_prompt: int, category: str, character: str, wo
 
                 try:
                     prompt_id = client.submit_workflow(patched)
+                    pending_prompts.append((prompt_id, seed))
+                except ComfyUIError as e:
+                    log.error("Failed submission seed=%d prompt=%s: %s", seed, scene_prompt[:60], e)
+                    console.print(f"[yellow]Submission failed: {e}[/yellow]")
+                    progress.advance(task)
+
+            # Wait for and download results for all queued variations.
+            for prompt_id, seed in pending_prompts:
+                try:
                     images = client.wait_for_completion(prompt_id, timeout=comfy_cfg["timeout"])
                     for img_meta in images:
                         img_bytes = client.download_image(
@@ -255,8 +265,8 @@ def main(prompts: Path, count_per_prompt: int, category: str, character: str, wo
                         log.info("Saved %s (seed=%d, prompt=%s)", dest.name, seed, scene_prompt[:60])
                     done += 1
                 except ComfyUIError as e:
-                    log.error("Failed seed=%d prompt=%s: %s", seed, scene_prompt[:60], e)
-                    console.print(f"[yellow]Skipped (error): {e}[/yellow]")
+                    log.error("Failed completion seed=%d prompt=%s: %s", seed, scene_prompt[:60], e)
+                    console.print(f"[yellow]Completion failed: {e}[/yellow]")
 
                 progress.advance(task)
 

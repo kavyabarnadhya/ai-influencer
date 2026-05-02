@@ -69,11 +69,11 @@ class ComfyUIClient:
     def wait_for_completion(self, prompt_id: str, timeout: int = 300) -> list[dict]:
         """
         Poll the /history/{prompt_id} endpoint until the job is complete.
-        Uses a fixed 1.5s polling interval to minimize idle time in batch generation
+        Uses a fixed 0.5s polling interval to minimize idle time in batch generation
         compared to exponential backoff.
         """
         deadline = time.time() + timeout
-        polling_interval = 1.5
+        polling_interval = 0.5
         while time.time() < deadline:
             history = self._get(f"/history/{prompt_id}")
             if prompt_id in history:
@@ -141,27 +141,30 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
     ensure original workflow data remains immutable and prevent state leakage
     when using cached workflow templates.
     """
-    if not overrides:
-        return workflow.copy()
-
     # Optimization: Use a cached mapping of title -> node_ids for the workflow object.
     # This avoids O(N) scan of all nodes for every injection in a batch.
     wf_id = id(workflow)
     if wf_id not in _WORKFLOW_TITLE_CACHE:
-        # Limit cache size to avoid memory leaks if many different workflows are loaded
-        if len(_WORKFLOW_TITLE_CACHE) > 10:
+        # Limit cache size to avoid memory leaks if many different workflows are loaded.
+        # Increased to 100 to support larger batches without frequent re-scanning.
+        if len(_WORKFLOW_TITLE_CACHE) > 100:
             _WORKFLOW_TITLE_CACHE.clear()
 
-        mapping = {}
+        title_to_ids = {}
         for node_id, node in workflow.items():
             title = node.get("_meta", {}).get("title")
             if title:
-                if title not in mapping:
-                    mapping[title] = []
-                mapping[title].append(node_id)
-        _WORKFLOW_TITLE_CACHE[wf_id] = mapping
+                if title not in title_to_ids:
+                    title_to_ids[title] = []
+                title_to_ids[title].append(node_id)
+        _WORKFLOW_TITLE_CACHE[wf_id] = title_to_ids
+    else:
+        title_to_ids = _WORKFLOW_TITLE_CACHE[wf_id]
 
-    title_to_ids = _WORKFLOW_TITLE_CACHE[wf_id]
+    if not overrides:
+        workflow = workflow.copy()
+        _WORKFLOW_TITLE_CACHE[id(workflow)] = title_to_ids
+        return workflow
 
     # Performance Optimization: Instead of deep-copying the entire workflow,
     # we shallow copy the top-level dict and only deep-copy branches that need patching.
@@ -175,10 +178,13 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
                     node_to_patches[node_id] = {}
                 node_to_patches[node_id].update(patches)
 
-    if not node_to_patches:
-        return workflow.copy()
-
     workflow = workflow.copy()
+
+    if not node_to_patches:
+        # Even if no patches apply, we still want the new object to benefit
+        # from the cached title mapping for future injections.
+        _WORKFLOW_TITLE_CACHE[id(workflow)] = title_to_ids
+        return workflow
 
     for node_id, patches in node_to_patches.items():
         node = workflow[node_id] = workflow[node_id].copy()
@@ -205,6 +211,10 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
                     target = new_target
 
             target[parts[-1]] = value
+
+    # Propagation Optimization: Carry over the title-to-ID mapping to the new object
+    # to ensure that subsequent injections on this patched workflow are also O(1).
+    _WORKFLOW_TITLE_CACHE[id(workflow)] = title_to_ids
 
     return workflow
 
