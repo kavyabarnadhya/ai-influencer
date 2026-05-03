@@ -195,9 +195,19 @@ def main(prompts: Path, count_per_prompt: int, category: str, character: str, wo
                 raise SystemExit(1)
             workflow_data = load_workflow(str(workflow_path))
 
+            # Upload pose image once per scene (reused across count_per_prompt variations)
+            uploaded_pose_name = None
+            if pose_path:
+                try:
+                    uploaded_pose_name = client.upload_image(str(pose_path))
+                except ComfyUIError as e:
+                    console.print(f"[yellow]Pose upload failed, skipping pose: {e}[/yellow]")
+                    log.warning("Pose upload failed for %s: %s", pose_path.name, e)
+
             # Performance Optimization: Pre-patch constant workflow values for this scene
             # (once per scene instead of for every image variation) to reduce overhead.
             base_overrides = {
+                "_claude_inject_prompt": {"inputs.text": full_prompt},
                 "_claude_inject_negative": {"inputs.text": gen_cfg["negative_prompt"]},
                 "_claude_inject_latent": {"inputs.width": gen_cfg["width"], "inputs.height": gen_cfg["height"]},
                 "_claude_inject_checkpoint": {"inputs.ckpt_name": cfg["models"]["checkpoint"]},
@@ -211,16 +221,15 @@ def main(prompts: Path, count_per_prompt: int, category: str, character: str, wo
                     "inputs.cfg": gen_cfg["cfg"]
                 },
             }
-            workflow_data = inject_workflow_values(workflow_data, base_overrides)
 
-            # Upload pose image once per scene (reused across count_per_prompt variations)
-            uploaded_pose_name = None
-            if pose_path:
-                try:
-                    uploaded_pose_name = client.upload_image(str(pose_path))
-                except ComfyUIError as e:
-                    console.print(f"[yellow]Pose upload failed, skipping pose: {e}[/yellow]")
-                    log.warning("Pose upload failed for %s: %s", pose_path.name, e)
+            if scene_workflow in ("t2i_sdxl_upscale", "t2i_sdxl_controlnet_upscale"):
+                base_overrides["_claude_inject_upscaler"] = {"inputs.model_name": cfg["models"]["upscaler"]}
+
+            if uploaded_pose_name:
+                base_overrides["_claude_inject_controlnet"] = {"inputs.control_net_name": cfg["models"]["controlnet_openpose"]}
+                base_overrides["_claude_inject_controlnet_image"] = {"inputs.image": uploaded_pose_name}
+
+            workflow_data = inject_workflow_values(workflow_data, base_overrides)
 
             # Queuing Optimization: Submit all variations for this scene to the ComfyUI queue first.
             # This hides download/polling latency and lets the GPU work back-to-back.
@@ -229,16 +238,8 @@ def main(prompts: Path, count_per_prompt: int, category: str, character: str, wo
                 seed = random.randint(0, 2**32 - 1)
 
                 overrides = {
-                    "_claude_inject_prompt": {"inputs.text": full_prompt},
                     "_claude_inject_seed": {"inputs.seed": seed},
                 }
-
-                if scene_workflow in ("t2i_sdxl_upscale", "t2i_sdxl_controlnet_upscale"):
-                    overrides["_claude_inject_upscaler"] = {"inputs.model_name": cfg["models"]["upscaler"]}
-
-                if uploaded_pose_name:
-                    overrides["_claude_inject_controlnet"] = {"inputs.control_net_name": cfg["models"]["controlnet_openpose"]}
-                    overrides["_claude_inject_controlnet_image"] = {"inputs.image": uploaded_pose_name}
 
                 patched = inject_workflow_values(workflow_data, overrides)
 

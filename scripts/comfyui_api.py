@@ -146,17 +146,19 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
     wf_id = id(workflow)
     if wf_id not in _WORKFLOW_TITLE_CACHE:
         # Limit cache size to avoid memory leaks if many different workflows are loaded.
-        # Increased to 100 to support larger batches without frequent re-scanning.
-        if len(_WORKFLOW_TITLE_CACHE) > 100:
+        # Increased to 500 to support larger batches without frequent re-scanning.
+        if len(_WORKFLOW_TITLE_CACHE) > 500:
             _WORKFLOW_TITLE_CACHE.clear()
 
         title_to_ids = {}
         for node_id, node in workflow.items():
-            title = node.get("_meta", {}).get("title")
-            if title:
-                if title not in title_to_ids:
-                    title_to_ids[title] = []
-                title_to_ids[title].append(node_id)
+            meta = node.get("_meta")
+            if meta:
+                title = meta.get("title")
+                if title:
+                    if title not in title_to_ids:
+                        title_to_ids[title] = []
+                    title_to_ids[title].append(node_id)
         _WORKFLOW_TITLE_CACHE[wf_id] = title_to_ids
     else:
         title_to_ids = _WORKFLOW_TITLE_CACHE[wf_id]
