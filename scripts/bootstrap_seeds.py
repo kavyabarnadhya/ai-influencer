@@ -167,6 +167,23 @@ def main(mode: str, count: int, character: str, output_dir: Path | None, ipadapt
         label = "plain"
     console.print(f"[cyan]Generating {count} {mode} candidates for {character} ({label}) -> {out_dir}[/cyan]")
 
+    # Performance Optimization: Pre-patch constant workflow values once
+    # outside the loop to reduce redundant dictionary operations.
+    if not dry_run:
+        base_overrides = {
+            "_claude_inject_negative": {"inputs.text": gen_cfg["negative_prompt"]},
+            "_claude_inject_seed": {"inputs.steps": gen_cfg["steps"], "inputs.cfg": gen_cfg["cfg"]},
+            "_claude_inject_latent": {"inputs.width": gen_cfg["width"], "inputs.height": gen_cfg["height"]},
+            "_claude_inject_checkpoint": {"inputs.ckpt_name": cfg["models"]["checkpoint"]},
+        }
+
+        if uploaded_ref is not None:
+            strength = ipadapter_strength if ipadapter_strength is not None else char_cfg.get("ipadapter_strength", 0.6)
+            base_overrides["_claude_inject_ipadapter_image"] = {"inputs.image": uploaded_ref}
+            base_overrides["_claude_inject_ipadapter_strength"] = {"inputs.weight": strength}
+
+        workflow_data = inject_workflow_values(workflow_data, base_overrides)
+
     with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), BarColumn(), TaskProgressColumn(), console=console) as progress:
         task = progress.add_task(f"Bootstrap {mode}", total=count)
 
@@ -184,18 +201,11 @@ def main(mode: str, count: int, character: str, output_dir: Path | None, ipadapt
                 progress.advance(task)
                 continue
 
+            # Only inject changing values (prompt and seed) in the loop
             overrides = {
                 "_claude_inject_prompt": {"inputs.text": full_prompt},
-                "_claude_inject_negative": {"inputs.text": gen_cfg["negative_prompt"]},
-                "_claude_inject_seed": {"inputs.seed": seed, "inputs.steps": gen_cfg["steps"], "inputs.cfg": gen_cfg["cfg"]},
-                "_claude_inject_latent": {"inputs.width": gen_cfg["width"], "inputs.height": gen_cfg["height"]},
-                "_claude_inject_checkpoint": {"inputs.ckpt_name": cfg["models"]["checkpoint"]},
+                "_claude_inject_seed": {"inputs.seed": seed},
             }
-
-            if uploaded_ref is not None:
-                strength = ipadapter_strength if ipadapter_strength is not None else char_cfg.get("ipadapter_strength", 0.6)
-                overrides["_claude_inject_ipadapter_image"] = {"inputs.image": uploaded_ref}
-                overrides["_claude_inject_ipadapter_strength"] = {"inputs.weight": strength}
 
             patched = inject_workflow_values(workflow_data, overrides)
 

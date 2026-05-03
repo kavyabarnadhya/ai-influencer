@@ -183,6 +183,50 @@ def main(prompt: str, image: str | None, count: int, seed: int | None, workflow:
         console.print(f"[dim]Uploading pose reference: {pose_path.name}...[/dim]")
         uploaded_pose = client.upload_image(str(pose_path))
 
+    # Performance Optimization: Pre-patch constant workflow values once
+    # outside the loop to reduce redundant dictionary operations.
+    effective_steps = 4 if is_flux else steps
+    current_cfg = 1.0 if is_flux else gen_cfg["cfg"]
+
+    base_overrides = {
+        "_claude_inject_prompt": {"inputs.text": full_prompt},
+        "_claude_inject_negative": {"inputs.text": gen_cfg["negative_prompt"]},
+        "_claude_inject_seed": {"inputs.steps": effective_steps, "inputs.cfg": current_cfg},
+        "_claude_inject_latent": {"inputs.width": width, "inputs.height": height},
+        "_claude_inject_checkpoint": {"inputs.ckpt_name": cfg["models"]["checkpoint"]},
+    }
+
+    if uploaded_filename:
+        base_overrides["_claude_inject_ipadapter_image"] = {"inputs.image": uploaded_filename}
+
+    if uploaded_pose:
+        base_overrides["_claude_inject_controlnet_image"] = {"inputs.image": uploaded_pose}
+        base_overrides["_claude_inject_controlnet"] = {"inputs.control_net_name": cfg["models"]["controlnet_openpose"]}
+
+    if is_flux and not background_only:
+        flux_lora = char_cfg.get("flux_lora")
+        if flux_lora:
+            flux_strength = char_cfg.get("flux_lora_strength", char_cfg.get("lora_strength", 0.85))
+            base_overrides["_claude_inject_flux_lora"] = {
+                "inputs.lora_name": flux_lora,
+                "inputs.strength_model": flux_strength,
+                "inputs.strength_clip": flux_strength,
+            }
+
+    if workflow_name not in ("bootstrap_seeds", "flux_schnell"):
+        base_overrides["_claude_inject_lora"] = {
+            "inputs.lora_name": char_cfg["lora"],
+            "inputs.strength_model": char_cfg["lora_strength"],
+            "inputs.strength_clip": char_cfg["lora_strength"],
+        }
+
+    if upscale:
+        base_overrides["_claude_inject_upscaler"] = {
+            "inputs.model_name": cfg["models"]["upscaler"],
+        }
+
+    workflow_data = inject_workflow_values(workflow_data, base_overrides)
+
     # Queuing Optimization: Submit all variations to the ComfyUI queue first.
     # This allows ComfyUI to process images back-to-back without idle time
     # during image downloads or polling.
@@ -191,45 +235,10 @@ def main(prompt: str, image: str | None, count: int, seed: int | None, workflow:
     for i in range(count):
         img_seed = seed if seed is not None else random.randint(0, 2**32 - 1)
 
-        effective_steps = 4 if is_flux else steps
-        current_cfg = 1.0 if is_flux else gen_cfg["cfg"]
-
+        # Only inject changing values (seed) in the loop
         overrides = {
-            "_claude_inject_prompt": {"inputs.text": full_prompt},
-            "_claude_inject_negative": {"inputs.text": gen_cfg["negative_prompt"]},
-            "_claude_inject_seed": {"inputs.seed": img_seed, "inputs.steps": effective_steps, "inputs.cfg": current_cfg},
-            "_claude_inject_latent": {"inputs.width": width, "inputs.height": height},
-            "_claude_inject_checkpoint": {"inputs.ckpt_name": cfg["models"]["checkpoint"]},
+            "_claude_inject_seed": {"inputs.seed": img_seed},
         }
-
-        if uploaded_filename:
-            overrides["_claude_inject_ipadapter_image"] = {"inputs.image": uploaded_filename}
-
-        if uploaded_pose:
-            overrides["_claude_inject_controlnet_image"] = {"inputs.image": uploaded_pose}
-            overrides["_claude_inject_controlnet"] = {"inputs.control_net_name": cfg["models"]["controlnet_openpose"]}
-
-        if is_flux and not background_only:
-            flux_lora = char_cfg.get("flux_lora")
-            if flux_lora:
-                flux_strength = char_cfg.get("flux_lora_strength", char_cfg.get("lora_strength", 0.85))
-                overrides["_claude_inject_flux_lora"] = {
-                    "inputs.lora_name": flux_lora,
-                    "inputs.strength_model": flux_strength,
-                    "inputs.strength_clip": flux_strength,
-                }
-
-        if workflow_name not in ("bootstrap_seeds", "flux_schnell"):
-            overrides["_claude_inject_lora"] = {
-                "inputs.lora_name": char_cfg["lora"],
-                "inputs.strength_model": char_cfg["lora_strength"],
-                "inputs.strength_clip": char_cfg["lora_strength"],
-            }
-
-        if upscale:
-            overrides["_claude_inject_upscaler"] = {
-                "inputs.model_name": cfg["models"]["upscaler"],
-            }
 
         patched = inject_workflow_values(workflow_data, overrides)
 
