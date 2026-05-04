@@ -3,6 +3,7 @@ import time
 import random
 import functools
 import requests
+from pathlib import Path
 from typing import Any
 
 
@@ -21,6 +22,9 @@ class ComfyUIClient:
         self.base_url = f"http://{host}:{port}"
         self.client_id = str(random.randint(100000, 999999))
         self.session = requests.Session()
+        # Cache for uploaded images to avoid redundant network IO/disk reads.
+        # Key: (abs_path, mtime, size), Value: remote_filename
+        self._upload_cache: dict[tuple[str, float, int], str] = {}
 
     def _get(self, path: str) -> Any:
         url = f"{self.base_url}{path}"
@@ -98,16 +102,29 @@ class ComfyUIClient:
             raise ComfyUIError(f"Failed to download image {filename}: {e}")
 
     def upload_image(self, image_path: str) -> str:
-        """Upload an image to ComfyUI's input folder. Returns the filename ComfyUI assigned."""
-        from pathlib import Path
-        path = Path(image_path)
+        """
+        Upload an image to ComfyUI's input folder. Returns the filename ComfyUI assigned.
+        Uses a local cache to avoid re-uploading the same file multiple times.
+        """
+        path = Path(image_path).resolve()
+        try:
+            stat = path.stat()
+            cache_key = (str(path), stat.st_mtime, stat.st_size)
+        except OSError as e:
+            raise ComfyUIError(f"Failed to access image {image_path}: {e}")
+
+        if cache_key in self._upload_cache:
+            return self._upload_cache[cache_key]
+
         url = f"{self.base_url}/upload/image"
         try:
             with open(path, "rb") as f:
                 files = {"image": (path.name, f, "image/png")}
                 resp = self.session.post(url, files=files, timeout=30)
                 resp.raise_for_status()
-                return resp.json()["name"]
+                remote_name = resp.json()["name"]
+                self._upload_cache[cache_key] = remote_name
+                return remote_name
         except requests.exceptions.RequestException as e:
             raise ComfyUIError(f"Failed to upload image {path.name}: {e}")
 
@@ -124,6 +141,12 @@ def find_comfyui_port(host: str = "127.0.0.1", candidates: list[int] | None = No
 
 # Global cache for workflow title-to-ID mappings to speed up batch injections
 _WORKFLOW_TITLE_CACHE: dict[int, dict[str, list[str]]] = {}
+
+
+@functools.lru_cache(maxsize=128)
+def _split_path(field_path: str) -> list[str]:
+    """Cached path splitting to avoid repeated string operations on common field paths."""
+    return field_path.split(".")
 
 
 def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
@@ -196,7 +219,7 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
         copied_sub_dicts = {}
 
         for field_path, value in patches.items():
-            parts = field_path.split(".")
+            parts = _split_path(field_path)
             target = node
             path_prefix = ""
 
