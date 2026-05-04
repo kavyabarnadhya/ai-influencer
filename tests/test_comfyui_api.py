@@ -108,6 +108,40 @@ def test_inject_workflow_values_cache_propagation():
     assert id(patched2) in _WORKFLOW_TITLE_CACHE
     assert patched2["1"]["inputs"]["text"] == "val2"
 
+def test_upload_image_caching(tmp_path):
+    from unittest.mock import MagicMock
+    from comfyui_api import ComfyUIClient
+
+    # Create a dummy image
+    img_path = tmp_path / "test.png"
+    img_path.write_bytes(b"fake image data")
+
+    client = ComfyUIClient()
+    client.session.post = MagicMock()
+    client.session.post.return_value.json.return_value = {"name": "remote_test.png"}
+    client.session.post.return_value.status_code = 200
+
+    # First upload
+    name1 = client.upload_image(str(img_path))
+    assert name1 == "remote_test.png"
+    assert client.session.post.call_count == 1
+
+    # Second upload (should be cached)
+    name2 = client.upload_image(str(img_path))
+    assert name2 == "remote_test.png"
+    assert client.session.post.call_count == 1
+
+    # Modify file mtime to invalidate cache
+    import time
+    import os
+    new_mtime = img_path.stat().st_mtime + 10
+    os.utime(img_path, (new_mtime, new_mtime))
+
+    # Third upload (should re-upload)
+    name3 = client.upload_image(str(img_path))
+    assert name3 == "remote_test.png"
+    assert client.session.post.call_count == 2
+
 def test_inject_workflow_values_no_overrides_propagation():
     from comfyui_api import _WORKFLOW_TITLE_CACHE
     _WORKFLOW_TITLE_CACHE.clear()
