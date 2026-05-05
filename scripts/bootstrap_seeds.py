@@ -167,8 +167,28 @@ def main(mode: str, count: int, character: str, output_dir: Path | None, ipadapt
         label = "plain"
     console.print(f"[cyan]Generating {count} {mode} candidates for {character} ({label}) -> {out_dir}[/cyan]")
 
+    # Performance Optimization: Pre-patch constant workflow values once
+    # outside the loop to reduce redundant dictionary operations.
+    if not dry_run:
+        base_overrides = {
+            "_claude_inject_negative": {"inputs.text": gen_cfg["negative_prompt"]},
+            "_claude_inject_seed": {"inputs.steps": gen_cfg["steps"], "inputs.cfg": gen_cfg["cfg"]},
+            "_claude_inject_latent": {"inputs.width": gen_cfg["width"], "inputs.height": gen_cfg["height"]},
+            "_claude_inject_checkpoint": {"inputs.ckpt_name": cfg["models"]["checkpoint"]},
+        }
+
+        if uploaded_ref is not None:
+            strength = ipadapter_strength if ipadapter_strength is not None else char_cfg.get("ipadapter_strength", 0.6)
+            base_overrides["_claude_inject_ipadapter_image"] = {"inputs.image": uploaded_ref}
+            base_overrides["_claude_inject_ipadapter_strength"] = {"inputs.weight": strength}
+
+        workflow_data = inject_workflow_values(workflow_data, base_overrides)
+
     with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), BarColumn(), TaskProgressColumn(), console=console) as progress:
         task = progress.add_task(f"Bootstrap {mode}", total=count)
+
+        # Queuing Optimization: Submit all variations first to hide latency.
+        pending_prompts: list[tuple[str, int, int]] = []
 
         for i in range(count):
             context = pool[i % len(pool)]
@@ -181,34 +201,35 @@ def main(mode: str, count: int, character: str, output_dir: Path | None, ipadapt
                 progress.advance(task)
                 continue
 
+            # Only inject changing values (prompt and seed) in the loop
             overrides = {
                 "_claude_inject_prompt": {"inputs.text": full_prompt},
-                "_claude_inject_negative": {"inputs.text": gen_cfg["negative_prompt"]},
-                "_claude_inject_seed": {"inputs.seed": seed, "inputs.steps": gen_cfg["steps"], "inputs.cfg": gen_cfg["cfg"]},
-                "_claude_inject_latent": {"inputs.width": gen_cfg["width"], "inputs.height": gen_cfg["height"]},
-                "_claude_inject_checkpoint": {"inputs.ckpt_name": cfg["models"]["checkpoint"]},
+                "_claude_inject_seed": {"inputs.seed": seed},
             }
-
-            if uploaded_ref is not None:
-                strength = ipadapter_strength if ipadapter_strength is not None else char_cfg.get("ipadapter_strength", 0.6)
-                overrides["_claude_inject_ipadapter_image"] = {"inputs.image": uploaded_ref}
-                overrides["_claude_inject_ipadapter_strength"] = {"inputs.weight": strength}
 
             patched = inject_workflow_values(workflow_data, overrides)
 
             try:
                 prompt_id = client.submit_workflow(patched)
+                pending_prompts.append((prompt_id, seed, i))
+            except ComfyUIError as e:
+                console.print(f"[yellow]Submission {i+1} failed: {e}[/yellow]")
+                progress.advance(task)
+
+        # Download pass
+        for prompt_id, seed, idx in pending_prompts:
+            try:
                 images = client.wait_for_completion(prompt_id, timeout=comfy_cfg["timeout"])
                 for img_meta in images:
                     img_bytes = client.download_image(
                         img_meta["filename"], img_meta.get("subfolder", ""), img_meta.get("type", "output")
                     )
                     suffix = "_ipadapter" if ipadapter_ref else ""
-                    filename = f"seed_{mode}{suffix}_{i+1:03d}_{seed}.png"
+                    filename = f"seed_{mode}{suffix}_{idx+1:03d}_{seed}.png"
                     dest = out_dir / filename
                     dest.write_bytes(img_bytes)
             except ComfyUIError as e:
-                console.print(f"[yellow]Seed {i+1} failed: {e}[/yellow]")
+                console.print(f"[yellow]Completion {idx+1} failed: {e}[/yellow]")
 
             progress.advance(task)
 

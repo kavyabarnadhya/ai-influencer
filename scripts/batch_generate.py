@@ -204,20 +204,41 @@ def main(prompts: Path, count_per_prompt: int, category: str, character: str, wo
                     console.print(f"[yellow]Pose upload failed, skipping pose: {e}[/yellow]")
                     log.warning("Pose upload failed for %s: %s", pose_path.name, e)
 
+            # Performance Optimization: Pre-patch constant workflow values for this scene
+            # (once per scene instead of for every image variation) to reduce overhead.
+            base_overrides = {
+                "_claude_inject_prompt": {"inputs.text": full_prompt},
+                "_claude_inject_negative": {"inputs.text": gen_cfg["negative_prompt"]},
+                "_claude_inject_latent": {"inputs.width": gen_cfg["width"], "inputs.height": gen_cfg["height"]},
+                "_claude_inject_checkpoint": {"inputs.ckpt_name": cfg["models"]["checkpoint"]},
+                "_claude_inject_lora": {
+                    "inputs.lora_name": char_cfg["lora"],
+                    "inputs.strength_model": char_cfg["lora_strength"],
+                    "inputs.strength_clip": char_cfg["lora_strength"],
+                },
+                "_claude_inject_seed": {
+                    "inputs.steps": gen_cfg["steps"],
+                    "inputs.cfg": gen_cfg["cfg"]
+                },
+            }
+
+            if scene_workflow in ("t2i_sdxl_upscale", "t2i_sdxl_controlnet_upscale"):
+                base_overrides["_claude_inject_upscaler"] = {"inputs.model_name": cfg["models"]["upscaler"]}
+
+            if uploaded_pose_name:
+                base_overrides["_claude_inject_controlnet"] = {"inputs.control_net_name": cfg["models"]["controlnet_openpose"]}
+                base_overrides["_claude_inject_controlnet_image"] = {"inputs.image": uploaded_pose_name}
+
+            workflow_data = inject_workflow_values(workflow_data, base_overrides)
+
+            # Queuing Optimization: Submit all variations for this scene to the ComfyUI queue first.
+            # This hides download/polling latency and lets the GPU work back-to-back.
+            pending_prompts: list[tuple[str, int]] = []
             for _ in range(count_per_prompt):
                 seed = random.randint(0, 2**32 - 1)
 
                 overrides = {
-                    "_claude_inject_prompt": {"inputs.text": full_prompt},
-                    "_claude_inject_negative": {"inputs.text": gen_cfg["negative_prompt"]},
-                    "_claude_inject_seed": {"inputs.seed": seed, "inputs.steps": gen_cfg["steps"], "inputs.cfg": gen_cfg["cfg"]},
-                    "_claude_inject_latent": {"inputs.width": gen_cfg["width"], "inputs.height": gen_cfg["height"]},
-                    "_claude_inject_checkpoint": {"inputs.ckpt_name": cfg["models"]["checkpoint"]},
-                    "_claude_inject_lora": {
-                        "inputs.lora_name": char_cfg["lora"],
-                        "inputs.strength_model": char_cfg["lora_strength"],
-                        "inputs.strength_clip": char_cfg["lora_strength"],
-                    },
+                    "_claude_inject_seed": {"inputs.seed": seed},
                 }
 
                 if scene_workflow in ("t2i_sdxl_upscale", "t2i_sdxl_controlnet_upscale"):
@@ -231,6 +252,15 @@ def main(prompts: Path, count_per_prompt: int, category: str, character: str, wo
 
                 try:
                     prompt_id = client.submit_workflow(patched)
+                    pending_prompts.append((prompt_id, seed))
+                except ComfyUIError as e:
+                    log.error("Failed submission seed=%d prompt=%s: %s", seed, scene_prompt[:60], e)
+                    console.print(f"[yellow]Submission failed: {e}[/yellow]")
+                    progress.advance(task)
+
+            # Wait for and download results for all queued variations.
+            for prompt_id, seed in pending_prompts:
+                try:
                     images = client.wait_for_completion(prompt_id, timeout=comfy_cfg["timeout"])
                     for img_meta in images:
                         img_bytes = client.download_image(
@@ -243,8 +273,8 @@ def main(prompts: Path, count_per_prompt: int, category: str, character: str, wo
                         log.info("Saved %s (seed=%d, prompt=%s)", dest.name, seed, scene_prompt[:60])
                     done += 1
                 except ComfyUIError as e:
-                    log.error("Failed seed=%d prompt=%s: %s", seed, scene_prompt[:60], e)
-                    console.print(f"[yellow]Skipped (error): {e}[/yellow]")
+                    log.error("Failed completion seed=%d prompt=%s: %s", seed, scene_prompt[:60], e)
+                    console.print(f"[yellow]Completion failed: {e}[/yellow]")
 
                 progress.advance(task)
 
