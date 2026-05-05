@@ -241,6 +241,13 @@ def main(prompts: Path, count_per_prompt: int, category: str, character: str, wo
                     "_claude_inject_seed": {"inputs.seed": seed},
                 }
 
+                if scene_workflow in ("t2i_sdxl_upscale", "t2i_sdxl_controlnet_upscale"):
+                    overrides["_claude_inject_upscaler"] = {"inputs.model_name": cfg["models"]["upscaler"]}
+
+                if uploaded_pose_name:
+                    overrides["_claude_inject_controlnet"] = {"inputs.control_net_name": cfg["models"]["controlnet_openpose"]}
+                    overrides["_claude_inject_controlnet_image"] = {"inputs.image": uploaded_pose_name}
+
                 patched = inject_workflow_values(workflow_data, overrides)
 
                 try:

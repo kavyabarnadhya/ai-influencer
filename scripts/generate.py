@@ -183,8 +183,7 @@ def main(prompt: str, image: str | None, count: int, seed: int | None, workflow:
         console.print(f"[dim]Uploading pose reference: {pose_path.name}...[/dim]")
         uploaded_pose = client.upload_image(str(pose_path))
 
-    # Performance Optimization: Pre-patch constant workflow values once
-    # outside the loop to reduce redundant dictionary operations.
+    # Pre-patch constant workflow values once outside the loop
     effective_steps = 4 if is_flux else steps
     current_cfg = 1.0 if is_flux else gen_cfg["cfg"]
 
@@ -227,19 +226,14 @@ def main(prompt: str, image: str | None, count: int, seed: int | None, workflow:
 
     workflow_data = inject_workflow_values(workflow_data, base_overrides)
 
-    # Queuing Optimization: Submit all variations to the ComfyUI queue first.
-    # This allows ComfyUI to process images back-to-back without idle time
-    # during image downloads or polling.
     pending_prompts: list[tuple[str, int]] = []
 
     for i in range(count):
         img_seed = seed if seed is not None else random.randint(0, 2**32 - 1)
 
-        # Only inject changing values (seed) in the loop
         overrides = {
             "_claude_inject_seed": {"inputs.seed": img_seed},
         }
-
         patched = inject_workflow_values(workflow_data, overrides)
 
         if is_flux and not background_only and i == 0:
