@@ -8,27 +8,25 @@ import yaml
 from rich.console import Console
 
 sys.path.insert(0, str(Path(__file__).parent))
-from comfyui_api import ComfyUIClient, ComfyUIError, inject_workflow_values, load_workflow, find_comfyui_port
+from comfyui_api import ComfyUIClient, ComfyUIError, find_comfyui_port, inject_workflow_values, load_workflow
 
 console = Console()
 ROOT = Path(__file__).parent.parent
 
 SLIDE_ROLES = {
     "wide": "full body shot, wide angle, sharp background, environmental storytelling, soft smile, facing camera, weight on one leg",
-    "medium": "medium shot, three quarter view, subtle smile, body turned slightly, looking over shoulder",
-    "close": "close up portrait, soft smile, sharp focus on face, direct eye contact, chin slightly down",
+    "medium": "medium shot, three quarter view, body turned slightly, looking over shoulder, different pose from wide shot",
+    "close": "close up portrait, bust shot, different head angle, soft smile, sharp focus on face, direct eye contact",
     "hands": "close up of hands, fabric texture detail, jewelry detail, no face visible, sharp focus",
     "ambient": "no person, background only, ambient shot, interior detail, sharp focus, no blur",
 }
 
 DEFAULT_SLIDE_SEQUENCE = ["wide", "medium", "close"]
-
-POSE_FILENAMES = {
-    "wide": "wide.png",
-    "medium": "medium.png",
-    "close": "close.png",
-}
 FOUR_SLIDE_SEQUENCE = ["wide", "medium", "close", "ambient"]
+POSE_ROLES = ("wide", "medium", "close")
+
+DEFAULT_IMG2IMG_DENOISE = 0.62
+DEFAULT_CONTROLNET_STRENGTH = 0.5
 
 JEWELRY_POOL = [
     "tiny understated gold stud earrings, barely visible thin gold chain necklace",
@@ -70,17 +68,32 @@ def is_detail_slide(role: str) -> bool:
     return role in ("hands", "ambient")
 
 
-# Higher denoise = more pose freedom but more outfit drift
-# medium: modest change from anchor; close: face-forward requires more departure
-IMG2IMG_DENOISE = {
-    "medium": 0.68,
-    "close": 0.75,
-    "hands": 0.75,
-    "wide": 0.55,
-}
+def pick_pose_for_role(poses_dir: Path, role: str, candidate_index: int = 0) -> Path | None:
+    """Select a role pose deterministically by candidate index."""
+    candidates = sorted(poses_dir.glob(f"{role}_*.png"))
+    if not candidates:
+        fallback = poses_dir / f"{role}.png"
+        return fallback if fallback.exists() else None
+    return candidates[candidate_index % len(candidates)]
 
 
-def build_slide_prompt(scene: str, role: str, char_cfg: dict, base_prompt: str, carousel_cfg: dict, outfit: str = "", hair: str = "", jewelry: str = "") -> str:
+def role_setting(carousel_cfg: dict, map_key: str, fallback_key: str, role: str, default: float) -> float:
+    role_map = carousel_cfg.get(map_key, {})
+    if role in role_map:
+        return role_map[role]
+    return carousel_cfg.get(fallback_key, default)
+
+
+def build_slide_prompt(
+    scene: str,
+    role: str,
+    char_cfg: dict,
+    base_prompt: str,
+    carousel_cfg: dict,
+    outfit: str = "",
+    hair: str = "",
+    jewelry: str = "",
+) -> str:
     angle_tokens = SLIDE_ROLES[role]
     trigger = char_cfg["trigger_word"]
     body_tokens = carousel_cfg["body_tokens"]
@@ -115,24 +128,36 @@ def get_slide_sequence(slide_count: int) -> list[str]:
         return DEFAULT_SLIDE_SEQUENCE
     if slide_count == 4:
         return FOUR_SLIDE_SEQUENCE
-    # 5+: repeat medium/close before ambient
-    seq = ["wide"] + ["medium", "close"] * ((slide_count - 2) // 2)
-    seq = seq[:slide_count - 1] + ["ambient"]
-    return seq[:slide_count]
+    body_slots = slide_count - 2
+    body = (["medium", "close"] * ((body_slots + 1) // 2))[:body_slots]
+    return ["wide"] + body + ["ambient"]
 
 
 @click.command()
-@click.option("--scene", required=True, help="Location + lighting only (e.g. 'rooftop, golden hour, Mumbai skyline')")
-@click.option("--outfit", required=True, help="Clothing locked across all model slides (e.g. 'burgundy silk saree')")
+@click.option("--scene", required=True, help="Location + lighting only, e.g. rooftop, dusk, Mumbai skyline")
+@click.option("--outfit", required=True, help="Clothing locked across all model slides")
 @click.option("--hair", default="dark hair neatly styled", show_default=True, help="Hair descriptor locked across all model slides")
-@click.option("--slides", default=3, show_default=True, help="Number of slides (3-4 recommended)")
-@click.option("--name", required=True, help="Carousel name — used for output subfolder (snake_case)")
+@click.option("--slides", default=3, show_default=True, help="Number of carousel slides")
+@click.option("--name", required=True, help="Carousel name used for output subfolder")
 @click.option("--character", default="ananya", show_default=True, help="Character [ananya|kavib]")
-@click.option("--seed", default=None, type=int, help="Base seed (each slide gets seed+slide_index for variety)")
+@click.option("--seed", default=None, type=int, help="Base seed")
 @click.option("--steps", default=None, type=int, help="Override step count")
-@click.option("--face-ref", default=None, help="Path to face reference image for IP-Adapter (improves face consistency)")
-@click.option("--poses-dir", default=None, help="Directory with pose images named wide.png, medium.png, close.png for ControlNet pose guidance")
-def main(scene: str, outfit: str, hair: str, slides: int, name: str, character: str, seed: int | None, steps: int | None, face_ref: str | None, poses_dir: str | None):
+@click.option("--face-ref", default=None, help="Path to face reference image for IP-Adapter")
+@click.option("--poses-dir", default=None, help="Directory with role pose images, e.g. wide_01.png, medium_01.png, close_01.png")
+@click.option("--candidates", default=1, show_default=True, type=click.IntRange(1, 5), help="Candidates to generate per model slide role")
+def main(
+    scene: str,
+    outfit: str,
+    hair: str,
+    slides: int,
+    name: str,
+    character: str,
+    seed: int | None,
+    steps: int | None,
+    face_ref: str | None,
+    poses_dir: str | None,
+    candidates: int,
+):
     cfg = load_config()
     char_cfg = load_character(cfg, character)
     gen_cfg = cfg["generation"]
@@ -157,10 +182,11 @@ def main(scene: str, outfit: str, hair: str, slides: int, name: str, character: 
     else:
         anchor_workflow_name = gen_cfg["workflow"]
         img2img_workflow_name = "t2i_img2img"
-    for wn in (anchor_workflow_name, img2img_workflow_name):
-        wp = ROOT / cfg["paths"]["workflows_dir"] / f"{wn}.json"
-        if not wp.exists():
-            console.print(f"[red]Workflow not found: {wp}[/red]")
+
+    for workflow_name in (anchor_workflow_name, img2img_workflow_name, "t2i_sdxl_lora"):
+        workflow_path = ROOT / cfg["paths"]["workflows_dir"] / f"{workflow_name}.json"
+        if not workflow_path.exists():
+            console.print(f"[red]Workflow not found: {workflow_path}[/red]")
             raise SystemExit(1)
 
     uploaded_face = None
@@ -183,80 +209,141 @@ def main(scene: str, outfit: str, hair: str, slides: int, name: str, character: 
 
     slide_sequence = get_slide_sequence(slides)
     locked_jewelry = pick_jewelry()
-    console.print(f"[bold green]Carousel: {name}[/bold green] — {len(slide_sequence)} slides: {slide_sequence}")
+    console.print(f"[bold green]Carousel: {name}[/bold green] - {len(slide_sequence)} slides: {slide_sequence}")
     console.print(f"[dim]Scene: {scene}[/dim]")
     console.print(f"[dim]Jewelry: {locked_jewelry}[/dim]")
 
-    info_lines = [f"# Carousel: {name}", f"Scene: {scene}", f"Generated: {today}", f"Slides: {len(slide_sequence)}", ""]
+    info_lines = [
+        f"# Carousel: {name}",
+        f"Scene: {scene}",
+        f"Outfit: {outfit}",
+        f"Hair: {hair}",
+        f"Generated: {today}",
+        f"Slides: {len(slide_sequence)}",
+        f"LoRA strength: {char_cfg['lora_strength']}",
+        f"IPAdapter strength: {char_cfg['ipadapter_strength'] if face_ref else 'n/a'}",
+        f"img2img denoise by role: {carousel_cfg.get('img2img_denoise_by_role', {})}",
+        f"ControlNet strength by role: {carousel_cfg.get('controlnet_strength_by_role', {})}",
+        f"Poses dir: {poses_dir or 'n/a'}",
+        f"Candidates per model slide: {candidates}",
+        "",
+    ]
 
     anchor_image_path: Path | None = None
     uploaded_anchor: str | None = None
 
     for i, role in enumerate(slide_sequence):
         slide_num = i + 1
-        img_seed = base_seed + i
-        slide_prompt = build_slide_prompt(scene, role, char_cfg, base_prompt, carousel_cfg, outfit=outfit, hair=hair, jewelry=locked_jewelry)
+        slide_prompt = build_slide_prompt(
+            scene,
+            role,
+            char_cfg,
+            base_prompt,
+            carousel_cfg,
+            outfit=outfit,
+            hair=hair,
+            jewelry=locked_jewelry,
+        )
+        role_candidate_count = candidates if not is_detail_slide(role) else 1
 
-        # img2img anchor disabled when poses_dir set — ControlNet+prompt+IPAdapter handle consistency instead
-        use_img2img = (i > 0) and not is_detail_slide(role) and anchor_image_path is not None and not poses_dir
-        current_workflow_name = img2img_workflow_name if use_img2img else anchor_workflow_name
-        workflow_data = load_workflow(str(ROOT / cfg["paths"]["workflows_dir"] / f"{current_workflow_name}.json"))
+        for candidate_index in range(role_candidate_count):
+            candidate_num = candidate_index + 1
+            img_seed = base_seed + (i * 100) + candidate_index
+            use_img2img = (i > 0) and not is_detail_slide(role) and anchor_image_path is not None
 
-        overrides = {
-            "_claude_inject_prompt": {"inputs.text": slide_prompt},
-            "_claude_inject_negative": {"inputs.text": negative},
-            "_claude_inject_seed": {"inputs.seed": img_seed, "inputs.steps": effective_steps, "inputs.cfg": gen_cfg["cfg"]},
-            "_claude_inject_checkpoint": {"inputs.ckpt_name": cfg["models"]["checkpoint"]},
-            "_claude_inject_lora": {
-                "inputs.lora_name": char_cfg["lora"],
-                "inputs.strength_model": char_cfg["lora_strength"],
-                "inputs.strength_clip": char_cfg["lora_strength"],
-            },
-        }
+            if is_detail_slide(role):
+                current_workflow_name = "t2i_sdxl_lora"
+            else:
+                current_workflow_name = img2img_workflow_name if use_img2img else anchor_workflow_name
+            workflow_data = load_workflow(str(ROOT / cfg["paths"]["workflows_dir"] / f"{current_workflow_name}.json"))
 
-        if not use_img2img:
-            overrides["_claude_inject_latent"] = {"inputs.width": gen_cfg["width"], "inputs.height": gen_cfg["height"]}
+            denoise = None
+            controlnet_strength = None
+            pose_name = "n/a"
 
-        if use_img2img and uploaded_anchor:
-            overrides["_claude_inject_init_image"] = {"inputs.image": uploaded_anchor}
-            overrides["_claude_inject_seed"]["inputs.denoise"] = IMG2IMG_DENOISE.get(role, 0.60)
+            overrides = {
+                "_claude_inject_prompt": {"inputs.text": slide_prompt},
+                "_claude_inject_negative": {"inputs.text": negative},
+                "_claude_inject_seed": {"inputs.seed": img_seed, "inputs.steps": effective_steps, "inputs.cfg": gen_cfg["cfg"]},
+                "_claude_inject_checkpoint": {"inputs.ckpt_name": cfg["models"]["checkpoint"]},
+                "_claude_inject_lora": {
+                    "inputs.lora_name": char_cfg["lora"],
+                    "inputs.strength_model": char_cfg["lora_strength"],
+                    "inputs.strength_clip": char_cfg["lora_strength"],
+                },
+            }
 
-        if uploaded_face and not is_detail_slide(role):
-            overrides["_claude_inject_ipadapter_image"] = {"inputs.image": uploaded_face}
+            if not use_img2img:
+                overrides["_claude_inject_latent"] = {"inputs.width": gen_cfg["width"], "inputs.height": gen_cfg["height"]}
 
-        if poses_dir and role in POSE_FILENAMES and not is_detail_slide(role):
-            pose_path = Path(poses_dir) / POSE_FILENAMES[role]
-            if pose_path.exists():
-                uploaded_pose = client.upload_image(str(pose_path))
-                overrides["_claude_inject_controlnet_image"] = {"inputs.image": uploaded_pose}
-                overrides["_claude_inject_controlnet"] = {"inputs.control_net_name": cfg["models"]["controlnet_openpose"]}
+            if use_img2img and uploaded_anchor:
+                denoise = role_setting(
+                    carousel_cfg,
+                    "img2img_denoise_by_role",
+                    "img2img_denoise",
+                    role,
+                    DEFAULT_IMG2IMG_DENOISE,
+                )
+                overrides["_claude_inject_init_image"] = {"inputs.image": uploaded_anchor}
+                overrides["_claude_inject_seed"]["inputs.denoise"] = denoise
 
-        patched = inject_workflow_values(workflow_data, overrides)
-        mode_label = "img2img" if use_img2img else "t2i"
-        console.print(f"[cyan]Slide {slide_num}/{len(slide_sequence)} ({role}, {mode_label}, seed {img_seed})...[/cyan]")
+            if uploaded_face and not is_detail_slide(role):
+                overrides["_claude_inject_ipadapter_image"] = {"inputs.image": uploaded_face}
+                overrides["_claude_inject_ipadapter_strength"] = {"inputs.weight": char_cfg["ipadapter_strength"]}
 
-        try:
-            prompt_id = client.submit_workflow(patched)
-            images = client.wait_for_completion(prompt_id, timeout=comfy_cfg["timeout"])
-        except ComfyUIError as e:
-            console.print(f"[red]Slide {slide_num} failed: {e}[/red]")
-            raise SystemExit(1)
+            if poses_dir and role in POSE_ROLES and not is_detail_slide(role):
+                pose_path = pick_pose_for_role(Path(poses_dir), role, candidate_index)
+                if pose_path:
+                    pose_name = pose_path.name
+                    console.print(f"[dim]  pose: {pose_name}[/dim]")
+                    uploaded_pose = client.upload_image(str(pose_path))
+                    controlnet_strength = role_setting(
+                        carousel_cfg,
+                        "controlnet_strength_by_role",
+                        "controlnet_strength",
+                        role,
+                        DEFAULT_CONTROLNET_STRENGTH,
+                    )
+                    overrides["_claude_inject_controlnet_image"] = {"inputs.image": uploaded_pose}
+                    overrides["_claude_inject_controlnet"] = {"inputs.control_net_name": cfg["models"]["controlnet_openpose"]}
+                    overrides["ControlNet Apply"] = {"inputs.strength": controlnet_strength}
 
-        for img_meta in images:
-            img_bytes = client.download_image(
-                img_meta["filename"], img_meta.get("subfolder", ""), img_meta.get("type", "output")
+            patched = inject_workflow_values(workflow_data, overrides)
+            mode_label = "img2img" if use_img2img else "t2i"
+            console.print(
+                f"[cyan]Slide {slide_num}/{len(slide_sequence)} cand {candidate_num}/{role_candidate_count} "
+                f"({role}, {mode_label}, seed {img_seed})...[/cyan]"
             )
-            filename = f"slide_{slide_num}_{role}_{img_seed}.png"
-            dest = out_dir / filename
-            dest.write_bytes(img_bytes)
-            console.print(f"[green]Saved:[/green] {dest}")
-            info_lines.append(f"slide_{slide_num}: {role} — {filename} (seed {img_seed})")
 
-            # Upload slide 1 as anchor for subsequent slides
-            if i == 0 and anchor_image_path is None:
-                anchor_image_path = dest
-                console.print(f"[dim]Uploading slide 1 as img2img anchor...[/dim]")
-                uploaded_anchor = client.upload_image(str(dest))
+            try:
+                prompt_id = client.submit_workflow(patched)
+                images = client.wait_for_completion(prompt_id, timeout=comfy_cfg["timeout"])
+            except ComfyUIError as e:
+                console.print(f"[red]Slide {slide_num} candidate {candidate_num} failed: {e}[/red]")
+                raise SystemExit(1)
+
+            for img_meta in images:
+                img_bytes = client.download_image(
+                    img_meta["filename"], img_meta.get("subfolder", ""), img_meta.get("type", "output")
+                )
+                if role_candidate_count > 1:
+                    filename = f"slide_{slide_num}_{role}_cand_{candidate_num}_{img_seed}.png"
+                else:
+                    filename = f"slide_{slide_num}_{role}_{img_seed}.png"
+                dest = out_dir / filename
+                dest.write_bytes(img_bytes)
+                console.print(f"[green]Saved:[/green] {dest}")
+                info_lines.append(
+                    f"slide_{slide_num}: {role} - cand {candidate_num} - {mode_label} - "
+                    f"pose {pose_name} - denoise {denoise if denoise is not None else 'n/a'} - "
+                    f"controlnet {controlnet_strength if controlnet_strength is not None else 'n/a'} - "
+                    f"{filename} (seed {img_seed})"
+                )
+
+                if i == 0 and candidate_index == 0 and anchor_image_path is None:
+                    anchor_image_path = dest
+                    console.print("[dim]Uploading slide 1 candidate 1 as img2img anchor...[/dim]")
+                    uploaded_anchor = client.upload_image(str(dest))
 
     info_path = out_dir / "carousel_info.txt"
     info_path.write_text("\n".join(info_lines), encoding="utf-8")
