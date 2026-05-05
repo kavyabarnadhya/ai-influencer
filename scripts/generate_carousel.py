@@ -22,6 +22,12 @@ SLIDE_ROLES = {
 }
 
 DEFAULT_SLIDE_SEQUENCE = ["wide", "medium", "close"]
+
+POSE_FILENAMES = {
+    "wide": "wide.png",
+    "medium": "medium.png",
+    "close": "close.png",
+}
 FOUR_SLIDE_SEQUENCE = ["wide", "medium", "close", "ambient"]
 
 JEWELRY_POOL = [
@@ -125,7 +131,8 @@ def get_slide_sequence(slide_count: int) -> list[str]:
 @click.option("--seed", default=None, type=int, help="Base seed (each slide gets seed+slide_index for variety)")
 @click.option("--steps", default=None, type=int, help="Override step count")
 @click.option("--face-ref", default=None, help="Path to face reference image for IP-Adapter (improves face consistency)")
-def main(scene: str, outfit: str, hair: str, slides: int, name: str, character: str, seed: int | None, steps: int | None, face_ref: str | None):
+@click.option("--poses-dir", default=None, help="Directory with pose images named wide.png, medium.png, close.png for ControlNet pose guidance")
+def main(scene: str, outfit: str, hair: str, slides: int, name: str, character: str, seed: int | None, steps: int | None, face_ref: str | None, poses_dir: str | None):
     cfg = load_config()
     char_cfg = load_character(cfg, character)
     gen_cfg = cfg["generation"]
@@ -141,8 +148,15 @@ def main(scene: str, outfit: str, hair: str, slides: int, name: str, character: 
         console.print(f"[yellow]ComfyUI found on port {port}[/yellow]")
     client = ComfyUIClient(host, port)
 
-    anchor_workflow_name = "t2i_sdxl_lora_ipadapter" if face_ref else gen_cfg["workflow"]
-    img2img_workflow_name = "t2i_sdxl_lora_img2img_ipadapter" if face_ref else "t2i_img2img"
+    if poses_dir and face_ref:
+        anchor_workflow_name = "t2i_sdxl_lora_ipadapter_controlnet"
+        img2img_workflow_name = "t2i_sdxl_lora_img2img_ipadapter_controlnet"
+    elif face_ref:
+        anchor_workflow_name = "t2i_sdxl_lora_ipadapter"
+        img2img_workflow_name = "t2i_sdxl_lora_img2img_ipadapter"
+    else:
+        anchor_workflow_name = gen_cfg["workflow"]
+        img2img_workflow_name = "t2i_img2img"
     for wn in (anchor_workflow_name, img2img_workflow_name):
         wp = ROOT / cfg["paths"]["workflows_dir"] / f"{wn}.json"
         if not wp.exists():
@@ -183,8 +197,8 @@ def main(scene: str, outfit: str, hair: str, slides: int, name: str, character: 
         img_seed = base_seed + i
         slide_prompt = build_slide_prompt(scene, role, char_cfg, base_prompt, carousel_cfg, outfit=outfit, hair=hair, jewelry=locked_jewelry)
 
-        # Slide 1 always uses anchor (t2i) workflow; subsequent model slides use img2img from slide 1
-        use_img2img = (i > 0) and not is_detail_slide(role) and anchor_image_path is not None
+        # img2img anchor disabled when poses_dir set — ControlNet+prompt+IPAdapter handle consistency instead
+        use_img2img = (i > 0) and not is_detail_slide(role) and anchor_image_path is not None and not poses_dir
         current_workflow_name = img2img_workflow_name if use_img2img else anchor_workflow_name
         workflow_data = load_workflow(str(ROOT / cfg["paths"]["workflows_dir"] / f"{current_workflow_name}.json"))
 
@@ -209,6 +223,13 @@ def main(scene: str, outfit: str, hair: str, slides: int, name: str, character: 
 
         if uploaded_face and not is_detail_slide(role):
             overrides["_claude_inject_ipadapter_image"] = {"inputs.image": uploaded_face}
+
+        if poses_dir and role in POSE_FILENAMES and not is_detail_slide(role):
+            pose_path = Path(poses_dir) / POSE_FILENAMES[role]
+            if pose_path.exists():
+                uploaded_pose = client.upload_image(str(pose_path))
+                overrides["_claude_inject_controlnet_image"] = {"inputs.image": uploaded_pose}
+                overrides["_claude_inject_controlnet"] = {"inputs.control_net_name": cfg["models"]["controlnet_openpose"]}
 
         patched = inject_workflow_values(workflow_data, overrides)
         mode_label = "img2img" if use_img2img else "t2i"

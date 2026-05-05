@@ -6,7 +6,7 @@ comfyui:
 
 models:
   dir: C:/Users/barna/Documents/ComfyUI/models
-  checkpoint: RealVisXL_V4.0.safetensors
+  checkpoint: Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors
   checkpoint_juggernaut: Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors
   ipadapter: ip-adapter-plus-face_sdxl_vit-h.safetensors
   flux_gguf_q4: flux1-schnell-Q4_K_S.gguf
@@ -70,8 +70,8 @@ rescue_mode:
 carousel:
   default_slide_count: 3
   body_tokens: "medium build, hourglass figure, soft curves, realistic proportions"
-  low_bokeh_negative: "bokeh, blurry background, depth of field blur, lens blur, out of focus background"
-  sharp_background_positive: "sharp background, environmental detail, realistic depth, f/8 aperture, deep focus, no lens blur"
+  low_bokeh_negative: "bokeh, blurry background, depth of field blur, lens blur, out of focus background, shallow depth of field, soft background, background blur"
+  sharp_background_positive: "sharp background, environmental detail, realistic depth, f/8 aperture, deep focus, no lens blur, street photography"
 
 paths:
   output_dir: output
