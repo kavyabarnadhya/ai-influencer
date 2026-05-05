@@ -2,6 +2,7 @@ import json
 import time
 import random
 import functools
+import collections
 import requests
 from pathlib import Path
 from typing import Any
@@ -139,8 +140,9 @@ def find_comfyui_port(host: str = "127.0.0.1", candidates: list[int] | None = No
     return None
 
 
-# Global cache for workflow title-to-ID mappings to speed up batch injections
-_WORKFLOW_TITLE_CACHE: dict[int, dict[str, list[str]]] = {}
+# Global cache for workflow title-to-ID mappings to speed up batch injections.
+# Uses OrderedDict to implement an LRU strategy for efficient eviction.
+_WORKFLOW_TITLE_CACHE: collections.OrderedDict[int, dict[str, list[str]]] = collections.OrderedDict()
 
 
 @functools.lru_cache(maxsize=128)
@@ -167,11 +169,13 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
     # Optimization: Use a cached mapping of title -> node_ids for the workflow object.
     # This avoids O(N) scan of all nodes for every injection in a batch.
     wf_id = id(workflow)
-    if wf_id not in _WORKFLOW_TITLE_CACHE:
+    title_to_ids = _WORKFLOW_TITLE_CACHE.get(wf_id)
+
+    if title_to_ids is None:
         # Limit cache size to avoid memory leaks if many different workflows are loaded.
-        # Increased to 500 to support larger batches without frequent re-scanning.
-        if len(_WORKFLOW_TITLE_CACHE) > 500:
-            _WORKFLOW_TITLE_CACHE.clear()
+        # Uses LRU eviction to keep the most relevant (often base) workflows.
+        if len(_WORKFLOW_TITLE_CACHE) >= 1024:
+            _WORKFLOW_TITLE_CACHE.popitem(last=False)
 
         title_to_ids = {}
         for node_id, node in workflow.items():
@@ -184,7 +188,8 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
                     title_to_ids[title].append(node_id)
         _WORKFLOW_TITLE_CACHE[wf_id] = title_to_ids
     else:
-        title_to_ids = _WORKFLOW_TITLE_CACHE[wf_id]
+        # Refresh entry in LRU cache
+        _WORKFLOW_TITLE_CACHE.move_to_end(wf_id)
 
     if not overrides:
         workflow = workflow.copy()
@@ -221,18 +226,21 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
         for field_path, value in patches.items():
             parts = _split_path(field_path)
             target = node
-            path_prefix = ""
 
             for i in range(len(parts) - 1):
                 part = parts[i]
-                path_prefix = f"{path_prefix}.{part}" if path_prefix else part
+                # Use the object ID for sub-dictionary caching. Since we always copy,
+                # we can check if the current target[part] is already one of our
+                # known copied objects to avoid redundant string concatenation.
+                val = target[part]
+                val_id = id(val)
 
-                if path_prefix in copied_sub_dicts:
-                    target = copied_sub_dicts[path_prefix]
+                if val_id in copied_sub_dicts:
+                    target = val
                 else:
-                    new_target = target[part].copy()
+                    new_target = val.copy()
                     target[part] = new_target
-                    copied_sub_dicts[path_prefix] = new_target
+                    copied_sub_dicts[id(new_target)] = True
                     target = new_target
 
             target[parts[-1]] = value
