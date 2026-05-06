@@ -145,6 +145,23 @@ def find_comfyui_port(host: str = "127.0.0.1", candidates: list[int] | None = No
 _WORKFLOW_TITLE_CACHE: collections.OrderedDict[int, dict[str, list[str]]] = collections.OrderedDict()
 
 
+def _scan_workflow_titles(workflow: dict) -> dict[str, list[str]]:
+    """
+    Scan workflow nodes for _meta.title and return title -> [node_id] mapping.
+    O(N) where N is number of nodes.
+    """
+    title_to_ids = {}
+    for node_id, node in workflow.items():
+        meta = node.get("_meta")
+        if meta:
+            title = meta.get("title")
+            if title:
+                if title not in title_to_ids:
+                    title_to_ids[title] = []
+                title_to_ids[title].append(node_id)
+    return title_to_ids
+
+
 @functools.lru_cache(maxsize=128)
 def _split_path(field_path: str) -> list[str]:
     """Cached path splitting to avoid repeated string operations on common field paths."""
@@ -177,15 +194,7 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
         if len(_WORKFLOW_TITLE_CACHE) >= 1024:
             _WORKFLOW_TITLE_CACHE.popitem(last=False)
 
-        title_to_ids = {}
-        for node_id, node in workflow.items():
-            meta = node.get("_meta")
-            if meta:
-                title = meta.get("title")
-                if title:
-                    if title not in title_to_ids:
-                        title_to_ids[title] = []
-                    title_to_ids[title].append(node_id)
+        title_to_ids = _scan_workflow_titles(workflow)
         _WORKFLOW_TITLE_CACHE[wf_id] = title_to_ids
     else:
         # Refresh entry in LRU cache
@@ -258,8 +267,26 @@ def load_workflow(path: str) -> dict:
     Cached to avoid redundant I/O and JSON parsing when the same workflow
     is used repeatedly in a batch. Returns a shallow copy to prevent
     modifications to the cached object from leaking across iterations.
+
+    Performance: Pre-scans the workflow for title-to-ID mappings and propagates
+    them to the returned copy, ensuring the first injection is O(1) instead of O(N).
     """
-    return _load_workflow_cached(path).copy()
+    wf = _load_workflow_cached(path)
+    wf_id = id(wf)
+
+    # Ensure the base object is scanned and cached
+    if wf_id not in _WORKFLOW_TITLE_CACHE:
+        if len(_WORKFLOW_TITLE_CACHE) >= 1024:
+            _WORKFLOW_TITLE_CACHE.popitem(last=False)
+        _WORKFLOW_TITLE_CACHE[wf_id] = _scan_workflow_titles(wf)
+    else:
+        _WORKFLOW_TITLE_CACHE.move_to_end(wf_id)
+
+    # Propagate mapping to the copy we return
+    copy_wf = wf.copy()
+    _WORKFLOW_TITLE_CACHE[id(copy_wf)] = _WORKFLOW_TITLE_CACHE[wf_id]
+
+    return copy_wf
 
 
 @functools.lru_cache(maxsize=16)
