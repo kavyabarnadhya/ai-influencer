@@ -33,3 +33,9 @@
 **Learning:** Using a "clear all" strategy for global caches in high-throughput batch processes leads to periodic "performance cliffs" where all warm mappings are lost. Furthermore, building string keys for tracking modified dictionary branches in a recursive traversal is ~40% slower than using object identity (`id()`) of the copied sub-objects.
 
 **Action:** Replace simple dict caches with `collections.OrderedDict` implementing an LRU strategy to preserve long-lived "base" workflow mappings while evicting transient variations. In nested object traversal, use a local `copied_sub_dicts` map keyed by the `id()` of newly created copies to avoid redundant string operations and ensures each branch is cloned at most once per call.
+
+## 2025-01-31 - Propagating Title Cache in Workflow Loader
+
+**Learning:** Even with an LRU cache for workflow title-to-ID mappings, `load_workflow` returning a new `.copy()` was causing a "cache cold start" (O(N) scan) for the very first injection on every newly loaded workflow.
+
+**Action:** Extract title scanning logic and update `load_workflow` to pre-scan the base cached workflow and explicitly propagate the mapping to the returned copy's `id()`. This ensures that every workflow returned by the loader starts with a warm cache, making the first injection O(1).
