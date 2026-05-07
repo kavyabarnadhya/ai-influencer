@@ -1,0 +1,49 @@
+{
+  "1": {
+    "_meta": {"title": "_claude_inject_input_image"},
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "input.png",
+      "upload": "image"
+    }
+  },
+  "2": {
+    "_meta": {"title": "SDPose Checkpoint Loader"},
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "sdpose_wholebody_fp16.safetensors"
+    }
+  },
+  "3": {
+    "_meta": {"title": "SDPose Keypoint Extractor"},
+    "class_type": "SDPoseKeypointExtractor",
+    "inputs": {
+      "model": ["2", 0],
+      "vae": ["2", 2],
+      "image": ["1", 0],
+      "batch_size": 1
+    }
+  },
+  "4": {
+    "_meta": {"title": "SDPose Draw Keypoints"},
+    "class_type": "SDPoseDrawKeypoints",
+    "inputs": {
+      "keypoints": ["3", 0],
+      "draw_body": true,
+      "draw_hands": true,
+      "draw_face": true,
+      "draw_feet": false,
+      "stick_width": 4,
+      "face_point_size": 3,
+      "score_threshold": 0.3
+    }
+  },
+  "5": {
+    "_meta": {"title": "_claude_inject_output_prefix"},
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["4", 0],
+      "filename_prefix": "pose_extract"
+    }
+  }
+}

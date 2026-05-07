@@ -105,11 +105,65 @@ Scene prompt alone drives the image. Results have been strong.
 
 ---
 
+## Body — Updated Guidance (from cafe_morning_03 review)
+
+- Current body tokens work for identity consistency but **hourglass + good busts not prominent enough** when dress is loose/relaxed fit
+- For male-skewing content: use **fitted/bodycon silhouettes** — loose linen/relaxed dresses hide curves entirely
+- Add `hourglass figure, defined waist, fuller bust` explicitly alongside existing M-size tokens — these reinforce each other
+- Avoid: relaxed fit, oversized, flowy, A-line — all flatten the figure
+
+---
+
+## Outfit — Trending (male audience, bold/seductive-adjacent, Instagram-safe)
+
+| Prompt | Status | Notes |
+|--------|--------|-------|
+| `emerald green fitted bodycon dress, scoop neck, sleeveless, above-knee hem, fitted through hips and bust` | ✅ recommend | Jewel tone, bodycon, sleeveless — safe + seductive |
+| `electric blue satin slip dress, thin straps allowed, above-knee hem, fitted through hips` | test | Bold color, drapes body — high risk of strap drift, add `thin straps` to negative |
+| `fiery scarlet fitted midi skirt, high waist, pencil silhouette, below-knee hem` + `scoop neck fitted crop top, sleeveless, scarlet` | ✅ recommend | Co-ord — shows waist strongly |
+| `cobalt blue fitted crop top, square neck, sleeveless, thick straps` + `high-waisted wide-leg cobalt palazzo pants` | test | Bold co-ord, less seductive but trendy |
+| `deep burgundy bodycon mini dress, square neck, short sleeves, above-knee hem` | ✅ recommend | Dark jewel tone + bodycon — strong |
+
+**Rule:** For male audience carousels — **always bodycon or fitted, never relaxed/flowy**. Color bold (jewel tone or fiery), not neutral.
+
+---
+
+## Background — Sharp/Premium (from cafe_morning_03 learnings)
+
+cafe_morning_03 issue: background drifted to street instead of cafe terrace. No terrace furniture visible in wide/medium slides.
+
+**Fix:** Be explicit with visible props in scene prompt — name them: `marble cafe counter`, `rattan chairs`, `espresso machine`, `sunlit glass facade`.
+
+| Scene | Prompt | Status |
+|-------|--------|--------|
+| Premium hotel lobby | `luxury hotel lobby, marble floors, tall glass windows, warm ambient lighting, premium interior, sharp background` | ✅ recommend |
+| Rooftop pool bar | `rooftop infinity pool bar, Mumbai skyline background, golden hour, cocktail bar counter, sharp background` | ✅ recommend |
+| Upscale restaurant terrace | `upscale restaurant terrace, rattan chairs, white tablecloth, candles, warm evening light, sharp background` | ✅ recommend |
+| High-rise apartment | `floor-to-ceiling glass windows, city skyline view, luxury apartment interior, warm lamp light, sharp focus` | ✅ recommend |
+
+**Always append:** `sharp background, environmental detail, realistic depth, f/8 aperture, deep focus, no lens blur` — already in `sharp_background_positive` config token. Confirm this is included in every slide prompt.
+
+**low_bokeh_negative** already in config.yaml at `carousel.low_bokeh_negative` — verify it's injected in `build_negative()`.
+
+---
+
+## Outfits — Bodycon Cutout Problem
+
+**Trigger:** `scoop neck` + bodycon combination → SDXL generates midriff cutout in ~60% of candidates even without prompting it.
+
+**Fix:** Add to global negative: `midriff cutout, cutout dress, cutout detail, cut-out dress, side cutout, stomach cutout`
+
+**Status:** Confirmed in emerald_06. All 3 wide candidates had cutout drift on some candidates. Cand 2 (wide+medium+close) was cleanest. Add these tokens to `config.yaml` negative_prompt before next run.
+
+---
+
 ## Carousel Calibration Runs
 
 | Run | Result | Notes |
 |-----|--------|-------|
 | `calibration_bodycon_dusk_v2_01` | pass with candidate selection | V2 generated 3 candidates per model role. Best selected set has distinct full-body, side/three-quarter medium, side close portrait, and ambient rooftop. Outfit color/hair/identity mostly held. |
+| `carousel_cafe_morning_03` | partial pass — selected 4 slides | White linen relaxed dress: **too loose, hides figure**. Background drifted to street not terrace — no cafe props visible. Dress hem rendered mini not knee-length. Face identity strong across all candidates. cand_1 slide_2 + cand_1 slide_3: high dress slit = Instagram flag, rejected. Selected: slide_1 cand_2, slide_2 cand_2, slide_3 cand_3, ambient. **Learnings: use bodycon/fitted for male audience; scene needs explicit prop names; relaxed fit = no-go for this content goal.** |
+| `carousel_hotel_lobby_emerald_06` | pass — best cand 2 across all slides | Emerald green bodycon + hotel lobby. Face identity **strong and consistent** — IPAdapter fix (0.5 weight, 0.15 start_at) working well. Img2img anchor fix on close slide working — no more face divergence between slides. **Issue: midriff cutout appeared on ~60% of candidates** (scoop neck + bodycon triggers this). Cand 2 across wide/medium/close was cleanest. Ambient: luxury hotel chandelier + city skyline — excellent. Settings used: medium denoise 0.70, close denoise 0.65, ControlNet close 0.60. |
 
 V2 settings from this pass:
 

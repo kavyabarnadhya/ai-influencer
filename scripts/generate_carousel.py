@@ -172,10 +172,14 @@ def main(
     if port != comfy_cfg["port"]:
         console.print(f"[yellow]ComfyUI found on port {port}[/yellow]")
     client = ComfyUIClient(host, port)
+    client._upload_cache.clear()
 
     if poses_dir and face_ref:
         anchor_workflow_name = "t2i_sdxl_lora_ipadapter_controlnet"
         img2img_workflow_name = "t2i_sdxl_lora_img2img_ipadapter_controlnet"
+    elif poses_dir:
+        anchor_workflow_name = "t2i_sdxl_lora_controlnet"
+        img2img_workflow_name = "t2i_img2img"
     elif face_ref:
         anchor_workflow_name = "t2i_sdxl_lora_ipadapter"
         img2img_workflow_name = "t2i_sdxl_lora_img2img_ipadapter"
@@ -183,7 +187,9 @@ def main(
         anchor_workflow_name = gen_cfg["workflow"]
         img2img_workflow_name = "t2i_img2img"
 
-    for workflow_name in (anchor_workflow_name, img2img_workflow_name, "t2i_sdxl_lora"):
+    close_workflow = "t2i_sdxl_lora_ipadapter_controlnet_facedetail" if face_ref else None
+    workflows_to_check = set(filter(None, [anchor_workflow_name, img2img_workflow_name, "t2i_sdxl_lora", close_workflow]))
+    for workflow_name in workflows_to_check:
         workflow_path = ROOT / cfg["paths"]["workflows_dir"] / f"{workflow_name}.json"
         if not workflow_path.exists():
             console.print(f"[red]Workflow not found: {workflow_path}[/red]")
