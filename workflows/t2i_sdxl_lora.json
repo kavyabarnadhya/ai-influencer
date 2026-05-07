@@ -85,7 +85,7 @@
       "cfg": 7.0,
       "sampler_name": "dpmpp_2m",
       "scheduler": "karras",
-      "denoise": 0.5,
+      "denoise": 0.3,
       "feather": 5,
       "noise_mask": true,
       "force_inpaint": false,

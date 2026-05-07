@@ -34,7 +34,7 @@
     }
   },
   "5": {
-    "_meta": {"title": "_claude_inject_ipadapter_image"},
+    "_meta": {"title": "_claude_inject_init_image"},
     "class_type": "LoadImage",
     "inputs": {
       "image": "reference.png",

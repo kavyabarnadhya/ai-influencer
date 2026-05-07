@@ -2,7 +2,6 @@ import json
 import time
 import random
 import functools
-import collections
 import requests
 from pathlib import Path
 from typing import Any
@@ -140,9 +139,6 @@ def find_comfyui_port(host: str = "127.0.0.1", candidates: list[int] | None = No
     return None
 
 
-# Global cache for workflow title-to-ID mappings to speed up batch injections.
-# Uses OrderedDict to implement an LRU strategy for efficient eviction.
-_WORKFLOW_TITLE_CACHE: collections.OrderedDict[int, dict[str, list[str]]] = collections.OrderedDict()
 
 
 def _scan_workflow_titles(workflow: dict) -> dict[str, list[str]]:
@@ -183,32 +179,8 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
     ensure original workflow data remains immutable and prevent state leakage
     when using cached workflow templates.
     """
-    # Optimization: Use a cached mapping of title -> node_ids for the workflow object.
-    # This avoids O(N) scan of all nodes for every injection in a batch.
-    wf_id = id(workflow)
-    title_to_ids = _WORKFLOW_TITLE_CACHE.get(wf_id)
+    title_to_ids = _scan_workflow_titles(workflow)
 
-    if title_to_ids is None:
-        # Limit cache size to avoid memory leaks if many different workflows are loaded.
-        # Uses LRU eviction to keep the most relevant (often base) workflows.
-        if len(_WORKFLOW_TITLE_CACHE) >= 1024:
-            _WORKFLOW_TITLE_CACHE.popitem(last=False)
-
-        title_to_ids = _scan_workflow_titles(workflow)
-        _WORKFLOW_TITLE_CACHE[wf_id] = title_to_ids
-    else:
-        # Refresh entry in LRU cache
-        _WORKFLOW_TITLE_CACHE.move_to_end(wf_id)
-
-    if not overrides:
-        workflow = workflow.copy()
-        _WORKFLOW_TITLE_CACHE[id(workflow)] = title_to_ids
-        return workflow
-
-    # Performance Optimization: Instead of deep-copying the entire workflow,
-    # we shallow copy the top-level dict and only deep-copy branches that need patching.
-    # To further optimize, we group all patches by node_id and ensure each level of
-    # the dictionary hierarchy is copied only once per injection.
     node_to_patches: dict[str, dict[str, Any]] = {}
     for title, patches in overrides.items():
         if title in title_to_ids:
@@ -219,17 +191,8 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
 
     workflow = workflow.copy()
 
-    if not node_to_patches:
-        # Even if no patches apply, we still want the new object to benefit
-        # from the cached title mapping for future injections.
-        _WORKFLOW_TITLE_CACHE[id(workflow)] = title_to_ids
-        return workflow
-
     for node_id, patches in node_to_patches.items():
         node = workflow[node_id] = workflow[node_id].copy()
-
-        # Track already-copied sub-dictionaries for this node to avoid redundant copies
-        # when multiple fields within the same sub-dictionary are being patched.
         copied_sub_dicts = {}
 
         for field_path, value in patches.items():
@@ -238,12 +201,8 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
 
             for i in range(len(parts) - 1):
                 part = parts[i]
-                # Use the object ID for sub-dictionary caching. Since we always copy,
-                # we can check if the current target[part] is already one of our
-                # known copied objects to avoid redundant string concatenation.
                 val = target[part]
                 val_id = id(val)
-
                 if val_id in copied_sub_dicts:
                     target = val
                 else:
@@ -254,10 +213,6 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
 
             target[parts[-1]] = value
 
-    # Propagation Optimization: Carry over the title-to-ID mapping to the new object
-    # to ensure that subsequent injections on this patched workflow are also O(1).
-    _WORKFLOW_TITLE_CACHE[id(workflow)] = title_to_ids
-
     return workflow
 
 
@@ -265,28 +220,9 @@ def load_workflow(path: str) -> dict:
     """
     Load a ComfyUI workflow JSON from disk.
     Cached to avoid redundant I/O and JSON parsing when the same workflow
-    is used repeatedly in a batch. Returns a shallow copy to prevent
-    modifications to the cached object from leaking across iterations.
-
-    Performance: Pre-scans the workflow for title-to-ID mappings and propagates
-    them to the returned copy, ensuring the first injection is O(1) instead of O(N).
+    is used repeatedly in a batch. Returns a copy so callers can't corrupt the cache.
     """
-    wf = _load_workflow_cached(path)
-    wf_id = id(wf)
-
-    # Ensure the base object is scanned and cached
-    if wf_id not in _WORKFLOW_TITLE_CACHE:
-        if len(_WORKFLOW_TITLE_CACHE) >= 1024:
-            _WORKFLOW_TITLE_CACHE.popitem(last=False)
-        _WORKFLOW_TITLE_CACHE[wf_id] = _scan_workflow_titles(wf)
-    else:
-        _WORKFLOW_TITLE_CACHE.move_to_end(wf_id)
-
-    # Propagate mapping to the copy we return
-    copy_wf = wf.copy()
-    _WORKFLOW_TITLE_CACHE[id(copy_wf)] = _WORKFLOW_TITLE_CACHE[wf_id]
-
-    return copy_wf
+    return _load_workflow_cached(path).copy()
 
 
 @functools.lru_cache(maxsize=16)
