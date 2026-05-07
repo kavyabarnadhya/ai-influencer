@@ -10,6 +10,7 @@ from rich.console import Console
 
 sys.path.insert(0, str(Path(__file__).parent))
 from comfyui_api import ComfyUIClient, ComfyUIError, inject_workflow_values, load_workflow, find_comfyui_port
+from presets import load_preset, render_prompt, merge_singleshot
 
 console = Console()
 ROOT = Path(__file__).parent.parent
@@ -91,7 +92,11 @@ def is_background_prompt(prompt: str) -> bool:
 
 
 @click.command()
-@click.option("--prompt", required=True, help="Scene description (no anatomy — LoRA handles that)")
+@click.option("--prompt", default=None, help="Scene description (no anatomy — LoRA handles that)")
+@click.option("--preset", default=None, help="Named preset from character/<char>/presets.yaml")
+@click.option("--outfit", default=None, help="Outfit description — fills {outfit} in preset template (CLI wins over preset default)")
+@click.option("--hair", default=None, help="Hair description — fills {hair} in preset template (CLI wins over preset default)")
+@click.option("--scene", default=None, help="Scene description — fills {scene} in preset template (CLI wins over preset default)")
 @click.option("--image", help="Optional reference image path for IP-Adapter (e.g. a FLUX background)")
 @click.option("--count", default=1, show_default=True, help="Number of images to generate")
 @click.option("--seed", default=None, type=int, help="Seed (random if omitted)")
@@ -102,10 +107,43 @@ def is_background_prompt(prompt: str) -> bool:
 @click.option("--upscale", is_flag=True, help="4x upscale after detailing using 4x-UltraSharp")
 @click.option("--pose", default=None, help="Path to pose reference image for ControlNet OpenPose")
 @click.option("--steps", default=None, type=int, help="Override step count (e.g. 15 for draft, 30 for final)")
-def main(prompt: str, image: str | None, count: int, seed: int | None, workflow: str | None, rescue: bool, reel_anchor: bool, character: str, upscale: bool, pose: str | None, steps: int | None):
+def main(prompt: str | None, preset: str | None, outfit: str | None, hair: str | None, scene: str | None, image: str | None, count: int, seed: int | None, workflow: str | None, rescue: bool, reel_anchor: bool, character: str, upscale: bool, pose: str | None, steps: int | None):
+    if not prompt and not preset:
+        console.print("[red]Provide either --prompt or --preset[/red]")
+        raise SystemExit(1)
+
     cfg = load_config()
     char_cfg = load_character(cfg, character)
     comfy_cfg = cfg["comfyui"]
+
+    # Resolve preset — CLI flags win over preset values
+    resolved = None
+    if preset:
+        try:
+            preset_data = load_preset(character, preset)
+        except (FileNotFoundError, KeyError) as e:
+            console.print(f"[red]{e}[/red]")
+            raise SystemExit(1)
+        if preset_data.get("kind") == "carousel":
+            console.print(f"[red]'{preset}' is a carousel preset — use generate_carousel.py --preset {preset}[/red]")
+            raise SystemExit(1)
+        resolved = merge_singleshot(preset_data, dict(
+            workflow=workflow, outfit=outfit, hair=hair, scene=scene,
+            pose=pose, image=image, steps=steps, seed=seed,
+        ))
+        workflow = resolved["workflow"] or workflow
+        pose     = resolved["pose"]     or pose
+        image    = resolved["face_ref"] or image
+        if resolved["steps"] is not None:
+            steps = resolved["steps"]
+        if resolved["seed"] is not None:
+            seed = resolved["seed"]
+        prompt = render_prompt(
+            preset_data["prompt_template"],
+            outfit=resolved["outfit"],
+            hair=resolved["hair"],
+            scene=resolved["scene"],
+        )
     gen_cfg = cfg["generation"]
     rescue_cfg = cfg["rescue_mode"]
 
@@ -213,11 +251,25 @@ def main(prompt: str, image: str | None, count: int, seed: int | None, workflow:
             }
 
     if workflow_name not in ("bootstrap_seeds", "flux_schnell"):
+        lora_strength = (resolved or {}).get("lora_strength") or char_cfg["lora_strength"]
         base_overrides["_claude_inject_lora"] = {
             "inputs.lora_name": char_cfg["lora"],
-            "inputs.strength_model": char_cfg["lora_strength"],
-            "inputs.strength_clip": char_cfg["lora_strength"],
+            "inputs.strength_model": lora_strength,
+            "inputs.strength_clip": lora_strength,
         }
+
+    # Apply preset overrides for IPAdapter and ControlNet (silently skipped if node absent)
+    if resolved:
+        if resolved.get("ipadapter_strength") is not None:
+            base_overrides.setdefault("_claude_inject_ipadapter_strength", {})["inputs.weight"] = resolved["ipadapter_strength"]
+        if resolved.get("ipadapter_start_at") is not None:
+            base_overrides.setdefault("_claude_inject_ipadapter_strength", {})["inputs.start_at"] = resolved["ipadapter_start_at"]
+        if resolved.get("ipadapter_end_at") is not None:
+            base_overrides.setdefault("_claude_inject_ipadapter_strength", {})["inputs.end_at"] = resolved["ipadapter_end_at"]
+        if resolved.get("denoise") is not None:
+            base_overrides.setdefault("_claude_inject_seed", {})["inputs.denoise"] = resolved["denoise"]
+        if resolved.get("controlnet_strength") is not None:
+            base_overrides.setdefault("ControlNet Apply", {})["inputs.strength"] = resolved["controlnet_strength"]
 
     if upscale:
         base_overrides["_claude_inject_upscaler"] = {
@@ -264,6 +316,35 @@ def main(prompt: str, image: str | None, count: int, seed: int | None, workflow:
             dest = out_dir / filename
             dest.write_bytes(img_bytes)
             print(f"Saved: {dest}")
+
+    # Log generation metadata
+    import json
+    log_entry = {
+        "timestamp": datetime.now().isoformat(),
+        "preset": preset,
+        "character": character,
+        "workflow": workflow_name,
+        "prompt": full_prompt,
+        "outfit": (resolved or {}).get("outfit"),
+        "hair": (resolved or {}).get("hair"),
+        "scene": (resolved or {}).get("scene"),
+        "lora_strength": (resolved or {}).get("lora_strength") or char_cfg["lora_strength"],
+        "ipadapter_strength": (resolved or {}).get("ipadapter_strength"),
+        "ipadapter_start_at": (resolved or {}).get("ipadapter_start_at"),
+        "denoise": (resolved or {}).get("denoise"),
+        "controlnet_strength": (resolved or {}).get("controlnet_strength"),
+        "pose": pose,
+        "face_ref": image,
+        "steps": effective_steps,
+        "cfg": current_cfg,
+        "width": width,
+        "height": height,
+        "seeds": [s for _, s in pending_prompts],
+    }
+    log_path = ROOT / "logs" / "prompt_history.jsonl"
+    log_path.parent.mkdir(exist_ok=True)
+    with log_path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(log_entry) + "\n")
 
 
 if __name__ == "__main__":
