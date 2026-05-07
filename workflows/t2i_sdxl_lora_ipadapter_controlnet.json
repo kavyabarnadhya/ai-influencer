@@ -29,7 +29,7 @@
     "_meta": {"title": "_claude_inject_negative"},
     "class_type": "CLIPTextEncode",
     "inputs": {
-      "text": "worst quality, low quality, blurry, deformed, ugly, extra limbs, bad anatomy, watermark, deformed eyes, crossed eyes, lazy eye, wall-eyed, asymmetric eyes, uneven eyes, misaligned eyes, deformed iris, deformed pupils, no nose ring, no nose piercing, no septum ring, red eyes, glowing eyes, lens flare in eyes, catchlight distortion",
+      "text": "worst quality, low quality, blurry, deformed, ugly, extra limbs, bad anatomy, watermark",
       "clip": ["2", 1]
     }
   },
@@ -72,10 +72,10 @@
       "ipadapter": ["13", 0],
       "image": ["15", 0],
       "clip_vision": ["14", 0],
-      "weight": 0.6,
+      "weight": 0.5,
       "weight_type": "linear",
       "combine_embeds": "concat",
-      "start_at": 0.0,
+      "start_at": 0.15,
       "end_at": 1.0,
       "embeds_scaling": "V only"
     }
@@ -129,101 +129,11 @@
       "vae": ["1", 2]
     }
   },
-  "8": {
-    "_meta": {"title": "FaceDetailer"},
-    "class_type": "FaceDetailer",
-    "inputs": {
-      "image": ["7", 0],
-      "model": ["16", 0],
-      "clip": ["2", 1],
-      "vae": ["1", 2],
-      "positive": ["19", 0],
-      "negative": ["4", 0],
-      "bbox_detector": ["9", 0],
-      "guide_size": 768,
-      "guide_size_for": true,
-      "max_size": 1024,
-      "seed": 0,
-      "steps": 20,
-      "cfg": 7.0,
-      "sampler_name": "dpmpp_2m",
-      "scheduler": "karras",
-      "denoise": 0.55,
-      "feather": 5,
-      "noise_mask": true,
-      "force_inpaint": false,
-      "bbox_threshold": 0.3,
-      "bbox_dilation": 10,
-      "bbox_crop_factor": 3.0,
-      "sam_detection_hint": "center-1",
-      "sam_dilation": 0,
-      "sam_threshold": 0.93,
-      "sam_bbox_expansion": 0,
-      "sam_mask_hint_threshold": 0.7,
-      "sam_mask_hint_use_negative": "False",
-      "drop_size": 10,
-      "refiner_ratio": 0.2,
-      "wildcard": "",
-      "cycle": 1
-    }
-  },
-  "9": {
-    "_meta": {"title": "BBOX Detector (YOLOv8)"},
-    "class_type": "UltralyticsDetectorProvider",
-    "inputs": {
-      "model_name": "bbox/face_yolov8m.pt"
-    }
-  },
-  "11": {
-    "_meta": {"title": "BBOX Detector (Hands YOLOv8)"},
-    "class_type": "UltralyticsDetectorProvider",
-    "inputs": {
-      "model_name": "bbox/hand_yolov8s.pt"
-    }
-  },
-  "12": {
-    "_meta": {"title": "HandDetailer"},
-    "class_type": "FaceDetailer",
-    "inputs": {
-      "image": ["8", 0],
-      "model": ["16", 0],
-      "clip": ["2", 1],
-      "vae": ["1", 2],
-      "positive": ["19", 0],
-      "negative": ["4", 0],
-      "bbox_detector": ["11", 0],
-      "guide_size": 768,
-      "guide_size_for": true,
-      "max_size": 1024,
-      "seed": 0,
-      "steps": 20,
-      "cfg": 7.0,
-      "sampler_name": "dpmpp_2m",
-      "scheduler": "karras",
-      "denoise": 0.45,
-      "feather": 5,
-      "noise_mask": true,
-      "force_inpaint": false,
-      "bbox_threshold": 0.35,
-      "bbox_dilation": 12,
-      "bbox_crop_factor": 3.0,
-      "sam_detection_hint": "center-1",
-      "sam_dilation": 0,
-      "sam_threshold": 0.93,
-      "sam_bbox_expansion": 0,
-      "sam_mask_hint_threshold": 0.7,
-      "sam_mask_hint_use_negative": "False",
-      "drop_size": 10,
-      "refiner_ratio": 0.2,
-      "wildcard": "",
-      "cycle": 1
-    }
-  },
   "10": {
     "_meta": {"title": "Save Image"},
     "class_type": "SaveImage",
     "inputs": {
-      "images": ["12", 0],
+      "images": ["7", 0],
       "filename_prefix": "ananya"
     }
   }

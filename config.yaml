@@ -21,10 +21,10 @@ characters:
   ananya:
     trigger_word: AnanyaAI
     lora: AnanyaAI_v1_Prod.safetensors
-    lora_strength: 0.75
+    lora_strength: 0.9
     flux_lora: AnanyaAI_FLUX_v1.safetensors
     flux_lora_strength: 0.85
-    ipadapter_strength: 0.35
+    ipadapter_strength: 0.55
     base_prompt_file: character/ananya/base_prompt.txt
     output_subdir: ananya
     seeds_dir: character/ananya/seeds
@@ -49,7 +49,7 @@ generation:
   height: 1152
   sampler: dpmpp_2m
   scheduler: karras
-  negative_prompt: "(studio photography, plain background, solid color background, seamless paper, blank background, isolated subject, simple background:1.4), cgi, 3d, render, cartoon, illustration, drawing, painting, bad proportions, bad quality, low quality, deformed, ugly, extra limbs, bad anatomy, watermark, text, signature, bindi, tikka, maang tikka, jhumka, chandbaali, heavy necklace, traditional jewelry, dupatta, kurta, anarkali, salwar, heavily embroidered, bridal, deformed hands, extra fingers, bad hands, malformed hands, mutated hands, missing fingers, fused fingers, too many fingers, poorly drawn hands, mangled hands, floating hands, disembodied hands, hands near face, hand on chin, fingers touching face, bad lips, deformed mouth, crooked teeth, asymmetrical eyes, uneven eyes, cross-eyed, lazy eye, wall-eyed, different sized eyes, strabismus, dusky skin, dark skin, tan skin, olive complexion, brown skin, tanned, dark complexion, dark tone, unpainted nails, chipped nails, no makeup, shiny jewelry, reflective jewelry, oversized jewelry, chunky jewelry, statement jewelry, spaghetti straps, thin straps, bra top, bandeau top, tube top, strapless top, skinny body, thin body, slender body, underweight, petite frame, narrow hips, flat stomach, visible ribs, bony arms, thigh gap"
+  negative_prompt: "(studio photography, plain background, solid color background, seamless paper, blank background, isolated subject, simple background:1.4), cgi, 3d, render, cartoon, illustration, drawing, painting, bad proportions, bad quality, low quality, deformed, ugly, extra limbs, bad anatomy, watermark, text, signature, bindi, tikka, maang tikka, jhumka, chandbaali, heavy necklace, traditional jewelry, dupatta, kurta, anarkali, salwar, heavily embroidered, bridal, deformed hands, extra fingers, bad hands, malformed hands, mutated hands, missing fingers, fused fingers, too many fingers, poorly drawn hands, mangled hands, floating hands, disembodied hands, hands near face, hand on chin, fingers touching face, bad lips, deformed mouth, crooked teeth, asymmetrical eyes, uneven eyes, cross-eyed, lazy eye, wall-eyed, different sized eyes, strabismus, dusky skin, dark skin, tan skin, olive complexion, brown skin, tanned, dark complexion, dark tone, unpainted nails, chipped nails, no makeup, shiny jewelry, reflective jewelry, oversized jewelry, chunky jewelry, statement jewelry, spaghetti straps, thin straps, bra top, bandeau top, tube top, strapless top, off-shoulder, off shoulder, bardot neckline, one-shoulder, turtleneck, halter neck, midriff cutout, cutout dress, cutout detail, cut-out dress, side cutout, stomach cutout, skinny body, thin body, slender body, underweight, petite frame, narrow hips, flat stomach, visible ribs, bony arms, thigh gap"
 
 reels:
   anchor_width: 768
@@ -72,14 +72,14 @@ carousel:
   body_tokens: "realistic size M Indian woman, medium curvy build, fuller hips and thighs, natural waist, soft stomach, fuller bust, realistic proportions"
   img2img_denoise: 0.62
   img2img_denoise_by_role:
-    medium: 0.74
-    close: 0.82
+    medium: 0.70
+    close: 0.65
     hands: 0.82
   controlnet_strength: 0.5
   controlnet_strength_by_role:
     wide: 0.75
     medium: 0.75
-    close: 0.8
+    close: 0.60
   low_bokeh_negative: "bokeh, blurry background, depth of field blur, lens blur, out of focus background, shallow depth of field, soft background, background blur"
   sharp_background_positive: "sharp background, environmental detail, realistic depth, f/8 aperture, deep focus, no lens blur, street photography"
 

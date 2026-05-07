@@ -21,7 +21,7 @@
     "_meta": {"title": "_claude_inject_prompt"},
     "class_type": "CLIPTextEncode",
     "inputs": {
-      "text": "KaviB, 23 year old woman, photorealistic, 8k, sharp focus",
+      "text": "AnanyaAI, photorealistic, 8k, sharp focus",
       "clip": ["2", 1]
     }
   },
@@ -42,12 +42,37 @@
       "batch_size": 1
     }
   },
+  "17": {
+    "_meta": {"title": "_claude_inject_controlnet"},
+    "class_type": "ControlNetLoader",
+    "inputs": {
+      "control_net_name": "control-lora-openposeXL2-rank256.safetensors"
+    }
+  },
+  "18": {
+    "_meta": {"title": "_claude_inject_controlnet_image"},
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "pose_ref.png",
+      "upload": "image"
+    }
+  },
+  "19": {
+    "_meta": {"title": "ControlNet Apply"},
+    "class_type": "ControlNetApply",
+    "inputs": {
+      "conditioning": ["3", 0],
+      "control_net": ["17", 0],
+      "image": ["18", 0],
+      "strength": 0.8
+    }
+  },
   "6": {
     "_meta": {"title": "_claude_inject_seed"},
     "class_type": "KSampler",
     "inputs": {
       "model": ["2", 0],
-      "positive": ["3", 0],
+      "positive": ["19", 0],
       "negative": ["4", 0],
       "latent_image": ["5", 0],
       "seed": 0,
@@ -74,7 +99,7 @@
       "model": ["2", 0],
       "clip": ["2", 1],
       "vae": ["1", 2],
-      "positive": ["3", 0],
+      "positive": ["19", 0],
       "negative": ["4", 0],
       "bbox_detector": ["9", 0],
       "guide_size": 768,
@@ -111,14 +136,6 @@
       "model_name": "bbox/face_yolov8m.pt"
     }
   },
-  "10": {
-    "_meta": {"title": "Save Image"},
-    "class_type": "SaveImage",
-    "inputs": {
-      "images": ["12", 0],
-      "filename_prefix": "ananya"
-    }
-  },
   "11": {
     "_meta": {"title": "BBOX Detector (Hands YOLOv8)"},
     "class_type": "UltralyticsDetectorProvider",
@@ -134,7 +151,7 @@
       "model": ["2", 0],
       "clip": ["2", 1],
       "vae": ["1", 2],
-      "positive": ["3", 0],
+      "positive": ["19", 0],
       "negative": ["4", 0],
       "bbox_detector": ["11", 0],
       "guide_size": 768,
@@ -162,6 +179,14 @@
       "refiner_ratio": 0.2,
       "wildcard": "",
       "cycle": 1
+    }
+  },
+  "10": {
+    "_meta": {"title": "Save Image"},
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["12", 0],
+      "filename_prefix": "ananya"
     }
   }
 }

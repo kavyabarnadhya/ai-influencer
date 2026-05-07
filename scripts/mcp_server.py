@@ -1,8 +1,12 @@
+import base64
+import json
+import os
 import random
 import subprocess
 import sys
 from pathlib import Path
 
+import anthropic
 import requests
 import yaml
 from mcp.server.fastmcp import FastMCP
@@ -225,6 +229,253 @@ def list_recent_images(character: str = "ananya", limit: int = 5) -> str:
         return f"No images found for {character} in {output_dir}"
     recent = images[:limit]
     return "\n".join(str(p) for p in recent)
+
+
+def _resolve_carousel_path(carousel_path: str) -> Path:
+    p = Path(carousel_path)
+    if not p.is_absolute():
+        p = ROOT / p
+    return p
+
+
+def _role_from_filename(filename: str) -> str:
+    for role in ("wide", "medium", "close", "hands", "ambient"):
+        if role in filename:
+            return role
+    return "unknown"
+
+
+REVIEW_SYSTEM = """You are a quality reviewer for an AI influencer image generation pipeline.
+You will be shown a single slide image from an Instagram carousel. Evaluate it strictly and honestly.
+
+Respond ONLY with a JSON object using this exact schema (no markdown, no explanation):
+{
+  "shot_type": "wide|medium|close|ambient|unknown",
+  "face_present": true/false,
+  "face_quality": "good|acceptable|poor|n/a",
+  "hands_visible": true/false,
+  "hands_quality": "good|acceptable|deformed|n/a",
+  "outfit_visible": true/false,
+  "outfit_notes": "brief note on outfit color and silhouette",
+  "background_quality": "good|acceptable|poor",
+  "overall": "pass|fail",
+  "issues": ["list of specific issues, empty if none"]
+}
+
+Pass criteria:
+- Model slides (wide/medium/close): face present, face quality good/acceptable, hands good/acceptable if visible, outfit visible
+- Ambient slides: NO person present, clean background
+- Fail if: deformed hands, missing face on model slide, person visible on ambient slide, severe artifacts"""
+
+
+@mcp.tool()
+def review_carousel(carousel_path: str) -> str:
+    """Review all slides in a carousel folder using Claude vision. Scores each slide and saves review.json and review.txt.
+
+    Args:
+        carousel_path: Path to carousel folder (absolute or relative to project root). E.g. output/2026-05-05/ananya/carousel_cafe_morning_02
+    """
+    folder = _resolve_carousel_path(carousel_path)
+    if not folder.exists():
+        return f"ERROR: Folder not found: {folder}"
+
+    slides = sorted(folder.glob("slide_*.png"), key=lambda p: p.name)
+    if not slides:
+        return f"ERROR: No slide_*.png files found in {folder}"
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return "ERROR: ANTHROPIC_API_KEY environment variable not set"
+
+    client = anthropic.Anthropic(api_key=api_key)
+    results = []
+
+    for slide_path in slides:
+        role = _role_from_filename(slide_path.name)
+        img_b64 = base64.standard_b64encode(slide_path.read_bytes()).decode("utf-8")
+
+        try:
+            response = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=512,
+                system=REVIEW_SYSTEM,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "source": {"type": "base64", "media_type": "image/png", "data": img_b64},
+                            },
+                            {
+                                "type": "text",
+                                "text": f"Review this slide. Expected role: {role}. Filename: {slide_path.name}",
+                            },
+                        ],
+                    }
+                ],
+            )
+            raw = response.content[0].text.strip()
+            review = json.loads(raw)
+        except json.JSONDecodeError:
+            review = {"overall": "fail", "issues": [f"Could not parse review response: {raw[:200]}"]}
+        except Exception as e:
+            review = {"overall": "fail", "issues": [f"Review API error: {e}"]}
+
+        review["filename"] = slide_path.name
+        review["expected_role"] = role
+        results.append(review)
+
+    passed = sum(1 for r in results if r.get("overall") == "pass")
+    failed = len(results) - passed
+    carousel_pass = failed == 0
+
+    review_data = {
+        "carousel_path": str(folder),
+        "total_slides": len(results),
+        "passed": passed,
+        "failed": failed,
+        "carousel_overall": "pass" if carousel_pass else "fail",
+        "slides": results,
+    }
+
+    review_json_path = folder / "review.json"
+    review_json_path.write_text(json.dumps(review_data, indent=2), encoding="utf-8")
+
+    lines = [
+        f"Carousel: {folder.name}",
+        f"Overall: {'PASS' if carousel_pass else 'FAIL'} ({passed}/{len(results)} slides pass)",
+        "",
+    ]
+    for r in results:
+        status = "✅ PASS" if r.get("overall") == "pass" else "❌ FAIL"
+        issues = ", ".join(r.get("issues", [])) or "none"
+        lines.append(f"  {r['filename']} [{r.get('expected_role','?')}] {status}")
+        if r.get("issues"):
+            lines.append(f"    Issues: {issues}")
+        if r.get("outfit_notes"):
+            lines.append(f"    Outfit: {r['outfit_notes']}")
+
+    review_txt = "\n".join(lines)
+    (folder / "review.txt").write_text(review_txt, encoding="utf-8")
+
+    return review_txt
+
+
+CAPTION_SYSTEM = """You are a social media manager for Ananya, an AI fashion influencer based in Mumbai.
+Write Instagram captions in her voice — warm, confident, aspirational, relatable to young Indian women.
+
+Rules:
+- 1-2 sentences of body text max (no long paragraphs)
+- End with exactly 15 hashtags on a new line
+- Always include #AI and #AIInfluencer in hashtags (mandatory disclosure)
+- Include relevant: city/location, fashion, mood, Indian lifestyle tags
+- No emojis unless they fit naturally (1-2 max)
+- Tone: like a real person sharing a moment, not a brand
+
+Output format:
+[caption body]
+
+[hashtags]"""
+
+
+@mcp.tool()
+def draft_caption(carousel_path: str, platform: str = "instagram") -> str:
+    """Draft an Instagram caption for a carousel based on its scene/outfit context.
+
+    Args:
+        carousel_path: Path to carousel folder (absolute or relative to project root)
+        platform: Target platform (default: instagram)
+    """
+    folder = _resolve_carousel_path(carousel_path)
+    if not folder.exists():
+        return f"ERROR: Folder not found: {folder}"
+
+    info_path = folder / "carousel_info.txt"
+    if not info_path.exists():
+        return f"ERROR: carousel_info.txt not found in {folder}"
+
+    info = info_path.read_text(encoding="utf-8")
+
+    review_path = folder / "review.json"
+    if review_path.exists():
+        review_data = json.loads(review_path.read_text(encoding="utf-8"))
+        if review_data.get("carousel_overall") == "fail":
+            return f"WARNING: Carousel failed review. Fix issues before drafting caption.\nReview:\n{(folder / 'review.txt').read_text(encoding='utf-8')}"
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return "ERROR: ANTHROPIC_API_KEY environment variable not set"
+
+    client = anthropic.Anthropic(api_key=api_key)
+
+    try:
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=400,
+            system=CAPTION_SYSTEM,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Write an Instagram caption for this carousel.\n\nCarousel info:\n{info}",
+                }
+            ],
+        )
+        caption = response.content[0].text.strip()
+    except Exception as e:
+        return f"ERROR: Caption API error: {e}"
+
+    caption_path = folder / "caption.txt"
+    caption_path.write_text(caption, encoding="utf-8")
+
+    return f"Caption saved to {caption_path}\n\n{caption}"
+
+
+@mcp.tool()
+def content_readiness_report(character: str = "ananya") -> str:
+    """Scan all carousel output folders and report review + caption status for each.
+
+    Args:
+        character: Character name (default: ananya)
+    """
+    cfg = _load_config()
+    output_dir = ROOT / cfg["paths"]["output_dir"]
+
+    carousel_dirs = sorted(
+        [p for p in output_dir.rglob(f"carousel_*") if p.is_dir() and cfg["characters"].get(character, {}).get("output_subdir", character) in str(p)],
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+
+    if not carousel_dirs:
+        return f"No carousel folders found for {character} under {output_dir}"
+
+    rows = []
+    for d in carousel_dirs:
+        slides = list(d.glob("slide_*.png"))
+        slide_count = len(slides)
+
+        review_status = "not reviewed"
+        carousel_pass = None
+        if (d / "review.json").exists():
+            try:
+                rd = json.loads((d / "review.json").read_text(encoding="utf-8"))
+                carousel_pass = rd.get("carousel_overall") == "pass"
+                review_status = f"{'PASS' if carousel_pass else 'FAIL'} ({rd.get('passed',0)}/{rd.get('total_slides',0)})"
+            except Exception:
+                review_status = "review.json unreadable"
+
+        caption_status = "✅" if (d / "caption.txt").exists() else "—"
+        postable = "✅ ready" if carousel_pass and (d / "caption.txt").exists() else ("⚠️ needs caption" if carousel_pass else "❌ not ready")
+
+        rows.append((d.name, slide_count, review_status, caption_status, postable))
+
+    lines = [f"Content readiness for {character}:", "", f"{'Carousel':<50} {'Slides':>6}  {'Review':<20} {'Caption':>7}  {'Postable'}"]
+    lines.append("-" * 100)
+    for name, slides, review, caption, postable in rows:
+        lines.append(f"{name:<50} {slides:>6}  {review:<20} {caption:>7}  {postable}")
+
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":
