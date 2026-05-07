@@ -39,3 +39,7 @@
 **Learning:** Even with an LRU cache for workflow title-to-ID mappings, `load_workflow` returning a new `.copy()` was causing a "cache cold start" (O(N) scan) for the very first injection on every newly loaded workflow.
 
 **Action:** Extract title scanning logic and update `load_workflow` to pre-scan the base cached workflow and explicitly propagate the mapping to the returned copy's `id()`. This ensures that every workflow returned by the loader starts with a warm cache, making the first injection O(1).
+
+## 2025-02-01 - Redundant Workflow Patching and Connection Pooling
+**Learning:** Re-patching constant values (upscalers, LoRAs, prompts) in the inner loop of batch/carousel scripts adds ~35% overhead to `inject_workflow_values` due to redundant dictionary copying and traversal. Additionally, repeated local API calls (Ollama) suffer from unnecessary TCP handshake latency.
+**Action:** Move all constant patches out of variation loops and only inject changing values (like seeds) in the inner loop. Use `requests.Session` globally in `prompt_assistant.py` to enable connection pooling for sequential Ollama requests.
