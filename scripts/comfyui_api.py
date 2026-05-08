@@ -73,11 +73,11 @@ class ComfyUIClient:
     def wait_for_completion(self, prompt_id: str, timeout: int = 300) -> list[dict]:
         """
         Poll the /history/{prompt_id} endpoint until the job is complete.
-        Uses a fixed 0.5s polling interval to minimize idle time in batch generation
+        Uses a fixed 0.2s polling interval to minimize idle time in batch generation
         compared to exponential backoff.
         """
         deadline = time.time() + timeout
-        polling_interval = 0.5
+        polling_interval = 0.2
         while time.time() < deadline:
             history = self._get(f"/history/{prompt_id}")
             if prompt_id in history:
@@ -146,15 +146,16 @@ def _scan_workflow_titles(workflow: dict) -> dict[str, list[str]]:
     Scan workflow nodes for _meta.title and return title -> [node_id] mapping.
     O(N) where N is number of nodes.
     """
-    title_to_ids = {}
+    title_to_ids: dict[str, list[str]] = {}
     for node_id, node in workflow.items():
         meta = node.get("_meta")
-        if meta:
-            title = meta.get("title")
-            if title:
-                if title not in title_to_ids:
-                    title_to_ids[title] = []
-                title_to_ids[title].append(node_id)
+        if not meta:
+            continue
+        title = meta.get("title")
+        if title:
+            if title not in title_to_ids:
+                title_to_ids[title] = []
+            title_to_ids[title].append(node_id)
     return title_to_ids
 
 
@@ -179,6 +180,9 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
     ensure original workflow data remains immutable and prevent state leakage
     when using cached workflow templates.
     """
+    if not overrides:
+        return workflow.copy()
+
     title_to_ids = _scan_workflow_titles(workflow)
 
     node_to_patches: dict[str, dict[str, Any]] = {}
