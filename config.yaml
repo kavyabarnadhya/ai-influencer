@@ -1,7 +1,8 @@
 comfyui:
   host: 127.0.0.1
   port: 8002
-  comfyui_path: C:/ComfyUI
+  comfyui_path: C:/Users/barna/Documents/ComfyUI
+  output_dir: C:/Users/barna/Documents/ComfyUI/output
   timeout: 1200
 
 models:

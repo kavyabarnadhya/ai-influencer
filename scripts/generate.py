@@ -88,7 +88,7 @@ def _flux_prompt_hints(prompt: str) -> None:
 
 def is_background_prompt(prompt: str) -> bool:
     lowered = prompt.lower()
-    return "empty scene" in lowered or "no people" in lowered or "no humans" in lowered
+    return any(tok in lowered for tok in ("empty scene", "no people", "no humans", "no person", "ambient shot", "background only"))
 
 
 @click.command()
@@ -174,7 +174,7 @@ def main(prompt: str | None, preset: str | None, outfit: str | None, hair: str |
         raise SystemExit(1)
 
     is_flux = is_flux_workflow(workflow_name)
-    background_only = is_flux and is_background_prompt(prompt)
+    background_only = is_background_prompt(prompt)
     base_prompt = (ROOT / char_cfg["base_prompt_file"]).read_text(encoding="utf-8").strip()
     full_prompt = prompt if background_only else build_prompt(
         base_prompt,
@@ -250,7 +250,7 @@ def main(prompt: str | None, preset: str | None, outfit: str | None, hair: str |
                 "inputs.strength_clip": flux_strength,
             }
 
-    if workflow_name not in ("bootstrap_seeds", "flux_schnell"):
+    if workflow_name not in ("bootstrap_seeds", "flux_schnell") and not background_only:
         lora_strength = (resolved or {}).get("lora_strength") or char_cfg["lora_strength"]
         base_overrides["_claude_inject_lora"] = {
             "inputs.lora_name": char_cfg["lora"],
@@ -316,6 +316,9 @@ def main(prompt: str | None, preset: str | None, outfit: str | None, hair: str |
             dest = out_dir / filename
             dest.write_bytes(img_bytes)
             print(f"Saved: {dest}")
+            client.delete_output_image(
+                img_meta["filename"], img_meta.get("subfolder", ""), comfy_cfg.get("output_dir")
+            )
 
     # Log generation metadata
     import json

@@ -147,6 +147,7 @@ def get_slide_sequence(slide_count: int) -> list[str]:
 @click.option("--face-ref", default=None, help="Path to face reference image for IP-Adapter")
 @click.option("--poses-dir", default=None, help="Directory with role pose images, e.g. wide_01.png, medium_01.png, close_01.png")
 @click.option("--candidates", default=None, type=click.IntRange(1, 5), help="Candidates to generate per model slide role")
+@click.option("--anchor", default=None, help="Path to existing image to use as img2img anchor (skips auto-anchor from wide cand_1)")
 def main(
     preset: str | None,
     scene: str | None,
@@ -160,6 +161,7 @@ def main(
     face_ref: str | None,
     poses_dir: str | None,
     candidates: int | None,
+    anchor: str | None,
 ):
     cfg = load_config()
     char_cfg = load_character(cfg, character)
@@ -279,6 +281,15 @@ def main(
     anchor_image_path: Path | None = None
     uploaded_anchor: str | None = None
 
+    if anchor:
+        anchor_path = Path(anchor)
+        if not anchor_path.exists():
+            console.print(f"[red]Anchor image not found: {anchor}[/red]")
+            raise SystemExit(1)
+        anchor_image_path = anchor_path
+        console.print(f"[dim]Using provided anchor: {anchor_path.name}[/dim]")
+        uploaded_anchor = client.upload_image(str(anchor_path))
+
     for i, role in enumerate(slide_sequence):
         slide_num = i + 1
         slide_prompt = build_slide_prompt(
@@ -390,6 +401,9 @@ def main(
                 dest = out_dir / filename
                 dest.write_bytes(img_bytes)
                 console.print(f"[green]Saved:[/green] {dest}")
+                client.delete_output_image(
+                    img_meta["filename"], img_meta.get("subfolder", ""), comfy_cfg.get("output_dir")
+                )
                 info_lines.append(
                     f"slide_{slide_num}: {role} - cand {candidate_num} - {mode_label} - "
                     f"pose {pose_name} - denoise {denoise if denoise is not None else 'n/a'} - "

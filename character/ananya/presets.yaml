@@ -43,11 +43,12 @@ emerald_bodycon_carousel:
   kind: carousel
   description: "Hotel-lobby glam carousel, 4 slides"
   scene_default: "luxury hotel lobby, marble floors, warm tungsten lighting"
-  outfit_default: "emerald green fitted bodycon dress, scoop neck, sleeveless"
+  outfit_default: "emerald green fitted bodycon midi dress, scoop neck, sleeveless, one-piece, no midriff"
   hair_default: "loose waves, side-parted"
   slide_sequence: [wide, medium, close, ambient]
-  candidates: 3
-  poses_dir: "character/ananya/poses/carousel_production_v2"
+  candidates: 5
+  poses_dir: "character/ananya/poses/carousel_production_v3"
+  face_ref: "character/ananya/seeds/closeup/face_ref_cropped_008.png"
   overrides:
     ipadapter_strength: 0.5
   per_role:

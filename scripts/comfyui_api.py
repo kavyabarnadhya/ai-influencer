@@ -101,6 +101,21 @@ class ComfyUIClient:
         except requests.exceptions.RequestException as e:
             raise ComfyUIError(f"Failed to download image {filename}: {e}")
 
+    def delete_output_image(self, filename: str, subfolder: str = "", comfyui_output_dir: str | None = None) -> None:
+        """Delete an image from ComfyUI's output folder after it has been copied locally."""
+        if not comfyui_output_dir:
+            return
+        try:
+            parts = [comfyui_output_dir]
+            if subfolder:
+                parts.append(subfolder)
+            parts.append(filename)
+            target = Path(*parts)
+            if target.exists():
+                target.unlink()
+        except Exception:
+            pass
+
     def upload_image(self, image_path: str) -> str:
         """
         Upload an image to ComfyUI's input folder. Returns the filename ComfyUI assigned.

@@ -1,0 +1,108 @@
+# Ananya v2 LoRA Training Config — Kohya SS (SDXL)
+# Trigger word: AnyV2X9
+# Base model: sd_xl_base_1.0.safetensors (NOT Juggernaut)
+# Target: RunPod RTX 3090, ~45-60 min, ~$3
+
+[general]
+pretrained_model_name_or_path = "/workspace/models/sd_xl_base_1.0.safetensors"
+output_dir                    = "/workspace/output/AnyV2X9_v2"
+output_name                   = "AnyV2X9_v2"
+save_model_as                 = "safetensors"
+save_every_n_epochs           = 1
+
+[dataset]
+train_data_dir   = "/workspace/dataset/train"
+reg_data_dir     = "/workspace/dataset/reg"
+resolution       = "1024,1024"
+enable_bucket    = true
+min_bucket_reso  = 512
+max_bucket_reso  = 1536
+bucket_reso_steps = 64
+caption_extension = ".txt"
+
+[training]
+network_module           = "networks.lora"
+network_dim              = 32
+network_alpha            = 16
+
+learning_rate            = 1e-4
+unet_lr                  = 1e-4
+text_encoder_lr          = 5e-5        # Watch sample #7 (grey backdrop). If bleed → drop to 1e-6.
+
+optimizer_type           = "AdamW8bit"
+lr_scheduler             = "cosine"
+lr_warmup_steps          = 0
+
+train_batch_size         = 2
+gradient_accumulation_steps = 2
+max_train_epochs         = 10
+
+mixed_precision          = "bf16"
+gradient_checkpointing   = true
+xformers                 = true
+
+# Noise / SNR
+min_snr_gamma            = 5.0
+noise_offset             = 0.0
+
+# SDXL specific
+timestep_sampling        = "sigmoid"
+multires_noise_iterations = 0
+
+# Caption
+caption_dropout_rate     = 0.0         # Never drop — trigger must always fire
+shuffle_caption          = false       # Preserve trigger-first order (keep_tokens=1 equivalent)
+keep_n_tokens            = 1           # AnyV2X9 always first
+
+# Augmentation
+flip_aug                 = false       # Faces — no flip
+color_aug                = false
+
+# LoRA type
+network_args             = ["conv_dim=0", "conv_alpha=0"]   # Linear-only LoRA, no conv
+
+[sampling]
+sample_every_n_steps     = 250
+sample_sampler           = "dpmpp_2m"
+sample_prompts           = "/workspace/dataset/kohya_v2_sample_prompts.txt"
+
+[logging]
+log_with                 = "tensorboard"
+logging_dir              = "/workspace/logs"
+
+# ---------------------------------------------------------------------------
+# RETRY SWITCHES (edit if first run fails)
+# ---------------------------------------------------------------------------
+#
+# Plastic skin / over-sharpened eyes:
+#   → network_alpha = 1   (drop from 16 to 1)
+#   → learning_rate = 5e-5
+#
+# Text encoder bleed (background aesthetics baking into trigger):
+#   → text_encoder_lr = 1e-6   (drop from 5e-5)
+#
+# Identity drift / overfit:
+#   → reduce max_train_epochs to 7 and pick earlier epoch
+#
+# Outfit baking (outfit absorbed into trigger):
+#   → check dataset outfit variety (must be >8 distinct outfits, none >15%)
+#   → ethnic outfit folder: set num_repeats = 5 in dataset config
+#
+# ---------------------------------------------------------------------------
+# DATASET FOLDER STRUCTURE
+# ---------------------------------------------------------------------------
+#
+# /workspace/dataset/
+#   train/
+#     30_AnyV2X9/          ← num_repeats=4, all 25-35 training images + .txt captions
+#       image_001.png
+#       image_001.txt      ← "AnyV2X9, close-up portrait, ..."
+#       ...
+#     5_AnyV2X9_ethnic/    ← num_repeats=5, saree/lehenga/kurti seeds only (if needed)
+#   reg/
+#     1_person/            ← 30-50 generic Indian woman images, no captions needed
+#
+# Folder name format: {num_repeats}_{trigger_word}
+# Total effective training steps ≈ (images × num_repeats × max_train_epochs) / batch_size
+# For 30 images × 4 repeats × 10 epochs / (2 batch × 2 grad_accum) = 300 optimizer steps
+# ---------------------------------------------------------------------------
