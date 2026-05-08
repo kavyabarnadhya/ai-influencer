@@ -43,3 +43,7 @@
 ## 2025-02-01 - Redundant Workflow Patching and Connection Pooling
 **Learning:** Re-patching constant values (upscalers, LoRAs, prompts) in the inner loop of batch/carousel scripts adds ~35% overhead to `inject_workflow_values` due to redundant dictionary copying and traversal. Additionally, repeated local API calls (Ollama) suffer from unnecessary TCP handshake latency.
 **Action:** Move all constant patches out of variation loops and only inject changing values (like seeds) in the inner loop. Use `requests.Session` globally in `prompt_assistant.py` to enable connection pooling for sequential Ollama requests.
+
+## 2026-05-08 - Safe Workflow Title Caching and Polling Optimization
+**Learning:** Using `id(dict)` as a global cache key is fundamentally unsafe in Python because memory addresses are reused after garbage collection, leading to "identity collision" bugs. Furthermore, for local ComfyUI instances, a 0.5s polling interval can waste up to 80% of total turnaround time for fast nodes.
+**Action:** Avoid global caches keyed by `id()` for mutable objects like workflows. Instead, focus on reducing polling latency (e.g., to 0.2s) and implementing O(1) early returns for no-op injections.
