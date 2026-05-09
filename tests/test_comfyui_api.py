@@ -62,8 +62,12 @@ def test_inject_workflow_values_no_match():
     patched = inject_workflow_values(workflow, overrides)
 
     assert patched["1"]["inputs"]["text"] == "original"
-    assert patched == workflow
-    assert patched is not workflow # Current implementation always deep copies
+    # We now add a title cache key, so simple equality fails.
+    # We strip it for the comparison.
+    patched_no_cache = patched.copy()
+    patched_no_cache.pop("_claude_title_cache", None)
+    assert patched_no_cache == workflow
+    assert patched is not workflow
 
 def test_inject_workflow_values_deep_nesting():
     workflow = {
