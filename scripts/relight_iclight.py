@@ -120,16 +120,21 @@ def main(input_dir: str, light_mode: str, workflow: str, dry_run: bool, limit: i
             wf = load_workflow(str(workflow_path))
             _inject_iclight(wf, image_name=uploaded, light_prompt=light_prompt)
 
-            prompt_id = client.queue_prompt(wf)
-            result_images = client.wait_for_images(prompt_id)
-            if not result_images:
+            prompt_id = client.submit_workflow(wf)
+            image_refs = client.wait_for_completion(prompt_id, timeout=120)
+            if not image_refs:
                 console.print(f"  [yellow]No output[/yellow]")
                 failed.append(img_path.name)
                 continue
 
             out_file = out_path / f"relit_{i:03d}_{img_path.stem}.png"
+            img_bytes = client.download_image(
+                image_refs[0]["filename"],
+                image_refs[0].get("subfolder", ""),
+                image_refs[0].get("type", "output"),
+            )
             with open(out_file, "wb") as f:
-                f.write(result_images[0])
+                f.write(img_bytes)
             console.print(f"  Saved: {out_file.name}")
 
         except ComfyUIError as e:

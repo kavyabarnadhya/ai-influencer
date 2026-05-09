@@ -13,11 +13,15 @@ Usage:
 import json
 import random
 import sys
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
 import click
+import cv2
+import numpy as np
 import yaml
+from PIL import Image
 from rich.console import Console
 from rich.table import Table
 
@@ -27,8 +31,7 @@ from comfyui_api import ComfyUIClient, ComfyUIError, find_comfyui_port, inject_w
 console = Console()
 ROOT = Path(__file__).parent.parent
 
-TRIGGER = "AnyV2X9"
-V1_TRIGGER = "AnanyaAI"
+FACE_REF = ROOT / "character" / "ananya" / "seeds_v2" / "face_ref_v2.png"
 
 # ---------------------------------------------------------------------------
 # Prompt component pools — drawn from v2_seed_matrix.md diversity gates
@@ -142,9 +145,60 @@ NEGATIVE_BASE = (
 )
 
 
+def crop_face_for_ipadapter(image_path: Path, padding: float = 0.35) -> Path:
+    """Crop to face bbox + padding. Returns path to temp PNG (square).
+
+    Uses Haar cascade — fast, no extra deps. Falls back to center-crop if no
+    face detected. Temp file lives for the process lifetime.
+    """
+    img = cv2.imread(str(image_path))
+    if img is None:
+        raise ValueError(f"Cannot read image: {image_path}")
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+    detector = cv2.CascadeClassifier(cascade_path)
+    faces = detector.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(80, 80))
+
+    h, w = img.shape[:2]
+
+    if len(faces) == 0:
+        # Fallback: top-center crop (portrait photos — face usually top-center)
+        console.print("  [yellow]No face detected — using top-center crop fallback[/yellow]")
+        crop_size = min(w, h // 2)
+        x1 = (w - crop_size) // 2
+        y1 = 0
+        x2 = x1 + crop_size
+        y2 = crop_size
+    else:
+        # Pick largest face
+        fx, fy, fw, fh = max(faces, key=lambda r: r[2] * r[3])
+        pad_x = int(fw * padding)
+        pad_y = int(fh * padding)
+        x1 = max(0, fx - pad_x)
+        y1 = max(0, fy - pad_y)
+        x2 = min(w, fx + fw + pad_x)
+        y2 = min(h, fy + fh + pad_y)
+        # Expand to square
+        side = max(x2 - x1, y2 - y1)
+        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+        x1 = max(0, cx - side // 2)
+        y1 = max(0, cy - side // 2)
+        x2 = min(w, x1 + side)
+        y2 = min(h, y1 + side)
+
+    crop = img[y1:y2, x1:x2]
+    crop_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
+    pil = Image.fromarray(crop_rgb).resize((512, 512), Image.LANCZOS)
+
+    tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+    pil.save(tmp.name)
+    return Path(tmp.name)
+
+
 def weighted_choice(options):
     items = [item for item in options]
-    weights = [item[2] for item in items]
+    weights = [item[-1] for item in items]  # weight is always last element
     chosen = random.choices(items, weights=weights, k=1)[0]
     return chosen
 
@@ -152,9 +206,9 @@ def weighted_choice(options):
 def build_prompt(shot_label: str, shot_phrase: str, focal_phrase: str,
                  outfit: str, hair: str, scene: str, aesthetic: str,
                  dof: str, angle: str, emotion: str, sensor: str,
-                 jewelry: str, trigger: str) -> tuple[str, str]:
+                 jewelry: str, trigger: str = "") -> tuple[str, str]:
     positive = (
-        f"{trigger}, {shot_phrase}, {focal_phrase}, "
+        f"{shot_phrase}, {focal_phrase}, "
         f"{angle}, {emotion}, "
         f"wearing {outfit}, "
         f"hair: {hair}, "
@@ -202,7 +256,7 @@ def generate_candidate_configs(count: int, base_seed: int) -> list[dict]:
             scene=scene[1], aesthetic=scene[2],
             dof=dof[1], angle=angle, emotion=emotion,
             sensor=sensor, jewelry=jewelry,
-            trigger=TRIGGER,
+            trigger="",
         )
 
         # Resolution by shot type
@@ -235,23 +289,20 @@ def generate_candidate_configs(count: int, base_seed: int) -> list[dict]:
 @click.option("--count", default=35, show_default=True, help="Number of candidates to generate")
 @click.option("--seed", "base_seed", default=None, type=int, help="Base seed (random if omitted)")
 @click.option("--dry-run", is_flag=True, help="Print prompts, do not call ComfyUI")
-@click.option("--lora", default="AnanyaAI_v1_Prod.safetensors", show_default=True, help="v1 LoRA filename")
-@click.option("--lora-strength", default=0.85, show_default=True, type=float)
-@click.option("--workflow", default="t2i_sdxl_lora", show_default=True, help="Workflow name (no .json)")
+@click.option("--workflow", default="bootstrap_ipadapter", show_default=True, help="Workflow name (no .json)")
 @click.option("--steps", default=30, show_default=True)
 @click.option("--cfg", default=7.5, show_default=True, type=float)
 @click.option("--out-dir", default=None, help="Override output directory")
-def main(count: int, base_seed: int | None, dry_run: bool, lora: str,
-         lora_strength: float, workflow: str, steps: int, cfg: float,
-         out_dir: str | None):
-    """Generate diverse v1 LoRA candidates for Ananya v2 dataset assembly."""
+def main(count: int, base_seed: int | None, dry_run: bool, workflow: str,
+         steps: int, cfg: float, out_dir: str | None):
+    """Generate diverse IPAdapter-steered candidates for Ananya v2 (Juggernaut + face_ref_v2.png anchor)."""
 
     if base_seed is None:
         base_seed = random.randint(1, 2**31)
 
     console.print(f"[bold]Ananya v2 Bootstrap Seeds[/bold]")
-    console.print(f"Count: {count} | Base seed: {base_seed} | LoRA: {lora} @ {lora_strength}")
-    console.print(f"Trigger: [cyan]{TRIGGER}[/cyan]")
+    console.print(f"Count: {count} | Base seed: {base_seed} | Workflow: {workflow}")
+    console.print(f"Face ref: [cyan]{FACE_REF.name}[/cyan]")
 
     configs = generate_candidate_configs(count, base_seed)
 
@@ -305,8 +356,17 @@ def main(count: int, base_seed: int | None, dry_run: bool, lora: str,
     # Save candidate manifest
     manifest_path = out_path / "candidates_manifest.json"
     with open(manifest_path, "w") as f:
-        json.dump({"base_seed": base_seed, "count": count, "lora": lora, "candidates": configs}, f, indent=2)
+        json.dump({"base_seed": base_seed, "count": count, "workflow": workflow, "candidates": configs}, f, indent=2)
     console.print(f"Manifest: {manifest_path}")
+
+    # Crop face ref to face-only bbox before upload — prevents hair style bleed
+    if not FACE_REF.exists():
+        console.print(f"[red]Face reference not found: {FACE_REF}[/red]")
+        raise SystemExit(1)
+    console.print(f"Cropping face from: {FACE_REF.name}...")
+    face_crop_path = crop_face_for_ipadapter(FACE_REF)
+    console.print(f"Uploading face crop (512x512)...")
+    uploaded_face_ref = client.upload_image(str(face_crop_path))
 
     # --- Generate ---
     failed = []
@@ -315,26 +375,32 @@ def main(count: int, base_seed: int | None, dry_run: bool, lora: str,
         console.print(f"\n[dim]Candidate {idx}/{count} — {c['shot_label']} / {c['outfit_label']} / {c['hair_label']}[/dim]")
 
         wf = load_workflow(str(workflow_path))
-        inject_workflow_values(wf, {
-            "_claude_inject_prompt": c["positive"],
-            "_claude_inject_negative": c["negative"],
-            "_claude_inject_seed": {"seed": c["seed"], "steps": steps, "cfg": cfg},
-            "_claude_inject_lora": {"lora_name": lora, "strength_model": lora_strength, "strength_clip": lora_strength},
-            "_claude_inject_latent": {"width": c["width"], "height": c["height"]},
+        wf = inject_workflow_values(wf, {
+            "_claude_inject_prompt": {"inputs.text": c["positive"]},
+            "_claude_inject_negative": {"inputs.text": c["negative"]},
+            "_claude_inject_seed": {"inputs.seed": c["seed"], "inputs.steps": steps, "inputs.cfg": cfg},
+            "_claude_inject_ipadapter_image": {"inputs.image": uploaded_face_ref},
+            "_claude_inject_ipadapter_strength": {"inputs.weight": 0.6},
+            "_claude_inject_latent": {"inputs.width": c["width"], "inputs.height": c["height"]},
         })
 
         try:
-            prompt_id = client.queue_prompt(wf)
-            images = client.wait_for_images(prompt_id)
-            if not images:
+            prompt_id = client.submit_workflow(wf)
+            image_refs = client.wait_for_completion(prompt_id, timeout=120)
+            if not image_refs:
                 console.print(f"  [yellow]No images returned for candidate {idx}[/yellow]")
                 failed.append(idx)
                 continue
 
             filename = f"cand_{idx:03d}_{c['shot_label']}_{c['outfit_label']}_{c['seed']}.png"
             save_path = out_path / filename
+            img_bytes = client.download_image(
+                image_refs[0]["filename"],
+                image_refs[0].get("subfolder", ""),
+                image_refs[0].get("type", "output"),
+            )
             with open(save_path, "wb") as f:
-                f.write(images[0])
+                f.write(img_bytes)
             console.print(f"  Saved: {save_path.name}")
 
         except ComfyUIError as e:
@@ -346,7 +412,7 @@ def main(count: int, base_seed: int | None, dry_run: bool, lora: str,
     if failed:
         console.print(f"[yellow]Failed candidates: {failed}[/yellow]")
     console.print(f"\nOutput: {out_path}")
-    console.print("\n[bold]Next: open output dir, curate 5-8 keepers → copy to seeds_v2/training_canonical/[/bold]")
+    console.print("\n[bold]Next: open output dir, curate 5-8 keepers -> copy to seeds_v2/training_canonical/[/bold]")
     console.print("Curation criteria: sharp face, good skin texture, correct outfit, no artifacts, diverse coverage")
 
 
