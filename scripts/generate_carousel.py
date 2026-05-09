@@ -304,34 +304,60 @@ def main(
         )
         role_candidate_count = candidates if not is_detail_slide(role) else 1
 
+        # Performance Optimization: Pre-load and pre-patch the base workflow for this role
+        # once, instead of inside the candidate variation loop.
+        use_img2img = (i > 0) and not is_detail_slide(role) and anchor_image_path is not None
+        if is_detail_slide(role):
+            current_workflow_name = "t2i_sdxl_lora"
+        else:
+            current_workflow_name = img2img_workflow_name if use_img2img else anchor_workflow_name
+
+        workflow_data = load_workflow(str(ROOT / cfg["paths"]["workflows_dir"] / f"{current_workflow_name}.json"))
+
+        base_overrides = {
+            "_claude_inject_prompt": {"inputs.text": slide_prompt},
+            "_claude_inject_negative": {"inputs.text": negative},
+            "_claude_inject_seed": {"inputs.steps": effective_steps, "inputs.cfg": gen_cfg["cfg"]},
+            "_claude_inject_checkpoint": {"inputs.ckpt_name": cfg["models"]["checkpoint"]},
+            "_claude_inject_lora": {
+                "inputs.lora_name": char_cfg["lora"],
+                "inputs.strength_model": char_cfg["lora_strength"],
+                "inputs.strength_clip": char_cfg["lora_strength"],
+            },
+        }
+
+        if not use_img2img:
+            base_overrides["_claude_inject_latent"] = {"inputs.width": gen_cfg["width"], "inputs.height": gen_cfg["height"]}
+
+        if use_img2img and uploaded_anchor:
+            denoise = role_setting(
+                carousel_cfg,
+                "img2img_denoise_by_role",
+                "img2img_denoise",
+                role,
+                DEFAULT_IMG2IMG_DENOISE,
+            )
+            base_overrides["_claude_inject_init_image"] = {"inputs.image": uploaded_anchor}
+            base_overrides["_claude_inject_seed"]["inputs.denoise"] = denoise
+
+        if uploaded_face and not is_detail_slide(role):
+            base_overrides["_claude_inject_ipadapter_image"] = {"inputs.image": uploaded_face}
+            base_overrides["_claude_inject_ipadapter_strength"] = {"inputs.weight": char_cfg["ipadapter_strength"]}
+
+        workflow_data = inject_workflow_values(workflow_data, base_overrides)
+
         for candidate_index in range(role_candidate_count):
             candidate_num = candidate_index + 1
             img_seed = base_seed + (i * 100) + candidate_index
-            use_img2img = (i > 0) and not is_detail_slide(role) and anchor_image_path is not None
 
             role_overrides = preset_per_role.get(role, {})
-            if is_detail_slide(role):
-                current_workflow_name = role_overrides.get("workflow", "t2i_sdxl_lora")
-            elif role_overrides.get("workflow"):
-                current_workflow_name = role_overrides["workflow"]
-            else:
-                current_workflow_name = img2img_workflow_name if use_img2img else anchor_workflow_name
-            workflow_data = load_workflow(str(ROOT / cfg["paths"]["workflows_dir"] / f"{current_workflow_name}.json"))
-
-            denoise = None
-            controlnet_strength = None
-            pose_name = "n/a"
+            # Re-fetch denoise from base_overrides for logging if it was set
+            current_denoise = base_overrides.get("_claude_inject_seed", {}).get("inputs.denoise")
+            current_controlnet_strength = None
+            current_pose_name = "n/a"
 
             overrides = {
-                "_claude_inject_prompt": {"inputs.text": slide_prompt},
-                "_claude_inject_negative": {"inputs.text": negative},
-                "_claude_inject_seed": {"inputs.seed": img_seed, "inputs.steps": effective_steps, "inputs.cfg": gen_cfg["cfg"]},
-                "_claude_inject_checkpoint": {"inputs.ckpt_name": cfg["models"]["checkpoint"]},
-                "_claude_inject_lora": {
-                    "inputs.lora_name": char_cfg["lora"],
-                    "inputs.strength_model": char_cfg["lora_strength"],
-                    "inputs.strength_clip": char_cfg["lora_strength"],
-                },
+                "_claude_inject_seed": {"inputs.seed": img_seed},
             }
 
             if not use_img2img:
@@ -356,13 +382,14 @@ def main(
                 overrides["_claude_inject_ipadapter_image"] = {"inputs.image": uploaded_face}
                 overrides["_claude_inject_ipadapter_strength"] = {"inputs.weight": ipadapter_weight}
 
+
             if poses_dir and role in POSE_ROLES and not is_detail_slide(role):
                 pose_path = pick_pose_for_role(Path(poses_dir), role, candidate_index)
                 if pose_path:
-                    pose_name = pose_path.name
-                    console.print(f"[dim]  pose: {pose_name}[/dim]")
+                    current_pose_name = pose_path.name
+                    console.print(f"[dim]  pose: {current_pose_name}[/dim]")
                     uploaded_pose = client.upload_image(str(pose_path))
-                    controlnet_strength = role_setting(
+                    current_controlnet_strength = role_setting(
                         carousel_cfg,
                         "controlnet_strength_by_role",
                         "controlnet_strength",
@@ -371,10 +398,10 @@ def main(
                     )
                     # Preset per_role controlnet_strength wins over config.yaml
                     if "controlnet_strength" in role_overrides:
-                        controlnet_strength = role_overrides["controlnet_strength"]
+                        current_controlnet_strength = role_overrides["controlnet_strength"]
                     overrides["_claude_inject_controlnet_image"] = {"inputs.image": uploaded_pose}
                     overrides["_claude_inject_controlnet"] = {"inputs.control_net_name": cfg["models"]["controlnet_openpose"]}
-                    overrides["ControlNet Apply"] = {"inputs.strength": controlnet_strength}
+                    overrides["ControlNet Apply"] = {"inputs.strength": current_controlnet_strength}
 
             patched = inject_workflow_values(workflow_data, overrides)
             mode_label = "img2img" if use_img2img else "t2i"
@@ -406,8 +433,8 @@ def main(
                 )
                 info_lines.append(
                     f"slide_{slide_num}: {role} - cand {candidate_num} - {mode_label} - "
-                    f"pose {pose_name} - denoise {denoise if denoise is not None else 'n/a'} - "
-                    f"controlnet {controlnet_strength if controlnet_strength is not None else 'n/a'} - "
+                    f"pose {current_pose_name} - denoise {current_denoise if current_denoise is not None else 'n/a'} - "
+                    f"controlnet {current_controlnet_strength if current_controlnet_strength is not None else 'n/a'} - "
                     f"{filename} (seed {img_seed})"
                 )
 

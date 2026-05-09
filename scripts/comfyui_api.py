@@ -64,6 +64,10 @@ class ComfyUIClient:
         raise ComfyUIError(f"ComfyUI did not become ready within {timeout}s")
 
     def submit_workflow(self, workflow: dict) -> str:
+        # Strip the internal cache key before submitting to ComfyUI
+        if "_claude_title_cache" in workflow:
+            workflow = workflow.copy()
+            workflow.pop("_claude_title_cache")
         result = self._post("/prompt", {"prompt": workflow, "client_id": self.client_id})
         prompt_id = result.get("prompt_id")
         if not prompt_id:
@@ -73,11 +77,11 @@ class ComfyUIClient:
     def wait_for_completion(self, prompt_id: str, timeout: int = 300) -> list[dict]:
         """
         Poll the /history/{prompt_id} endpoint until the job is complete.
-        Uses a fixed 0.5s polling interval to minimize idle time in batch generation
+        Uses a fixed 0.2s polling interval to minimize idle time in batch generation
         compared to exponential backoff.
         """
         deadline = time.time() + timeout
-        polling_interval = 0.5
+        polling_interval = 0.2
         while time.time() < deadline:
             history = self._get(f"/history/{prompt_id}")
             if prompt_id in history:
@@ -159,17 +163,23 @@ def find_comfyui_port(host: str = "127.0.0.1", candidates: list[int] | None = No
 def _scan_workflow_titles(workflow: dict) -> dict[str, list[str]]:
     """
     Scan workflow nodes for _meta.title and return title -> [node_id] mapping.
-    O(N) where N is number of nodes.
+    O(N) where N is number of nodes. Cached if _claude_title_cache is present.
     """
-    title_to_ids = {}
+    if "_claude_title_cache" in workflow:
+        return workflow["_claude_title_cache"]
+
+    title_to_ids: dict[str, list[str]] = {}
     for node_id, node in workflow.items():
+        if not isinstance(node, dict):
+            continue
         meta = node.get("_meta")
-        if meta:
-            title = meta.get("title")
-            if title:
-                if title not in title_to_ids:
-                    title_to_ids[title] = []
-                title_to_ids[title].append(node_id)
+        if not meta:
+            continue
+        title = meta.get("title")
+        if title:
+            if title not in title_to_ids:
+                title_to_ids[title] = []
+            title_to_ids[title].append(node_id)
     return title_to_ids
 
 
@@ -194,6 +204,9 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
     ensure original workflow data remains immutable and prevent state leakage
     when using cached workflow templates.
     """
+    if not overrides:
+        return workflow.copy()
+
     title_to_ids = _scan_workflow_titles(workflow)
 
     node_to_patches: dict[str, dict[str, Any]] = {}
@@ -205,6 +218,8 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
                 node_to_patches[node_id].update(patches)
 
     workflow = workflow.copy()
+    # Propagate the title cache to the new copy to keep subsequent injections O(1)
+    workflow["_claude_title_cache"] = title_to_ids
 
     for node_id, patches in node_to_patches.items():
         node = workflow[node_id] = workflow[node_id].copy()
@@ -243,4 +258,7 @@ def load_workflow(path: str) -> dict:
 @functools.lru_cache(maxsize=16)
 def _load_workflow_cached(path: str) -> dict:
     with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        workflow = json.load(f)
+    # Warm up the title cache on load so the very first injection is O(1)
+    workflow["_claude_title_cache"] = _scan_workflow_titles(workflow)
+    return workflow
