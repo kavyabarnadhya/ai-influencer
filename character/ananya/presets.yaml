@@ -1,0 +1,67 @@
+saree_rooftop_sunset:
+  description: "Waist-up rooftop saree, dupatta, looking back, golden hour"
+  workflow: t2i_sdxl_lora_ipadapter
+  prompt_template: "waist-up shot, {outfit}, {hair}, rooftop sunset, {scene}, looking back over shoulder, golden hour, sharp detailed face, editorial fashion"
+  defaults:
+    outfit: "burgundy saree blouse, sheer embroidered dupatta"
+    hair: "low bun with soft tendrils"
+    scene: "Mumbai skyline distant, dusk pink sky"
+  overrides:
+    lora_strength: 0.9
+    ipadapter_strength: 0.55
+    ipadapter_start_at: 0.15
+  pose: null
+  face_ref: null
+  notes: "Saree+rooftop biases LoRA toward updo; keep 'low bun' explicit anyway."
+
+blazer_vanity:
+  description: "Black blazer + champagne cami at vanity mirror"
+  workflow: t2i_sdxl_lora_ipadapter
+  prompt_template: "waist-up shot, {outfit}, {hair}, vanity mirror with warm bulb lights, getting ready, indoor warm lighting, sharp detailed face"
+  defaults:
+    outfit: "tailored black blazer over champagne satin cami"
+    hair: "loose waves, side-parted"
+    scene: ""
+  overrides:
+    lora_strength: 0.9
+    ipadapter_strength: 0.55
+
+hair_up_controlnet:
+  description: "Hair-up shot via extracted SDPose skeleton"
+  workflow: t2i_sdxl_lora_ipadapter_controlnet
+  prompt_template: "{outfit}, {hair}, {scene}, sharp detailed face, editorial fashion"
+  defaults:
+    outfit: "off-white linen co-ord set"
+    hair: "sleek high bun, no loose strands"
+    scene: "softbox studio, neutral grey backdrop"
+  overrides:
+    ipadapter_strength: 0.55
+    controlnet_strength: 0.65
+  pose: "character/ananya/poses/extracted/pose_saree_lowbun_scaled.png"
+
+emerald_bodycon_carousel:
+  kind: carousel
+  description: "Hotel-lobby glam carousel, 4 slides"
+  scene_default: "luxury hotel lobby, marble floors, warm tungsten lighting"
+  outfit_default: "emerald green fitted bodycon midi dress, scoop neck, sleeveless, one-piece, no midriff"
+  hair_default: "loose waves, side-parted"
+  slide_sequence: [wide, medium, close, ambient]
+  candidates: 5
+  poses_dir: "character/ananya/poses/carousel_production_v3"
+  face_ref: "character/ananya/seeds/closeup/face_ref_cropped_008.png"
+  overrides:
+    ipadapter_strength: 0.5
+  per_role:
+    wide:
+      workflow: t2i_sdxl_lora_ipadapter_controlnet
+      controlnet_strength: 0.75
+    medium:
+      workflow: t2i_sdxl_lora_img2img_ipadapter_controlnet
+      denoise: 0.70
+      controlnet_strength: 0.75
+    close:
+      workflow: t2i_sdxl_lora_img2img_ipadapter_controlnet
+      denoise: 0.65
+      controlnet_strength: 0.60
+    ambient:
+      workflow: t2i_sdxl_lora

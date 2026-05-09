@@ -1,0 +1,126 @@
+{
+  "_comment": "Ananya v2 training reproducibility manifest. Fill in all fields after training completes.",
+  "version": "v2.0",
+  "trigger_word": "AnyV2X9",
+  "status": "pre-training",
+
+  "dataset": {
+    "image_count": null,
+    "source_breakdown": {
+      "stock_swap": null,
+      "v1_gen": null,
+      "edit_inpaint": null
+    },
+    "image_hashes": [],
+    "license_files": "character/ananya/seeds_v2_stock_source/licenses/",
+    "training_canonical_dir": "character/ananya/seeds_v2/training_canonical/",
+    "clip_audit": {
+      "threshold": 0.92,
+      "avg_pairwise_similarity": null,
+      "flagged_pairs_count": null,
+      "report_path": null
+    },
+    "diversity_gates_passed": {
+      "resolution_mix": null,
+      "outfit_count_distinct": null,
+      "outfit_max_pct": null,
+      "hair_styles_count": null,
+      "hair_entropy_variants": null,
+      "scenes_count": null,
+      "aesthetic_modes_count": null,
+      "pose_classes_sitting": null,
+      "pose_classes_walking": null,
+      "pose_classes_interacting": null,
+      "focal_lengths_covered": null,
+      "dof_deep_focus_pct": null,
+      "dof_shallow_bokeh_pct": null,
+      "images_with_visible_hands_pct": null,
+      "texture_integrity_passed": null
+    }
+  },
+
+  "captions": {
+    "schema_version": "v2.0",
+    "template": "<shot_type>, <focal_phrase> of AnyV2X9 seen from <camera_angle> at <elevation>, with <hair_style> <hair_state>. She is <pose_action> and expressing <emotion>. <lighting_phrase>, <dof_phrase>, <aesthetic_mode_phrase>, <geographic_anchor_phrase>.",
+    "vocab_doc": "character/ananya/v2_scene_anchor_vocab.md",
+    "trigger_verified_all_captions": null,
+    "identity_descriptors_removed": null,
+    "manual_edit_completed": null
+  },
+
+  "training": {
+    "base_model": "sd_xl_base_1.0.safetensors",
+    "base_model_sha256": null,
+    "kohya_config_path": "setup/kohya_config_v2.toml",
+    "kohya_config_sha256": null,
+    "network_dim": 32,
+    "network_alpha": 16,
+    "learning_rate": "1e-4",
+    "unet_lr": "1e-4",
+    "text_encoder_lr": "5e-5",
+    "optimizer": "AdamW8bit",
+    "lr_scheduler": "cosine",
+    "train_batch_size": 2,
+    "gradient_accumulation_steps": 2,
+    "max_train_epochs": 10,
+    "min_snr_gamma": 5.0,
+    "timestep_sampling": "sigmoid",
+    "caption_dropout_rate": 0.0,
+    "regularization_count": null,
+    "run_date": null,
+    "runpod_instance": null,
+    "training_time_minutes": null,
+    "training_cost_usd": null,
+    "text_encoder_lr_adjusted": false,
+    "text_encoder_lr_adjustment_reason": null,
+    "network_alpha_adjusted": false,
+    "network_alpha_adjustment_value": null
+  },
+
+  "output": {
+    "checkpoint_dir": "setup/kohya_config_v2.toml → output_dir",
+    "selected_epoch": null,
+    "checkpoint_filename": "AnyV2X9_v2_epochN.safetensors",
+    "prod_checkpoint": "AnyV2X9_Prod.safetensors",
+    "prod_checkpoint_sha256": null,
+    "prod_checkpoint_destination": "C:/Users/barna/Documents/ComfyUI/models/loras/AnyV2X9_Prod.safetensors",
+    "epoch_selection_reason": null
+  },
+
+  "evaluation": {
+    "rubric_scores": {
+      "identity_consistency_across_angles": null,
+      "outfit_prompt_fidelity": null,
+      "ethnic_wear_realism": null,
+      "hand_realism": null,
+      "hair_variability": null,
+      "background_coherence_sharpness": null,
+      "skin_realism": null,
+      "distance_shot_stability": null,
+      "expression_diversity": null,
+      "prompt_obedience": null,
+      "aggregate": null
+    },
+    "carousel_consistency_scores": {
+      "saree_lobby": null,
+      "jeans_street": null,
+      "bodycon_hotel": null
+    },
+    "tier_b_extensions": {
+      "latent_spread_validated": null,
+      "trigger_isolation_tested": null,
+      "adversarial_prompts_tested": null,
+      "identity_at_distance_tested": null,
+      "cfg_sweep_completed": null,
+      "sampler_sweep_completed": null,
+      "compression_test_completed": null,
+      "ai_tell_scoring_completed": null
+    },
+    "promoted_to_prod": null,
+    "promotion_date": null
+  },
+
+  "sample_prompts_path": "setup/kohya_v2_sample_prompts.txt",
+  "seed_matrix_path": "character/ananya/v2_seed_matrix.md",
+  "vocab_doc_path": "character/ananya/v2_scene_anchor_vocab.md"
+}

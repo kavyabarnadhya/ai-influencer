@@ -9,6 +9,7 @@ from rich.console import Console
 
 sys.path.insert(0, str(Path(__file__).parent))
 from comfyui_api import ComfyUIClient, ComfyUIError, find_comfyui_port, inject_workflow_values, load_workflow
+from presets import load_preset
 
 console = Console()
 ROOT = Path(__file__).parent.parent
@@ -134,35 +135,73 @@ def get_slide_sequence(slide_count: int) -> list[str]:
 
 
 @click.command()
-@click.option("--scene", required=True, help="Location + lighting only, e.g. rooftop, dusk, Mumbai skyline")
-@click.option("--outfit", required=True, help="Clothing locked across all model slides")
-@click.option("--hair", default="dark hair neatly styled", show_default=True, help="Hair descriptor locked across all model slides")
+@click.option("--preset", default=None, help="Named carousel preset from character/<char>/presets.yaml")
+@click.option("--scene", default=None, help="Location + lighting only, e.g. rooftop, dusk, Mumbai skyline")
+@click.option("--outfit", default=None, help="Clothing locked across all model slides")
+@click.option("--hair", default=None, help="Hair descriptor locked across all model slides")
 @click.option("--slides", default=3, show_default=True, help="Number of carousel slides")
-@click.option("--name", required=True, help="Carousel name used for output subfolder")
+@click.option("--name", default=None, help="Carousel name used for output subfolder")
 @click.option("--character", default="ananya", show_default=True, help="Character [ananya|kavib]")
 @click.option("--seed", default=None, type=int, help="Base seed")
 @click.option("--steps", default=None, type=int, help="Override step count")
 @click.option("--face-ref", default=None, help="Path to face reference image for IP-Adapter")
 @click.option("--poses-dir", default=None, help="Directory with role pose images, e.g. wide_01.png, medium_01.png, close_01.png")
-@click.option("--candidates", default=1, show_default=True, type=click.IntRange(1, 5), help="Candidates to generate per model slide role")
+@click.option("--candidates", default=None, type=click.IntRange(1, 5), help="Candidates to generate per model slide role")
+@click.option("--anchor", default=None, help="Path to existing image to use as img2img anchor (skips auto-anchor from wide cand_1)")
 def main(
-    scene: str,
-    outfit: str,
-    hair: str,
+    preset: str | None,
+    scene: str | None,
+    outfit: str | None,
+    hair: str | None,
     slides: int,
-    name: str,
+    name: str | None,
     character: str,
     seed: int | None,
     steps: int | None,
     face_ref: str | None,
     poses_dir: str | None,
-    candidates: int,
+    candidates: int | None,
+    anchor: str | None,
 ):
     cfg = load_config()
     char_cfg = load_character(cfg, character)
     gen_cfg = cfg["generation"]
     carousel_cfg = cfg["carousel"]
     comfy_cfg = cfg["comfyui"]
+
+    # Resolve preset — CLI flags win over preset values
+    preset_data = None
+    preset_per_role = {}
+    preset_overrides = {}
+    if preset:
+        try:
+            preset_data = load_preset(character, preset)
+        except (FileNotFoundError, KeyError) as e:
+            console.print(f"[red]{e}[/red]")
+            raise SystemExit(1)
+        if preset_data.get("kind") != "carousel":
+            console.print(f"[red]'{preset}' is not a carousel preset — use generate.py --preset {preset}[/red]")
+            raise SystemExit(1)
+        preset_per_role = preset_data.get("per_role", {})
+        preset_overrides = preset_data.get("overrides", {})
+        scene      = scene      or preset_data.get("scene_default", "")
+        outfit     = outfit     or preset_data.get("outfit_default", "")
+        hair       = hair       or preset_data.get("hair_default", "dark hair neatly styled")
+        name       = name       or preset
+        face_ref   = face_ref   or preset_data.get("face_ref")
+        poses_dir  = poses_dir  or preset_data.get("poses_dir")
+        if candidates is None:
+            candidates = preset_data.get("candidates", 1)
+
+    # Apply defaults for non-preset path
+    if hair is None:
+        hair = "dark hair neatly styled"
+    if candidates is None:
+        candidates = 1
+
+    if not scene or not outfit or not name:
+        console.print("[red]Need --scene, --outfit, --name (or --preset that supplies them)[/red]")
+        raise SystemExit(1)
 
     host = comfy_cfg["host"]
     port = find_comfyui_port(host, [comfy_cfg["port"], 8000, 8188, 8002])
@@ -213,7 +252,10 @@ def main(
     out_dir = ROOT / cfg["paths"]["output_dir"] / today / char_cfg["output_subdir"] / f"carousel_{name}"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    slide_sequence = get_slide_sequence(slides)
+    if preset_data and preset_data.get("slide_sequence"):
+        slide_sequence = preset_data["slide_sequence"]
+    else:
+        slide_sequence = get_slide_sequence(slides)
     locked_jewelry = pick_jewelry()
     console.print(f"[bold green]Carousel: {name}[/bold green] - {len(slide_sequence)} slides: {slide_sequence}")
     console.print(f"[dim]Scene: {scene}[/dim]")
@@ -221,13 +263,14 @@ def main(
 
     info_lines = [
         f"# Carousel: {name}",
+        f"Preset: {preset or 'n/a'}",
         f"Scene: {scene}",
         f"Outfit: {outfit}",
         f"Hair: {hair}",
         f"Generated: {today}",
         f"Slides: {len(slide_sequence)}",
-        f"LoRA strength: {char_cfg['lora_strength']}",
-        f"IPAdapter strength: {char_cfg['ipadapter_strength'] if face_ref else 'n/a'}",
+        f"LoRA strength: {preset_overrides.get('lora_strength') or char_cfg['lora_strength']}",
+        f"IPAdapter strength: {preset_overrides.get('ipadapter_strength') or char_cfg.get('ipadapter_strength', 'n/a') if face_ref else 'n/a'}",
         f"img2img denoise by role: {carousel_cfg.get('img2img_denoise_by_role', {})}",
         f"ControlNet strength by role: {carousel_cfg.get('controlnet_strength_by_role', {})}",
         f"Poses dir: {poses_dir or 'n/a'}",
@@ -237,6 +280,15 @@ def main(
 
     anchor_image_path: Path | None = None
     uploaded_anchor: str | None = None
+
+    if anchor:
+        anchor_path = Path(anchor)
+        if not anchor_path.exists():
+            console.print(f"[red]Anchor image not found: {anchor}[/red]")
+            raise SystemExit(1)
+        anchor_image_path = anchor_path
+        console.print(f"[dim]Using provided anchor: {anchor_path.name}[/dim]")
+        uploaded_anchor = client.upload_image(str(anchor_path))
 
     for i, role in enumerate(slide_sequence):
         slide_num = i + 1
@@ -298,6 +350,7 @@ def main(
             candidate_num = candidate_index + 1
             img_seed = base_seed + (i * 100) + candidate_index
 
+            role_overrides = preset_per_role.get(role, {})
             # Re-fetch denoise from base_overrides for logging if it was set
             current_denoise = base_overrides.get("_claude_inject_seed", {}).get("inputs.denoise")
             current_controlnet_strength = None
@@ -306,6 +359,29 @@ def main(
             overrides = {
                 "_claude_inject_seed": {"inputs.seed": img_seed},
             }
+
+            if not use_img2img:
+                overrides["_claude_inject_latent"] = {"inputs.width": gen_cfg["width"], "inputs.height": gen_cfg["height"]}
+
+            if use_img2img and uploaded_anchor:
+                denoise = role_setting(
+                    carousel_cfg,
+                    "img2img_denoise_by_role",
+                    "img2img_denoise",
+                    role,
+                    DEFAULT_IMG2IMG_DENOISE,
+                )
+                # Preset per_role denoise wins over config.yaml
+                if "denoise" in role_overrides:
+                    denoise = role_overrides["denoise"]
+                overrides["_claude_inject_init_image"] = {"inputs.image": uploaded_anchor}
+                overrides["_claude_inject_seed"]["inputs.denoise"] = denoise
+
+            ipadapter_weight = preset_overrides.get("ipadapter_strength") or char_cfg.get("ipadapter_strength", 0.5)
+            if uploaded_face and not is_detail_slide(role):
+                overrides["_claude_inject_ipadapter_image"] = {"inputs.image": uploaded_face}
+                overrides["_claude_inject_ipadapter_strength"] = {"inputs.weight": ipadapter_weight}
+
 
             if poses_dir and role in POSE_ROLES and not is_detail_slide(role):
                 pose_path = pick_pose_for_role(Path(poses_dir), role, candidate_index)
@@ -320,6 +396,9 @@ def main(
                         role,
                         DEFAULT_CONTROLNET_STRENGTH,
                     )
+                    # Preset per_role controlnet_strength wins over config.yaml
+                    if "controlnet_strength" in role_overrides:
+                        current_controlnet_strength = role_overrides["controlnet_strength"]
                     overrides["_claude_inject_controlnet_image"] = {"inputs.image": uploaded_pose}
                     overrides["_claude_inject_controlnet"] = {"inputs.control_net_name": cfg["models"]["controlnet_openpose"]}
                     overrides["ControlNet Apply"] = {"inputs.strength": current_controlnet_strength}
@@ -349,6 +428,9 @@ def main(
                 dest = out_dir / filename
                 dest.write_bytes(img_bytes)
                 console.print(f"[green]Saved:[/green] {dest}")
+                client.delete_output_image(
+                    img_meta["filename"], img_meta.get("subfolder", ""), comfy_cfg.get("output_dir")
+                )
                 info_lines.append(
                     f"slide_{slide_num}: {role} - cand {candidate_num} - {mode_label} - "
                     f"pose {current_pose_name} - denoise {current_denoise if current_denoise is not None else 'n/a'} - "

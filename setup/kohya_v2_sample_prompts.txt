@@ -1,0 +1,19 @@
+# Ananya v2 — Kohya Training Sample Prompts
+# Run every 250 steps. 7 prompts covering identity, angle, light, overfit check, body, composition, bleed.
+# Negative prompt shared across all: ugly, deformed, bad anatomy, extra fingers, watermark, text
+#
+# Format: positive --n negative --w width --h height --l cfg --s steps
+
+AnyV2X9, close-up portrait, facing camera directly, eye level, soft smile, warm expression, loose waves side-parted, wearing plain white fitted crew-neck t-shirt, tiny understated gold stud earrings, soft diffused window light, moderate background blur, candid lifestyle photography, modern indoor neutral background --n ugly, deformed, bad anatomy, extra fingers, watermark, text, plastic skin, airbrushed --w 1024 --h 1024 --l 7.5 --s 28
+
+AnyV2X9, waist-up shot, profile from camera left, eye level, neutral expression direct gaze, loose waves side-parted, wearing high-waisted dark blue jeans, fitted white cotton crew-neck top, outdoors, warm golden hour side-key light, sharp background environmental detail visible, f/8 deep focus, iPhone 15 Pro Max realism, 35mm lifestyle framing --n ugly, deformed, bad anatomy, extra fingers, watermark, text --w 1024 --h 1024 --l 7.5 --s 28
+
+AnyV2X9, waist-up shot, three-quarter view from camera right, eye level, confident direct eye contact no smile, blue hair, wearing red dress, softbox studio neutral grey backdrop --n ugly, deformed, bad anatomy, extra fingers, watermark, text --w 1024 --h 1024 --l 7.5 --s 28
+
+AnyV2X9, full body shot, facing camera directly, eye level, soft smile warm expression, loose waves, wearing high-waisted dark blue jeans, fitted white top, modern kitchen near counter, warm LED panel light, sharp background, f/8 deep focus, candid phone camera realism --n ugly, deformed, bad anatomy, extra fingers, watermark, text, bad proportions --w 832 --h 1216 --l 7.5 --s 28
+
+AnyV2X9, full body shot, wide environmental framing, 24mm equivalent, slight perspective distortion, facing camera, subject small in frame, Lalbagh botanical garden, lush tropical greenery, dappled sunlight, sharp background environmental detail visible, candid phone camera shot --n ugly, deformed, bad anatomy, extra fingers, watermark, text --w 832 --h 1216 --l 7.5 --s 28
+
+AnyV2X9, waist-up shot, three-quarter view from camera left, eye level, soft smile, low bun soft tendrils, wearing silk saree with draped pallu over left shoulder, gold zari border, fitted blouse, luxury hotel lobby Italian marble floors, warm tungsten chandelier light, moderate background blur, f/2.8 portrait, soft luxury lifestyle --n ugly, deformed, bad anatomy, extra fingers, watermark, text, bad saree drape --w 1024 --h 1024 --l 7.5 --s 28
+
+AnyV2X9, close-up portrait, facing camera directly, eye level, neutral expression, sleek high bun, wearing plain white fitted crew-neck t-shirt, softbox studio, neutral grey seamless paper backdrop, even diffused light, no background detail, editorial fashion photography --n ugly, deformed, bad anatomy, extra fingers, watermark, text, colored background, patterned background --w 1024 --h 1024 --l 7.5 --s 28

@@ -1,0 +1,53 @@
+{
+  "1": {
+    "inputs": {
+      "image": "face_ref.png",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "_claude_inject_source_image"
+    }
+  },
+  "2": {
+    "inputs": {
+      "image": "stock_target.png",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "_claude_inject_target_image"
+    }
+  },
+  "3": {
+    "inputs": {
+      "enabled": true,
+      "input_image": ["2", 0],
+      "source_image": ["1", 0],
+      "swap_model": "inswapper_128.onnx",
+      "facedetection": "retinaface_resnet50",
+      "face_restore_model": "GFPGANv1.4.pth",
+      "face_restore_visibility": 1,
+      "codeformer_weight": 0.5,
+      "detect_gender_input": "female",
+      "detect_gender_source": "female",
+      "input_faces_index": "0",
+      "source_faces_index": "0",
+      "console_log_level": 1
+    },
+    "class_type": "ReActorFaceSwap",
+    "_meta": {
+      "title": "_claude_reactor_swap"
+    }
+  },
+  "4": {
+    "inputs": {
+      "filename_prefix": "faceswap_out",
+      "images": ["3", 0]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "_claude_save_output"
+    }
+  }
+}
