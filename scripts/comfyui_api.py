@@ -189,6 +189,20 @@ def _split_path(field_path: str) -> list[str]:
     return field_path.split(".")
 
 
+def _is_patch_redundant(node: dict, field_path: str, value: Any) -> bool:
+    """
+    Check if the value at the given path in the node already matches the target value.
+    Returns True if the patch is redundant (no change needed).
+    """
+    parts = _split_path(field_path)
+    target = node
+    for part in parts:
+        if not isinstance(target, dict) or part not in target:
+            return False
+        target = target[part]
+    return target == value
+
+
 def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
     """
     Patch workflow nodes by matching _meta.title sentinels.
@@ -213,13 +227,24 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
     for title, patches in overrides.items():
         if title in title_to_ids:
             for node_id in title_to_ids[title]:
-                if node_id not in node_to_patches:
-                    node_to_patches[node_id] = {}
-                node_to_patches[node_id].update(patches)
+                node = workflow[node_id]
+                # Filter out patches that are already applied to this node
+                filtered_patches = {
+                    path: val for path, val in patches.items()
+                    if not _is_patch_redundant(node, path, val)
+                }
+                if filtered_patches:
+                    if node_id not in node_to_patches:
+                        node_to_patches[node_id] = {}
+                    node_to_patches[node_id].update(filtered_patches)
 
+    # Propagate the title cache to the new copy to keep subsequent injections O(1).
+    # We always return a copy (even if no patches are applied) to ensure immutability.
     workflow = workflow.copy()
-    # Propagate the title cache to the new copy to keep subsequent injections O(1)
     workflow["_claude_title_cache"] = title_to_ids
+
+    if not node_to_patches:
+        return workflow
 
     for node_id, patches in node_to_patches.items():
         node = workflow[node_id] = workflow[node_id].copy()
