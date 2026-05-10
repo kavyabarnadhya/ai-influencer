@@ -131,4 +131,4 @@ Target hardware: RTX 3050 6GB VRAM + 16GB system RAM.
 
 - `config.yaml` flags: `use_lowvram: true`, `tile_vae: true`
 - `--rescue` flag on `generate.py`: drops to 768×1152, 24 steps, disables FaceDetailer
-- FLUX fallback: use Q3_K_S GGUF (~4.7GB) if Q4_K_S (~5.5GB) causes OOM
+- FLUX models available: `flux1-schnell-Q4_K_S.gguf` (6.3GB, preferred) and `flux1-schnell-Q3_K_S.gguf` (4.85GB fallback if OOM) — both in `Documents\ComfyUI\models\unet\`
