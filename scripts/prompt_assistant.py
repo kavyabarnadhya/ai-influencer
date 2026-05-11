@@ -1,3 +1,4 @@
+import functools
 import json
 import subprocess
 import sys
@@ -149,7 +150,12 @@ def _clean_response(text: str) -> str:
     return text.strip()
 
 
+@functools.lru_cache(maxsize=128)
 def polish_prompt(user_input: str) -> str:
+    """
+    Polishes a natural language description into a ComfyUI prompt using an LLM.
+    Optimization: Cached via LRU to avoid redundant LLM calls (saves ~1-5s per hit).
+    """
     payload = {
         "model": MODEL,
         "system": SYSTEM_PROMPT,
@@ -162,7 +168,12 @@ def polish_prompt(user_input: str) -> str:
     return _clean_response(r.json()["response"])
 
 
+@functools.lru_cache(maxsize=128)
 def extract_bg_prompt(polished_prompt: str) -> str:
+    """
+    Extracts the background/setting portion of a prompt for use in multi-pass workflows.
+    Optimization: Cached via LRU to avoid redundant LLM calls (saves ~1-5s per hit).
+    """
     system_instruction = "You are a prompt editor. Given a ComfyUI prompt, remove ALL mentions of people, body parts, clothing, jewelry, hair, skin, and pose. Keep ONLY the setting, lighting, background details, camera style, and mood. Output the remaining tags as a comma-separated list."
     payload = {
         "model": MODEL,

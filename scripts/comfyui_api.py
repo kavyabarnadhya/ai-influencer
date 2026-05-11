@@ -184,9 +184,13 @@ def _scan_workflow_titles(workflow: dict) -> dict[str, list[str]]:
 
 
 @functools.lru_cache(maxsize=128)
-def _split_path(field_path: str) -> list[str]:
-    """Cached path splitting to avoid repeated string operations on common field paths."""
-    return field_path.split(".")
+def _split_path(field_path: str) -> tuple[str, ...]:
+    """
+    Cached path splitting to avoid repeated string operations on common field paths.
+    Optimization: Returns an immutable tuple to prevent cache corruption and
+    improve memory efficiency for redundant lookups.
+    """
+    return tuple(field_path.split("."))
 
 
 def _is_patch_redundant(node: dict, field_path: str, value: Any) -> bool:

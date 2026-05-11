@@ -55,3 +55,7 @@
 ## 2026-05-10 - Redundant Patch Filtering for Workflow Injections
 **Learning:** Performing dictionary copies and recursive traversal for patches that do not actually change the underlying workflow data accounts for ~20-50% of the execution time in `inject_workflow_values`. This is common when base overrides are applied multiple times or when "default" values are explicitly patched.
 **Action:** Implement a pre-filtering step in `inject_workflow_values` that uses a path-aware redundancy check (`_is_patch_redundant`). This ensures that only patches that actually modify the state trigger a node copy, providing O(1) performance for redundant overrides.
+
+## 2026-05-11 - LLM Response Caching and Immutable Cache Objects
+**Learning:** Sequential calls to local LLMs (Ollama) are a massive bottleneck in generation pipelines, often taking seconds per call. Caching these responses is high-impact. Additionally, cached functions returning mutable objects (like lists) are a safety risk; returning immutable tuples is faster and prevents cache corruption.
+**Action:** Apply `@functools.lru_cache` to Ollama-dependent prompt polishing functions. Ensure low-level utility functions like `_split_path` return immutable tuples instead of lists to safeguard the cache and slightly improve memory efficiency.
