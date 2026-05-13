@@ -107,7 +107,7 @@ Violations cause "double-baking" — the LoRA tries to overlay identity descript
 ## Content Compliance
 
 - All outputs → `output/YYYY-MM-DD/{character}/` (character-specific subfolder)
-- Ananya content: Instagram-first, all tiers fully clothed and Instagram-compliant
+- Ananya content: Instagram-first. Free tier: fully clothed. Premium/subscription tier: cleavage-visible editorial fashion (intentional — training data includes these images)
 - Every post must carry `#AI` disclosure
 - Age representation: **always 23** in all captions, bios, and prompts — never change this
 - Do not use real-person likenesses in training data without explicit written consent
@@ -115,6 +115,7 @@ Violations cause "double-baking" — the LoRA tries to overlay identity descript
 
 ## LoRA Training Workflow (per character)
 
+### v1 (complete — Kohya Dreambooth SDXL)
 1. Run `bootstrap_seeds.py --character ananya` (3 modes × 16 images = 48 candidates)
 2. Manually curate best 8 per mode → `character/ananya/seeds/{closeup,medium,fullbody}/`
 3. Run `prepare_training_data.py --character ananya --validate && --caption-style sdxl`
@@ -123,7 +124,26 @@ Violations cause "double-baking" — the LoRA tries to overlay identity descript
 6. Upload zip + `setup/kohya_config.toml` to RunPod (~$5, ~45 min on RTX 3090)
 7. Download trained `AnanyaAI_v1_Prod.safetensors` → `C:\Users\barna\Documents\ComfyUI\models\loras\`
 
-See `setup/train_lora_guide.md` for full Kohya SS configuration details.
+### v2 (in progress — FLUX Dev LoRA via ai-toolkit)
+Dataset: **33 curated images** in `character/ananya/seeds_v2/training_canonical/` — ready for captioning.
+Trigger word for v2: `AnyV2X9` (different from v1 `AnanyaAI`)
+
+Next steps:
+1. `python scripts/auto_caption.py --input-dir character/ananya/seeds_v2/training_canonical --mode florence2`
+2. Manually edit all 33 `.txt` files per `character/ananya/v2_scene_anchor_vocab.md`
+3. `python scripts/clip_similarity_audit.py --input-dir character/ananya/seeds_v2/training_canonical`
+4. `python scripts/prepare_training_data.py --character ananya --zip-only`
+5. RunPod RTX A6000 + `ostris/ai-toolkit` → `AnanyaAI_v2_Prod.safetensors`
+
+**Bootstrap images rejected:** `seeds_v2/experimental/bootstrap_2026-05-09_*/` — skin tone drifts lighter due to IPAdapter. Do not add to training set.
+
+### faceswap_stock.py — selective runs
+`--files` flag added 2026-05-13: pass comma-separated filenames to process a subset of `--input-dir`.
+```powershell
+python scripts\faceswap_stock.py --face-ref "..." --files "img1.jpg,img2.jpg"
+```
+
+See `setup/train_lora_guide.md` for full training details.
 
 ## VRAM Management
 
