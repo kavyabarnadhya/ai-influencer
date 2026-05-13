@@ -1,173 +1,141 @@
 # AI Influencer Project — Session Handoff
 
 > **For any AI agent continuing this work:** Read this file fully before touching any code.
-> Last updated: 2026-04-27
+> Last updated: 2026-05-13
 
 ---
 
 ## 1. Project Overview
 
-A local, CLI-driven pipeline to generate face-consistent images of an AI influencer
-named **Ananya** using ComfyUI + SDXL on a Windows 11 machine with an RTX 3050 (6GB VRAM).
+A local, CLI-driven pipeline to generate face-consistent images of an AI influencer named **Ananya** using ComfyUI + SDXL on a Windows 11 machine with an RTX 3050 (6GB VRAM).
 
 **Stack:**
-- `ComfyUI` — local inference server (http://localhost:8188)
+- `ComfyUI Desktop` — local inference server (http://localhost:8000)
 - `Juggernaut XL v9` — primary SDXL checkpoint
-- `AnanyaAI_v1_Prod.safetensors` — Ananya character LoRA (SDXL)
-- `flux1-schnell-Q3_K_S.gguf` — FLUX model (quantised for 6GB VRAM)
+- `AnanyaAI_v1_Prod.safetensors` — Ananya character LoRA (SDXL, production)
+- `flux1-schnell-Q4_K_S.gguf` — FLUX model (Q4 quantised, preferred; Q3 fallback)
 - `Ollama` (model: `dolphin-llama3`) — uncensored LLM for prompt polishing
-- Python `.venv` at project root; scripts under `scripts/`
+- Python `.venv` at project root (`venv/Scripts/python.exe`); scripts under `scripts/`
+- Branch: `feature/nl-prompt-assistant` (active, not merged to main)
 
-**Key commands:**
-```powershell
-# Start ComfyUI (must be running before generating)
-cd C:\Users\barna\Documents\ComfyUI
-.\.venv\Scripts\python.exe main.py --listen --lowvram
-
-# Generate image (fast, best Ananya identity)
-cd C:\Users\barna\Projects\ai-influencer
-.\.venv\Scripts\python.exe scripts\prompt_assistant.py "scene description here" --rescue
-
-# Generate with full quality (no --rescue, needs GPU free of other apps)
-.\.venv\Scripts\python.exe scripts\prompt_assistant.py "scene description here"
-
-# Generate with FLUX background (experimental, has identity loss issue — see Section 3)
-.\.venv\Scripts\python.exe scripts\prompt_assistant.py "scene description" --use-flux-bg --rescue
-
-# Review mode — edit prompt before generating
-.\.venv\Scripts\python.exe scripts\prompt_assistant.py "scene" --review
-
-# Dry run — print polished prompt only
-.\.venv\Scripts\python.exe scripts\prompt_assistant.py "scene" --dry-run
-```
+**Content strategy:** Bollywood-adjacent fashion, Instagram-first. Free tier: fully clothed. Subscription/premium tier: cleavage-visible, editorial fashion. NOT explicit/adult content.
 
 ---
 
-## 2. Current State of the Codebase
+## 2. Current State
 
-All changes committed on branch: `feature/nl-prompt-assistant`
+### Production (working now)
+```powershell
+# Single image
+.venv\Scripts\python.exe scripts\generate.py --prompt "rooftop portrait, golden hour"
+
+# Carousel (best current pipeline)
+.venv\Scripts\python.exe scripts\generate_carousel.py `
+  --scene "soft dusk rooftop, sharp city background, warm ambient terrace lights, Mumbai skyline" `
+  --outfit "berry pink fitted bodycon dress, scoop neck, short sleeves, above-knee hem" `
+  --hair "loose waves, side parted, natural" `
+  --slides 4 --name my_carousel `
+  --face-ref "character/ananya/reference_board/face_ref_001_2890463320.png" `
+  --poses-dir "character/ananya/poses/carousel_production_v2" `
+  --candidates 3
+
+# NL prompt assistant
+.venv\Scripts\python.exe scripts\prompt_assistant.py "rooftop portrait golden hour"
+```
+
+### Ananya v2 LoRA — Dataset Complete, Captioning Next
+
+**33 images** in `character/ananya/seeds_v2/training_canonical/` — fully curated, diversity verified.
+
+**Diversity confirmed (visual audit 2026-05-13):**
+- Shot types: extreme closeup, closeup, medium, fullbody, back-turned, seated
+- Outfits: saree (7), lehenga (7), salwar kameez (2), Western casual/fashion (12)
+- Lighting: outdoor day, golden hour, night/fairy lights, studio neutral, dramatic coloured, indoor cafe
+- Expressions: neutral, looking away, smile, eyes closed, back to camera
+- Premium images included intentionally: deep V neckline, open jacket — subscription tier training
+
+**Bootstrap images REJECTED** (`experimental/bootstrap_2026-05-09_*/`) — IPAdapter caused skin tone drift toward lighter/Southeast Asian features. Do not add to training_canonical.
+
+---
+
+## 3. NEXT SESSION — Caption the Dataset
+
+### Step 1: Run Florence-2 auto-caption (~30 min, CPU)
+```powershell
+.venv\Scripts\python.exe scripts\auto_caption.py `
+  --input-dir "character/ananya/seeds_v2/training_canonical" `
+  --mode florence2
+```
+- Writes one `.txt` draft per image, prepended with trigger `AnyV2X9`
+- Florence-2 downloads automatically on first run (~900MB)
+
+### Step 2: Manually edit all 33 `.txt` files
+**Caption rules (strict):**
+1. `AnyV2X9` must be FIRST token — always
+2. **OMIT:** face shape, eye color, skin tone, ethnicity, body type, age, hair color
+3. **INCLUDE:** shot type, focal length feel, camera angle, hair style+state, outfit details, jewelry, pose, expression, lighting, DOF, aesthetic, geographic anchor
+4. Use exact vocabulary from `character/ananya/v2_scene_anchor_vocab.md`
+
+**Caption template:**
+```
+AnyV2X9, {shot_type}, {focal_phrase} seen from {camera_angle} at {elevation},
+with {hair_style} {hair_state}. She is {pose_action} and expressing {emotion}.
+{lighting_phrase}, {dof_phrase}, {aesthetic_mode_phrase}, {geographic_anchor_phrase}.
+```
+
+### Step 3: CLIP similarity audit
+```powershell
+.venv\Scripts\python.exe scripts\clip_similarity_audit.py `
+  --input-dir "character/ananya/seeds_v2/training_canonical"
+```
+Reject any image scoring < 0.2 cosine similarity to the mean (outlier/bad swap).
+
+### Step 4: Zip + RunPod training
+```powershell
+.venv\Scripts\python.exe scripts\prepare_training_data.py --character ananya --zip-only
+```
+- Upload `training_data_ananya.zip` + `setup/kohya_config.toml` to RunPod
+- Use `ostris/ai-toolkit` for FLUX Dev LoRA training
+- GPU: RTX A6000 48GB @ ~$0.49/hr, ~1.5-3hr training
+- Output: `AnanyaAI_v2_Prod.safetensors` → `Documents\ComfyUI\models\loras\`
+
+---
+
+## 4. Other Pending Work
+
+| Task | Priority | Notes |
+|------|----------|-------|
+| Test `carousel_production_v3` poses | Medium | 6 new poses in `character/ananya/poses/carousel_production_v3/`, untracked, untested |
+| Merge `feature/nl-prompt-assistant` → main | Low | Stable, 15+ commits ahead |
+| Generate real content carousels | Medium | v1 LoRA production-ready now |
+
+---
+
+## 5. Key Files
 
 | File | Purpose |
 |------|---------|
-| `config.yaml` | Central config: models, paths, generation settings, rescue mode |
-| `scripts/prompt_assistant.py` | Main CLI: NL→prompt, optional FLUX 2-pass orchestration |
-| `scripts/generate.py` | Core generation: loads workflow, injects params, calls ComfyUI API |
-| `scripts/comfyui_api.py` | ComfyUI HTTP client |
-| `scripts/mcp_server.py` | MCP server wrapper (for Claude Desktop / agent use) |
-| `workflows/t2i_sdxl_lora.json` | **Best workflow** — pure SDXL + LoRA + FaceDetailer + HandDetailer |
-| `workflows/t2i_sdxl_lora_backup.json` | Backup of the above (do not modify) |
-| `workflows/t2i_img2img.json` | Img2Img workflow for FLUX 2-pass (experimental) |
-| `workflows/t2i_ipadapter.json` | Old IP-Adapter workflow (kept for reference) |
-| `workflows/flux_schnell.json` | FLUX Schnell background generation workflow |
-| `character/ananya/base_prompt.txt` | Physical description tags only (no scene/style bias) |
-| `character/ananya/reference_board/` | Ground-truth training images used for the LoRA |
+| `config.yaml` | Central config: models, paths, generation settings |
+| `scripts/generate_carousel.py` | Main carousel pipeline |
+| `scripts/generate.py` | Single image generation |
+| `scripts/prompt_assistant.py` | NL → prompt via Ollama |
+| `scripts/faceswap_stock.py` | Batch faceswap — has `--files` flag for selective runs |
+| `scripts/auto_caption.py` | Auto-caption training images (florence2 or stub mode) |
+| `scripts/clip_similarity_audit.py` | CLIP outlier detection on training set |
+| `character/ananya/v2_scene_anchor_vocab.md` | Exact vocabulary for v2 captions |
+| `character/ananya/seeds_v2/training_canonical/` | **33 curated training images** |
+| `workflows/t2i_sdxl_lora_ipadapter_controlnet.json` | Best carousel workflow |
 
 ---
 
-## 3. Known Issues and Their Status
-
-### ✅ FIXED: FLUX CFG settings were wrong
-FLUX Schnell was being called with SDXL settings (30 steps, 8.0 CFG), producing fried
-images. Now auto-corrected in `generate.py`: FLUX always uses 4 steps + 1.0 CFG.
-
-### ✅ FIXED: Rescue mode didn't use LoRA
-`rescue_mode.workflow` was pointing to `bootstrap_seeds` (no LoRA). Now points to
-`t2i_sdxl_lora`, giving Ananya her correct identity even in low-VRAM mode.
-
-### ✅ FIXED: Prompt contradictions (outdoor light in nightclub)
-`base_prompt.txt` had "candid street style photography" baked in.
-LLM rules now separate indoor vs. outdoor lighting explicitly.
-
-### ⚠️ KNOWN LIMITATION: FLUX 2-pass identity loss
-The `--use-flux-bg` flag is experimental. The pipeline:
-1. Generates a FLUX background (with a random woman in it).
-2. Uses Img2Img (denoise 0.65) to paint Ananya over it.
-
-**Problem:** Because FLUX always generates a different random woman, the underlying
-bone structure bleeds through into the final face despite the LoRA. There is no
-reliable fix for this without ControlNet (needs 12GB+ VRAM).
-
-**Workaround:** Do NOT use `--use-flux-bg` for final content. Use plain SDXL.
-The SDXL output with `t2i_sdxl_lora.json` gives the **best Ananya identity match**.
-
----
-
-## 4. NEXT SESSION: Train FLUX LoRA on RunPod
-
-This is the highest-priority next task. It will permanently solve the identity problem
-by giving FLUX native knowledge of Ananya's face.
-
-### Why
-A FLUX LoRA trained on the Ananya reference board will let us drop `--use-flux-bg`
-entirely. A single FLUX Schnell pass (4 steps, ~60 seconds on RTX 3050) will produce
-photorealistic backgrounds AND a perfect Ananya face in one go.
-
-### Training Rules (Critical)
-- **ALWAYS train on FLUX.1 [Dev]** — never Schnell (Schnell is distilled, breaks training)
-- **LoRAs trained on Dev run perfectly on Schnell** — this is the standard workflow
-- Training tool: **`ostris/ai-toolkit`** (the current gold standard for FLUX LoRA training)
-- Recommended GPU on RunPod: **RTX A6000 (48GB VRAM)** @ ~$0.49/hr
-- Estimated training time: **1.5 to 3 hours** (well within the $10 budget)
-- Output file size: approximately 150MB to 500MB
-
-### Training Data
-I have initialized a fresh folder for your training set:
-`C:\Users\barna\Projects\ai-influencer\character\ananya\training_data\`
-- Currently contains **7 curated images** (2 ground truths + 5 best SDXL seeds).
-- **Target:** 25 high-quality images.
-
-### Next Session: Prepare Training Data (Phase 1)
-Before starting the RunPod pod, we need to generate the remaining ~18 images.
-1. **Run a batch of diverse closeups:** We need to generate images with varied lighting (e.g., "neon night", "harsh sun", "office interior", "candlelight") and varied angles ("profile view", "looking up", "looking down").
-2. **Curate and Rename:** Select only the perfect face matches and move them to the `training_data` folder.
-3. **Captioning:** I will help you write the `.txt` caption files for each image (e.g., "photo of AnanyaAI, a woman with dark brown hair, wearing a black dress, in a nightclub") which is required for high-quality FLUX training.
-
-### Next Session: RunPod Training (Phase 2)
-Once the folder has ~25 images and captions, follow the RunPod steps in Section 4.
-
-### Step-by-Step RunPod Plan
-1. Go to https://www.runpod.io/console/pods
-2. Deploy a Pod: **RTX A6000 (48GB VRAM)** @ $0.49/hr
-3. Template: **RunPod PyTorch 2** official template
-4. Container Disk: 50 GB | Volume Disk: 100 GB
-5. Connect to **JupyterLab** once the pod is Running
-6. Run these commands in the terminal:
-```bash
-# Install ai-toolkit
-git clone https://github.com/ostris/ai-toolkit.git
-cd ai-toolkit
-pip install -r requirements.txt
-
-# Download FLUX Dev model (this will take ~15 minutes)
-huggingface-cli download black-forest-labs/FLUX.1-dev \
-  flux1-dev.safetensors --local-dir ./models/flux
-
-# Upload your training images to /workspace/training_images/
-# (use JupyterLab file browser to drag and drop)
-
-# Then configure config/examples/train_lora_flux_24gb.yaml
-# and run training:
-python run.py config/examples/train_lora_flux_24gb.yaml
-```
-7. Download the output `.safetensors` file when training completes.
-8. Place it in: `C:\Users\barna\Documents\ComfyUI\models\loras\AnanyaAI_FLUX_v1.safetensors`
-
-### After Training: Update the FLUX Workflow
-- The existing `workflows/flux_schnell.json` needs a `LoraLoader` node added
-- The `config.yaml` needs a new `lora` key under the `ananya` character pointing to the FLUX LoRA
-- `generate.py` needs a check: if workflow is `flux_schnell`, inject the FLUX LoRA (not the SDXL LoRA)
-
----
-
-## 5. Hardware Context
+## 6. Hardware
 
 | Item | Value |
 |------|-------|
 | OS | Windows 11 |
 | GPU | NVIDIA RTX 3050 6GB |
-| Storage constraint | C: drive near full — avoid large downloads |
-| ComfyUI location | `C:\Users\barna\Documents\ComfyUI` |
-| Project location | `C:\Users\barna\Projects\ai-influencer` |
-| FLUX model | `flux1-schnell-Q3_K_S.gguf` (Q3 quantised, ~4GB) |
+| ComfyUI | `C:\Users\barna\Documents\ComfyUI` (port 8000) |
+| Project | `C:\Users\barna\Projects\ai-influencer` |
+| FLUX model | `flux1-schnell-Q4_K_S.gguf` (preferred), Q3 fallback |
 | SDXL checkpoint | `Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors` |
-| Ollama model | `dolphin-llama3` (uncensored, needed for fashion prompts) |
+| Ollama | `dolphin-llama3` |

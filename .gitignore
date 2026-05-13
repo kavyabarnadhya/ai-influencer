@@ -10,6 +10,20 @@ output/
 logs/
 training_data_*.zip
 
+# Training dataset images (large binaries — stored locally only)
+character/ananya/seeds_v2/
+character/ananya/seeds_v2_rejected/
+character/ananya/seeds_v2_stock_source/
+character/ananya/seeds_v2_failures/
+
+# Pose library working dirs
+character/ananya/poses/extracted/
+character/ananya/poses/references/
+character/ananya/poses/carousel_production_v3/
+
+# Misc
+PRD Ananya v2.docx
+
 # Local env
 .env
 .claude/

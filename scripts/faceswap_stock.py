@@ -13,6 +13,7 @@ then texture_integrity_check.py before promoting to training_canonical/.
 Usage:
     python scripts/faceswap_stock.py --face-ref "path/to/face_ref.png"
     python scripts/faceswap_stock.py --face-ref "path/to/face_ref.png" --input-dir "character/ananya/seeds_v2_stock_source"
+    python scripts/faceswap_stock.py --face-ref "path/to/face_ref.png" --files "img1.jpg,img2.jpg"
     python scripts/faceswap_stock.py --face-ref "path/to/face_ref.png" --dry-run
 """
 
@@ -60,7 +61,8 @@ def _inject_faceswap(wf: dict, face_ref_name: str, target_name: str) -> dict:
 @click.option("--workflow", default=WORKFLOW_NAME, show_default=True)
 @click.option("--dry-run", is_flag=True, help="List images that would be processed, no ComfyUI calls")
 @click.option("--limit", default=None, type=int, help="Process only first N images (for testing)")
-def main(face_ref: str, input_dir: str, workflow: str, dry_run: bool, limit: int | None):
+@click.option("--files", default=None, help="Comma-separated filenames to process (subset of --input-dir). If omitted, process all.")
+def main(face_ref: str, input_dir: str, workflow: str, dry_run: bool, limit: int | None, files: str | None):
     """Batch ReActor faceswap: Ananya face onto stock images."""
 
     face_ref_path = Path(face_ref)
@@ -70,6 +72,14 @@ def main(face_ref: str, input_dir: str, workflow: str, dry_run: bool, limit: int
         raise SystemExit(1)
 
     stock_images = sorted([p for p in input_path.iterdir() if p.suffix.lower() in SUPPORTED_EXTS])
+
+    if files:
+        allowed = {f.strip() for f in files.split(",")}
+        stock_images = [p for p in stock_images if p.name in allowed]
+        if not stock_images:
+            console.print(f"[red]None of the --files entries found in {input_path}[/red]")
+            raise SystemExit(1)
+
     if not stock_images:
         console.print(f"[red]No images found in {input_path}[/red]")
         raise SystemExit(1)
@@ -83,7 +93,7 @@ def main(face_ref: str, input_dir: str, workflow: str, dry_run: bool, limit: int
 
     if dry_run:
         for img in stock_images:
-            console.print(f"  [dim]→ {img.name}[/dim]")
+            console.print(f"  [dim]-> {img.name}[/dim]")
         console.print(f"\n[yellow]Dry run — no images processed[/yellow]")
         return
 
