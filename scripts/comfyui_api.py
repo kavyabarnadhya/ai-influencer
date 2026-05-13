@@ -173,16 +173,15 @@ def _scan_workflow_titles(workflow: dict) -> dict[str, list[str]]:
 
     title_to_ids: dict[str, list[str]] = {}
     for node_id, node in workflow.items():
-        if not isinstance(node, dict):
+        try:
+            # Optimized lookup using try-except (faster in the common 'path exists' case)
+            title = node["_meta"]["title"]
+            if title:
+                if title not in title_to_ids:
+                    title_to_ids[title] = []
+                title_to_ids[title].append(node_id)
+        except (KeyError, TypeError):
             continue
-        meta = node.get("_meta")
-        if not meta:
-            continue
-        title = meta.get("title")
-        if title:
-            if title not in title_to_ids:
-                title_to_ids[title] = []
-            title_to_ids[title].append(node_id)
     return title_to_ids
 
 
@@ -201,8 +200,12 @@ def _is_patch_redundant(node: dict, parts: tuple[str, ...], value: Any) -> bool:
     Check if the value at the given path in the node already matches the target value.
     Uses try-except for faster traversal in the common 'path exists' case.
     """
-    target = node
     try:
+        # Micro-optimization: Unroll for the extremely common 2-part path (inputs.field)
+        if len(parts) == 2:
+            return node[parts[0]][parts[1]] == value
+
+        target = node
         for part in parts:
             target = target[part]
         return target == value
@@ -234,12 +237,13 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any]) -> dict:
     for title, patches in overrides.items():
         if title in title_to_ids:
             # Pre-split all paths for this title once
-            split_patches = {(_split_path(p)): v for p, v in patches.items()}
+            # Optimization: Use a list of items to avoid redundant dict creation during filtering
+            split_patches_items = [(_split_path(p), v) for p, v in patches.items()]
 
             for node_id in title_to_ids[title]:
                 node = workflow[node_id]
                 filtered = {
-                    parts: val for parts, val in split_patches.items()
+                    parts: val for parts, val in split_patches_items
                     if not _is_patch_redundant(node, parts, val)
                 }
                 if filtered:
