@@ -286,7 +286,9 @@ def main(prompt: str | None, preset: str | None, outfit: str | None, hair: str |
         overrides = {
             "_claude_inject_seed": {"inputs.seed": img_seed},
         }
-        patched = inject_workflow_values(workflow_data, overrides)
+        # Performance Optimization: Skip cache propagation on the final injection
+        # to avoid an extra dictionary copy in client.submit_workflow().
+        patched = inject_workflow_values(workflow_data, overrides, propagate_cache=False)
 
         if is_flux and not background_only and i == 0:
             _flux_prompt_hints(full_prompt)

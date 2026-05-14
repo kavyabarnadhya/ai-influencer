@@ -207,7 +207,9 @@ def main(mode: str, count: int, character: str, output_dir: Path | None, ipadapt
                 "_claude_inject_seed": {"inputs.seed": seed},
             }
 
-            patched = inject_workflow_values(workflow_data, overrides)
+            # Performance Optimization: Skip cache propagation on the final injection
+            # to avoid an extra dictionary copy in client.submit_workflow().
+            patched = inject_workflow_values(workflow_data, overrides, propagate_cache=False)
 
             try:
                 prompt_id = client.submit_workflow(patched)

@@ -375,6 +375,8 @@ def main(count: int, base_seed: int | None, dry_run: bool, workflow: str,
         console.print(f"\n[dim]Candidate {idx}/{count} — {c['shot_label']} / {c['outfit_label']} / {c['hair_label']}[/dim]")
 
         wf = load_workflow(str(workflow_path))
+        # Performance Optimization: Skip cache propagation on the final injection
+        # to avoid an extra dictionary copy in client.submit_workflow().
         wf = inject_workflow_values(wf, {
             "_claude_inject_prompt": {"inputs.text": c["positive"]},
             "_claude_inject_negative": {"inputs.text": c["negative"]},
@@ -382,7 +384,7 @@ def main(count: int, base_seed: int | None, dry_run: bool, workflow: str,
             "_claude_inject_ipadapter_image": {"inputs.image": uploaded_face_ref},
             "_claude_inject_ipadapter_strength": {"inputs.weight": 0.6},
             "_claude_inject_latent": {"inputs.width": c["width"], "inputs.height": c["height"]},
-        })
+        }, propagate_cache=False)
 
         try:
             prompt_id = client.submit_workflow(wf)
