@@ -243,7 +243,9 @@ def main(prompts: Path, count_per_prompt: int, category: str, character: str, wo
                     "_claude_inject_seed": {"inputs.seed": seed},
                 }
 
-                patched = inject_workflow_values(workflow_data, overrides)
+                # Performance Optimization: Skip cache propagation on the final injection
+                # to avoid an extra dictionary copy in client.submit_workflow().
+                patched = inject_workflow_values(workflow_data, overrides, propagate_cache=False)
 
                 try:
                     prompt_id = client.submit_workflow(patched)

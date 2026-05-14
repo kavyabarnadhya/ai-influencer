@@ -59,3 +59,7 @@
 ## 2026-05-11 - LLM Response Caching and Immutable Cache Objects
 **Learning:** Sequential calls to local LLMs (Ollama) are a massive bottleneck in generation pipelines, often taking seconds per call. Caching these responses is high-impact. Additionally, cached functions returning mutable objects (like lists) are a safety risk; returning immutable tuples is faster and prevents cache corruption.
 **Action:** Apply `@functools.lru_cache` to Ollama-dependent prompt polishing functions. Ensure low-level utility functions like `_split_path` return immutable tuples instead of lists to safeguard the cache and slightly improve memory efficiency.
+
+## 2026-05-12 - Final Injection Cache Control and Traversal Unrolling
+**Learning:** Even with an optimized `inject_workflow_values`, performing a final dictionary copy in `submit_workflow` to strip internal metadata adds O(N) overhead to the inner loop. Furthermore, Python's loop overhead for dictionary traversal is measurable when the depth is consistently low (e.g., 2 levels for ComfyUI inputs).
+**Action:** Implement a `propagate_cache` flag in `inject_workflow_values` to allow skipping internal metadata addition on the final patch. Update `submit_workflow` to only copy if the metadata key is actually present. Unroll the traversal for 2-part paths in the injection logic to shave off loop and range overhead in hot variation loops.
