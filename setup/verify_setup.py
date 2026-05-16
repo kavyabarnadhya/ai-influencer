@@ -20,6 +20,9 @@ WORKFLOW_SENTINELS = {
     "t2i_ipadapter": ["_claude_inject_prompt", "_claude_inject_negative", "_claude_inject_seed", "_claude_inject_checkpoint", "_claude_inject_latent", "_claude_inject_lora", "_claude_inject_ipadapter_image"],
     "flux_schnell": ["_claude_inject_prompt", "_claude_inject_seed", "_claude_inject_latent"],
     "flux_schnell_lora": ["_claude_inject_prompt", "_claude_inject_seed", "_claude_inject_latent", "_claude_inject_flux_lora"],
+    "flux_img2img": ["_claude_inject_prompt", "_claude_inject_seed", "_claude_inject_init_image"],
+    "flux_inpaint_person": ["_claude_inject_prompt", "_claude_inject_seed", "_claude_inject_bg_image", "_claude_inject_mask_image"],
+    "faceswap_reactor": ["_claude_inject_source_image", "_claude_inject_target_image"],
 }
 
 
