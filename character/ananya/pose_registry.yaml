@@ -1,0 +1,106 @@
+# Curated pose registry for FLUX ControlNet outfit-locked carousels.
+# Only poses validated to produce anatomically correct results.
+# Rejected poses (standing_02, sitting_02, sitting_03, sitting_05, dance_02)
+# have ambiguous skeletons that cause body deformities — do not use.
+
+poses:
+  # === STANDING (anchor_group: standing) ===
+  - file: standing_01
+    group: standing
+    description: classic 3/4 standing pose with arms relaxed at sides, weight on right leg
+    recommended_cn: 0.60
+
+  - file: standing_03
+    group: standing
+    description: arms crossed at chest, frontal facing camera, confident stance
+    recommended_cn: 0.60
+
+  - file: standing_04
+    group: standing
+    description: side profile with one arm raised overhead, reaching or stretching
+    recommended_cn: 0.55
+
+  - file: standing_05
+    group: standing
+    description: standing with arm reaching diagonally up, side angle
+    recommended_cn: 0.55
+
+  - file: standing_06
+    group: standing
+    description: casual weight-shifted stance, arms relaxed at sides
+    recommended_cn: 0.60
+
+  - file: standing_07
+    group: standing
+    description: hands on hips, fashion editorial stance, one foot slightly forward
+    recommended_cn: 0.65
+
+  - file: standing_08
+    group: standing
+    description: both arms raised behind head, running fingers through hair
+    recommended_cn: 0.55
+
+  # === SITTING (anchor_group: sitting) ===
+  - file: sitting_01
+    group: sitting
+    description: seated cross-legged side angle, arms hanging
+    recommended_cn: 0.55
+
+  # === CLOSE-UP (anchor_group: closeup) ===
+  - file: close_01
+    group: closeup
+    description: tight close-up portrait with head tilt
+    recommended_cn: 0.50
+
+  - file: close_02
+    group: closeup
+    description: head turned in profile, looking aside
+    recommended_cn: 0.50
+
+  - file: close_03
+    group: closeup
+    description: arms folded across chest, close-up, confident
+    recommended_cn: 0.55
+
+  - file: close_04
+    group: closeup
+    description: hand near face, head tilt, brushing hair
+    recommended_cn: 0.55
+
+  - file: close_05
+    group: closeup
+    description: arm reaching up, looking up or to side
+    recommended_cn: 0.50
+
+  - file: close_06
+    group: closeup
+    description: neutral frontal close-up, hands at sides
+    recommended_cn: 0.50
+
+  - file: close_07
+    group: closeup
+    description: hand at chest/neckline, contemplative head tilt
+    recommended_cn: 0.55
+
+  - file: close_08
+    group: closeup
+    description: both hands behind head, hair-up editorial pose
+    recommended_cn: 0.55
+
+  # === DYNAMIC (anchor_group: standing — works with standing anchor) ===
+  - file: dance_01
+    group: standing
+    description: arms spread wide twirling or dancing, dress in motion
+    recommended_cn: 0.50
+
+rejected:
+  - file: standing_02
+    reason: torso compressed, ambiguous arm position
+  - file: sitting_02
+    reason: legs tangled, pose unclear
+  - file: sitting_03
+    reason: skeleton crisscross, anatomically impossible
+  - file: sitting_05
+    reason: ambiguous crouching/leaning
+  - file: dance_02
+    reason: extreme crouching, breaks long dresses/sarees

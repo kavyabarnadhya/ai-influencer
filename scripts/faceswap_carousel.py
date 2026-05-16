@@ -34,6 +34,7 @@ from datetime import datetime
 from pathlib import Path
 
 import click
+import yaml
 from rich.console import Console
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -120,8 +121,8 @@ def _run_and_save(client: ComfyUIClient, wf: dict, out_path: Path,
 
 def parse_prompts_file(path: Path, default_denoise: float) -> list[dict]:
     """Parse prompt lines. Tokens (any order, all optional):
-        denoise=0.85 | pose=character/ananya/poses/standing_01.png | cn=0.65 | <prompt>
-    Returns list of dicts: {denoise, pose, cn_strength, prompt}
+        denoise=0.85 | anchor=standing | pose=path | cn=0.65 | <prompt>
+    Returns list of dicts: {denoise, anchor, pose, cn_strength, prompt}
     """
     out = []
     for raw in path.read_text(encoding="utf-8").splitlines():
@@ -129,6 +130,7 @@ def parse_prompts_file(path: Path, default_denoise: float) -> list[dict]:
         if not line or line.startswith("#"):
             continue
         denoise = default_denoise
+        anchor = None
         pose = None
         cn_strength = 0.65
         parts = [p.strip() for p in line.split("|")]
@@ -140,6 +142,8 @@ def parse_prompts_file(path: Path, default_denoise: float) -> list[dict]:
                     denoise = float(part.split("=", 1)[1])
                 except (ValueError, IndexError):
                     pass
+            elif low.startswith("anchor="):
+                anchor = part.split("=", 1)[1].strip()
             elif low.startswith("pose="):
                 pose = part.split("=", 1)[1].strip()
             elif low.startswith("cn="):
@@ -150,9 +154,16 @@ def parse_prompts_file(path: Path, default_denoise: float) -> list[dict]:
             else:
                 remaining.append(part)
         text = " ".join(remaining).strip() if remaining else line
-        out.append({"denoise": denoise, "pose": pose,
+        out.append({"denoise": denoise, "anchor": anchor, "pose": pose,
                     "cn_strength": cn_strength, "prompt": text})
     return out
+
+
+def load_anchor_config(path: Path) -> dict:
+    """Load anchor YAML. Returns {seed, shared_tail, anchors: {group: prompt}}."""
+    with open(path, encoding="utf-8") as f:
+        cfg = yaml.safe_load(f)
+    return cfg
 
 
 @click.command()
@@ -164,23 +175,33 @@ def parse_prompts_file(path: Path, default_denoise: float) -> list[dict]:
 @click.option("--outfit-lock", is_flag=True)
 @click.option("--anchor-outfit-prompt", default=None)
 @click.option("--anchor-prompt", default=None)
+@click.option("--anchor-config", default=None, type=click.Path(exists=True),
+              help="YAML with multiple anchors (per pose group: standing/sitting/closeup)")
 @click.option("--character", default="ananya", show_default=True)
 def main(prompts_file: str, face_ref: str, name: str, candidates: int,
          anchor_seed: int | None, outfit_lock: bool,
          anchor_outfit_prompt: str | None, anchor_prompt: str | None,
-         character: str):
+         anchor_config: str | None, character: str):
     """Carousel: FLUX img2img (person+BG together) → ReActor face swap."""
 
     prompts_path = Path(prompts_file)
     face_ref_path = Path(face_ref)
 
-    if outfit_lock:
+    # Multi-anchor mode if --anchor-config provided
+    multi_anchor_cfg = None
+    if anchor_config:
+        multi_anchor_cfg = load_anchor_config(Path(anchor_config))
+        if anchor_seed is None:
+            anchor_seed = multi_anchor_cfg.get("anchor_seed", random.randint(1, 2**31 - 1))
+        default_denoise = DEFAULT_DENOISE_OUTFIT_LOCK
+        mode_label = f"multi-anchor ({len(multi_anchor_cfg['anchors'])} groups)"
+    elif outfit_lock:
         if not anchor_outfit_prompt:
-            console.print("[red]--outfit-lock requires --anchor-outfit-prompt[/red]")
+            console.print("[red]--outfit-lock requires --anchor-outfit-prompt or --anchor-config[/red]")
             raise SystemExit(1)
         anchor_text = anchor_outfit_prompt
         default_denoise = DEFAULT_DENOISE_OUTFIT_LOCK
-        mode_label = "outfit-lock (OOTD)"
+        mode_label = "outfit-lock (OOTD, single anchor)"
     else:
         anchor_text = anchor_prompt or DEFAULT_ANCHOR_PROMPT
         default_denoise = DEFAULT_DENOISE_VARIED
@@ -214,21 +235,39 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
 
     uploaded_face = client.upload_image(str(face_ref_path))
 
-    # Stage 1: anchor body
-    console.print(f"\n[bold cyan]Stage 1 — Anchor body[/bold cyan]")
-    anchor_path = inter / "anchor.png"
-    wf1 = _inject_flux_t2i(
-        load_workflow(str(ROOT / "workflows" / "flux_schnell.json")),
-        anchor_text, anchor_seed,
-    )
-    try:
-        _run_and_save(client, wf1, anchor_path)
-        console.print(f"  Saved: {anchor_path.relative_to(ROOT)}")
-    except ComfyUIError as e:
-        console.print(f"[red]Anchor failed: {e}[/red]")
-        raise SystemExit(1)
-
-    uploaded_anchor = client.upload_image(str(anchor_path))
+    # Stage 1: anchor body (one or many)
+    uploaded_anchors: dict[str, str] = {}  # group_name -> uploaded filename
+    if multi_anchor_cfg:
+        console.print(f"\n[bold cyan]Stage 1 — Generating {len(multi_anchor_cfg['anchors'])} anchors[/bold cyan]")
+        tail = multi_anchor_cfg.get("shared_tail", "").strip()
+        for group_name, group_cfg in multi_anchor_cfg["anchors"].items():
+            anchor_prompt_text = (group_cfg["prompt"].strip() + " " + tail).strip()
+            anchor_path = inter / f"anchor_{group_name}.png"
+            console.print(f"  [{group_name}] {anchor_prompt_text[:80]}...")
+            wf1 = _inject_flux_t2i(
+                load_workflow(str(ROOT / "workflows" / "flux_schnell.json")),
+                anchor_prompt_text, anchor_seed,
+            )
+            try:
+                _run_and_save(client, wf1, anchor_path)
+                uploaded_anchors[group_name] = client.upload_image(str(anchor_path))
+                console.print(f"  [green]OK[/green] anchor_{group_name}.png")
+            except ComfyUIError as e:
+                console.print(f"[red]Anchor '{group_name}' failed: {e}[/red]")
+                raise SystemExit(1)
+    else:
+        anchor_path = inter / "anchor.png"
+        wf1 = _inject_flux_t2i(
+            load_workflow(str(ROOT / "workflows" / "flux_schnell.json")),
+            anchor_text, anchor_seed,
+        )
+        try:
+            _run_and_save(client, wf1, anchor_path)
+            console.print(f"  Saved: {anchor_path.relative_to(ROOT)}")
+        except ComfyUIError as e:
+            console.print(f"[red]Anchor failed: {e}[/red]")
+            raise SystemExit(1)
+        uploaded_anchors["default"] = client.upload_image(str(anchor_path))
 
     failed = []
     for idx, slide in enumerate(slides):
@@ -236,9 +275,24 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
         slide_prompt = slide["prompt"]
         pose_path = slide["pose"]
         cn_strength = slide["cn_strength"]
+        anchor_group = slide["anchor"]
         use_cn = pose_path is not None
 
-        console.print(f"\n[bold]Slide {idx+1}/{len(slides)}[/bold] denoise={denoise:.2f}"
+        # Route to anchor: explicit group, or default fallback
+        if anchor_group and anchor_group in uploaded_anchors:
+            uploaded_anchor = uploaded_anchors[anchor_group]
+            anchor_label = anchor_group
+        elif "default" in uploaded_anchors:
+            uploaded_anchor = uploaded_anchors["default"]
+            anchor_label = "default"
+        else:
+            # Multi-anchor mode but no anchor= specified and no default → use first
+            anchor_label = next(iter(uploaded_anchors))
+            uploaded_anchor = uploaded_anchors[anchor_label]
+            if anchor_group:
+                console.print(f"  [yellow]anchor='{anchor_group}' not in config, using '{anchor_label}'[/yellow]")
+
+        console.print(f"\n[bold]Slide {idx+1}/{len(slides)}[/bold] anchor={anchor_label} denoise={denoise:.2f}"
                       f"{' pose=' + Path(pose_path).name + f' cn={cn_strength:.2f}' if use_cn else ''}")
         console.print(f"  {slide_prompt[:100]}{'...' if len(slide_prompt) > 100 else ''}")
 

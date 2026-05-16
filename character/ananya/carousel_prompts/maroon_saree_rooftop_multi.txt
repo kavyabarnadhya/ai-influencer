@@ -1,0 +1,28 @@
+# Multi-anchor OOTD — maroon saree rooftop. 6 slides, mixed pose groups.
+# Each slide routes to its matching anchor (standing/sitting/closeup) so the
+# img2img init image matches the ControlNet skeleton geometry → no anatomy issues.
+#
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/maroon_saree_rooftop_multi.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name maroon_saree_multi_01 \
+#     --anchor-config character/ananya/anchor_libraries/maroon_saree_rooftop.yaml
+
+# 1. Standing 3/4 — classic
+denoise=0.55 | anchor=standing | pose=character/ananya/poses/standing_01.png | cn=0.60 | photorealistic Instagram editorial fashion photograph shot on Sony A7IV 50mm, full body three-quarter pose of a 23-year-old South Asian woman with dark hair in loose beachy waves, wearing deep maroon silk Banarasi saree with gold zari border and fitted black blouse, gold jhumka earrings, slight serene smile looking at camera, Mumbai rooftop at golden hour with hazy skyline behind, warm orange backlight, f/2.0 shallow depth of field, sharp focus on face, natural skin texture, light film grain
+
+# 2. Hands on hip — fashion stance
+denoise=0.55 | anchor=standing | pose=character/ananya/poses/standing_07.png | cn=0.65 | photorealistic Instagram editorial fashion photograph shot on Sony A7IV 50mm, full body pose of a 23-year-old South Asian woman with both hands on hips and one foot forward in fashion editorial stance, dark hair in loose beachy waves, wearing deep maroon silk Banarasi saree with gold zari border and fitted black blouse, gold jhumka earrings, confident expression looking off camera, Mumbai rooftop at golden hour with hazy skyline behind, warm orange backlight, f/2.0 shallow depth of field, sharp focus on face, natural skin texture, light film grain
+
+# 3. Sitting — cross-legged on ledge
+denoise=0.58 | anchor=sitting | pose=character/ananya/poses/sitting_01.png | cn=0.55 | photorealistic candid editorial fashion photograph shot on Sony A7IV 50mm, full body pose of a 23-year-old South Asian woman seated cross-legged on rooftop ledge in side angle with hands resting in lap, dark hair in loose beachy waves, wearing deep maroon silk Banarasi saree with gold zari border draped pleated and fitted black blouse, gold jhumka earrings, looking thoughtfully into distance, Mumbai cityscape behind her at golden hour, warm side light from camera left, f/2.0 moderate depth of field, sharp focus on face, natural skin texture, light film grain
+
+# 4. Close-up — hand near face
+denoise=0.55 | anchor=closeup | pose=character/ananya/poses/close_04.png | cn=0.55 | photorealistic Instagram lifestyle photograph shot on Sony A7IV 50mm, tight close-up portrait of a 23-year-old South Asian woman with dark hair in loose beachy waves catching golden light, wearing deep maroon silk Banarasi saree visible at neckline and fitted black blouse, gold jhumka earrings prominent, slight playful smile with right hand near face brushing hair behind ear, Mumbai golden hour rooftop bokeh behind, warm orange sun flare from upper right, f/1.4 very shallow depth of field, sharp focus on eyes, natural skin texture with visible pores, light film grain
+
+# 5. Arms behind head — confident hair-up
+denoise=0.55 | anchor=standing | pose=character/ananya/poses/standing_08.png | cn=0.55 | photorealistic editorial fashion photograph shot on Sony A7IV 50mm, full body pose of a 23-year-old South Asian woman with both arms raised running fingers through hair, dark hair in loose beachy waves caught in wind, wearing deep maroon silk Banarasi saree with gold zari border and fitted black blouse, gold jhumka earrings, soft smile looking at camera, Mumbai rooftop at golden hour with hazy skyline behind, warm orange backlight, f/2.0 shallow depth of field, sharp focus on face, natural skin texture, light film grain
+
+# 6. Close-up — arms crossed confident
+denoise=0.55 | anchor=closeup | pose=character/ananya/poses/close_03.png | cn=0.55 | photorealistic Instagram editorial portrait shot on Sony A7IV 50mm, close-up waist-up portrait of a 23-year-old South Asian woman with arms folded across chest in confident editorial pose, dark hair in loose beachy waves, wearing deep maroon silk Banarasi saree with gold zari border and fitted black blouse, gold jhumka earrings, direct gaze with slight smirk, Mumbai rooftop at golden hour with hazy skyline bokeh behind, warm orange backlight, f/1.8 shallow depth of field, sharp focus on face, natural skin texture, light film grain
