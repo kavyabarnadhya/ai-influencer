@@ -160,9 +160,29 @@ def parse_prompts_file(path: Path, default_denoise: float) -> list[dict]:
 
 
 def load_anchor_config(path: Path) -> dict:
-    """Load anchor YAML. Returns {seed, shared_tail, anchors: {group: prompt}}."""
+    """Load + validate anchor YAML. Schema:
+        anchor_seed: int (optional)
+        shared_tail: str (optional)
+        anchors:
+          <group_name>:
+            prompt: str
+    Raises ValueError on schema violations.
+    """
     with open(path, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
+    if not isinstance(cfg, dict):
+        raise ValueError(f"{path}: root must be a mapping")
+    if "anchors" not in cfg or not isinstance(cfg["anchors"], dict):
+        raise ValueError(f"{path}: missing or invalid 'anchors' mapping")
+    if not cfg["anchors"]:
+        raise ValueError(f"{path}: 'anchors' must have at least one group")
+    for group_name, group_cfg in cfg["anchors"].items():
+        if not isinstance(group_cfg, dict) or "prompt" not in group_cfg:
+            raise ValueError(f"{path}: anchor group '{group_name}' missing required 'prompt' field")
+        if not isinstance(group_cfg["prompt"], str) or not group_cfg["prompt"].strip():
+            raise ValueError(f"{path}: anchor group '{group_name}' prompt must be a non-empty string")
+    if "anchor_seed" in cfg and not isinstance(cfg["anchor_seed"], int):
+        raise ValueError(f"{path}: 'anchor_seed' must be an integer")
     return cfg
 
 
@@ -331,7 +351,7 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
 
                 console.print(f"  [green]cand {cand}[/green] -> {final_path.name} (seed {slide_seed})")
 
-            except (ComfyUIError, Exception) as e:
+            except ComfyUIError as e:
                 console.print(f"  [red]cand {cand} FAILED: {e}[/red]")
                 failed.append((idx, cand, str(e)))
 
