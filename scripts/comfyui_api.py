@@ -26,10 +26,10 @@ class ComfyUIClient:
         # Key: (abs_path, mtime, size), Value: remote_filename
         self._upload_cache: dict[tuple[str, float, int], str] = {}
 
-    def _get(self, path: str) -> Any:
+    def _get(self, path: str, timeout: float = 10.0) -> Any:
         url = f"{self.base_url}{path}"
         try:
-            resp = self.session.get(url, timeout=10)
+            resp = self.session.get(url, timeout=timeout)
             resp.raise_for_status()
             return resp.json()
         except requests.exceptions.RequestException as e:
@@ -85,8 +85,10 @@ class ComfyUIClient:
         """
         deadline = time.time() + timeout
         polling_interval = 0.2
+        # /history poll uses 60s HTTP timeout — ComfyUI stalls during heavy model loads
+        # (e.g. FLUX ControlNet 4GB on first inference). Other _get calls keep 10s default.
         while time.time() < deadline:
-            history = self._get(f"/history/{prompt_id}")
+            history = self._get(f"/history/{prompt_id}", timeout=60.0)
             if prompt_id in history:
                 entry = history[prompt_id]
                 outputs = entry.get("outputs", {})

@@ -27,7 +27,7 @@
       "swap_model": "inswapper_128.onnx",
       "facedetection": "retinaface_resnet50",
       "face_restore_model": "GFPGANv1.4.pth",
-      "face_restore_visibility": 1,
+      "face_restore_visibility": 0.6,
       "codeformer_weight": 0.5,
       "detect_gender_input": "female",
       "detect_gender_source": "female",

@@ -139,7 +139,7 @@ def main(input_dir: str, mode: str, overwrite: bool):
             skipped += 1
             continue
 
-        console.print(f"  {img_path.name} → {txt_path.name}")
+        console.print(f"  {img_path.name} -> {txt_path.name}")
 
         if mode == "stub":
             caption = f"{TRIGGER}, [FILL IN]\n\n{CAPTION_TEMPLATE_REMINDER}"

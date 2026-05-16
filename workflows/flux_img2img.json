@@ -1,0 +1,100 @@
+{
+  "1": {
+    "_meta": {"title": "UNET Loader (GGUF)"},
+    "class_type": "UnetLoaderGGUF",
+    "inputs": {
+      "unet_name": "flux1-schnell-Q3_K_S.gguf"
+    }
+  },
+  "2": {
+    "_meta": {"title": "CLIP Loader (dual)"},
+    "class_type": "DualCLIPLoader",
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "t5xxl_fp8_e4m3fn.safetensors",
+      "type": "flux"
+    }
+  },
+  "3": {
+    "_meta": {"title": "VAE Loader"},
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    }
+  },
+  "4": {
+    "_meta": {"title": "_claude_inject_prompt"},
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "photorealistic portrait, 8k, sharp focus",
+      "clip": ["2", 0]
+    }
+  },
+  "5": {
+    "_meta": {"title": "_claude_inject_init_image"},
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "anchor.png",
+      "upload": "image"
+    }
+  },
+  "6": {
+    "_meta": {"title": "VAE Encode Init"},
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": ["5", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "7": {
+    "_meta": {"title": "Model Sampling Flux"},
+    "class_type": "ModelSamplingFlux",
+    "inputs": {
+      "model": ["1", 0],
+      "max_shift": 1.15,
+      "base_shift": 0.5,
+      "width": 896,
+      "height": 1152
+    }
+  },
+  "8": {
+    "_meta": {"title": "_claude_inject_seed"},
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["7", 0],
+      "positive": ["4", 0],
+      "negative": ["9", 0],
+      "latent_image": ["6", 0],
+      "seed": 0,
+      "steps": 8,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 0.72
+    }
+  },
+  "9": {
+    "_meta": {"title": "Empty Negative"},
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "",
+      "clip": ["2", 0]
+    }
+  },
+  "10": {
+    "_meta": {"title": "VAE Decode"},
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["8", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "11": {
+    "_meta": {"title": "Save Image"},
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["10", 0],
+      "filename_prefix": "flux_img2img"
+    }
+  }
+}
