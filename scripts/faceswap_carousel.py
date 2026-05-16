@@ -70,7 +70,9 @@ def _inject_flux_t2i(wf: dict, prompt: str, seed: int) -> dict:
 
 
 def _inject_flux_img2img(wf: dict, prompt: str, init_image_name: str,
-                        denoise: float, seed: int) -> dict:
+                        denoise: float, seed: int,
+                        pose_image_name: str | None = None,
+                        cn_strength: float = 0.65) -> dict:
     for node in wf.values():
         if not isinstance(node, dict):
             continue
@@ -79,6 +81,10 @@ def _inject_flux_img2img(wf: dict, prompt: str, init_image_name: str,
             node["inputs"]["text"] = prompt
         elif title == "_claude_inject_init_image":
             node["inputs"]["image"] = init_image_name
+        elif title == "_claude_inject_pose_image" and pose_image_name:
+            node["inputs"]["image"] = pose_image_name
+        elif title == "_claude_inject_controlnet_apply" and pose_image_name:
+            node["inputs"]["strength"] = cn_strength
         elif title == "_claude_inject_seed":
             node["inputs"]["seed"] = seed
             node["inputs"]["denoise"] = denoise
@@ -112,23 +118,40 @@ def _run_and_save(client: ComfyUIClient, wf: dict, out_path: Path,
     return out_path
 
 
-def parse_prompts_file(path: Path, default_denoise: float) -> list[tuple[float, str]]:
-    """Parse 'denoise=X | prompt' or bare 'prompt' lines."""
+def parse_prompts_file(path: Path, default_denoise: float) -> list[dict]:
+    """Parse prompt lines. Tokens (any order, all optional):
+        denoise=0.85 | pose=character/ananya/poses/standing_01.png | cn=0.65 | <prompt>
+    Returns list of dicts: {denoise, pose, cn_strength, prompt}
+    """
     out = []
     for raw in path.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
         denoise = default_denoise
-        text = line
-        if "|" in line and line.lower().lstrip().startswith("denoise="):
-            head, _, rest = line.partition("|")
-            try:
-                denoise = float(head.strip().split("=", 1)[1])
-            except (ValueError, IndexError):
-                pass
-            text = rest.strip()
-        out.append((denoise, text))
+        pose = None
+        cn_strength = 0.65
+        parts = [p.strip() for p in line.split("|")]
+        remaining = []
+        for part in parts:
+            low = part.lower()
+            if low.startswith("denoise="):
+                try:
+                    denoise = float(part.split("=", 1)[1])
+                except (ValueError, IndexError):
+                    pass
+            elif low.startswith("pose="):
+                pose = part.split("=", 1)[1].strip()
+            elif low.startswith("cn="):
+                try:
+                    cn_strength = float(part.split("=", 1)[1])
+                except (ValueError, IndexError):
+                    pass
+            else:
+                remaining.append(part)
+        text = " ".join(remaining).strip() if remaining else line
+        out.append({"denoise": denoise, "pose": pose,
+                    "cn_strength": cn_strength, "prompt": text})
     return out
 
 
@@ -208,9 +231,26 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
     uploaded_anchor = client.upload_image(str(anchor_path))
 
     failed = []
-    for idx, (denoise, slide_prompt) in enumerate(slides):
-        console.print(f"\n[bold]Slide {idx+1}/{len(slides)}[/bold] denoise={denoise:.2f}")
+    for idx, slide in enumerate(slides):
+        denoise = slide["denoise"]
+        slide_prompt = slide["prompt"]
+        pose_path = slide["pose"]
+        cn_strength = slide["cn_strength"]
+        use_cn = pose_path is not None
+
+        console.print(f"\n[bold]Slide {idx+1}/{len(slides)}[/bold] denoise={denoise:.2f}"
+                      f"{' pose=' + Path(pose_path).name + f' cn={cn_strength:.2f}' if use_cn else ''}")
         console.print(f"  {slide_prompt[:100]}{'...' if len(slide_prompt) > 100 else ''}")
+
+        # Upload pose image once per slide if present
+        uploaded_pose = None
+        if use_cn:
+            pose_full = pose_path if Path(pose_path).is_absolute() else str(ROOT / pose_path)
+            if not Path(pose_full).exists():
+                console.print(f"  [red]Pose not found: {pose_full}[/red]")
+                failed.append((idx, 0, f"Pose not found: {pose_full}"))
+                continue
+            uploaded_pose = client.upload_image(pose_full)
 
         for cand in range(candidates):
             slide_seed = random.randint(1, 2**31 - 1)
@@ -218,10 +258,12 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
             final_path = out_dir / f"slide_{idx:02d}_cand_{cand}.png"
 
             try:
-                # Stage 2: img2img off anchor — person+BG rendered together
+                # Stage 2: img2img off anchor (with ControlNet if pose specified)
+                workflow_file = "flux_img2img_controlnet.json" if use_cn else "flux_img2img.json"
                 wf2 = _inject_flux_img2img(
-                    load_workflow(str(ROOT / "workflows" / "flux_img2img.json")),
+                    load_workflow(str(ROOT / "workflows" / workflow_file)),
                     slide_prompt, uploaded_anchor, denoise, slide_seed,
+                    pose_image_name=uploaded_pose, cn_strength=cn_strength,
                 )
                 _run_and_save(client, wf2, base_path)
 

@@ -29,7 +29,7 @@ class ComfyUIClient:
     def _get(self, path: str) -> Any:
         url = f"{self.base_url}{path}"
         try:
-            resp = self.session.get(url, timeout=10)
+            resp = self.session.get(url, timeout=60)
             resp.raise_for_status()
             return resp.json()
         except requests.exceptions.RequestException as e:
