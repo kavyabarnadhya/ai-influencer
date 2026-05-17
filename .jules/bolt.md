@@ -71,3 +71,9 @@
 ## 2026-05-14 - Fast Deep Copy for Workflow Isolation
 **Learning:** Shallow copies of nested dictionary structures (like cached ComfyUI workflows) are insufficient for isolation; callers can inadvertently poison the cache by modifying nested data. While `copy.deepcopy()` is the standard fix, it is relatively slow.
 **Action:** Use `json.loads(json.dumps(workflow))` to return deep copies of JSON-compatible structures from cached loaders. This provides complete state isolation and is ~3.5x faster than `deepcopy` for typical workflow dictionaries, maintaining a ~3x speedup over cold disk loads.
+
+## 2026-05-15 - MCP Server Optimization: Connection Pooling and Caching
+
+**Learning:** MCP servers often handle sequential or repetitive requests (e.g. during prompt iteration). Redundant network handshakes for local API calls (Ollama) and slow LLM inference for identical inputs are significant bottlenecks that can be mitigated with connection pooling and LRU caching.
+
+**Action:** Implement `requests.Session()` for connection pooling and use `@functools.lru_cache` for expensive LLM-based transformations and disk-bound config loading in the MCP server.
