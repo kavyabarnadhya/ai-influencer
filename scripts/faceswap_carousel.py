@@ -47,9 +47,10 @@ ROOT = Path(__file__).parent.parent
 # Dark-clothed so outfit color in slides doesn't pull toward beige.
 # Natural lighting + 50mm framing seeds FLUX with photographic style anchor.
 DEFAULT_ANCHOR_PROMPT = (
-    "photorealistic candid fashion photograph, shot on Sony A7IV 50mm, "
-    "full-body three-quarter standing pose of a 23-year-old South Asian woman, "
-    "dark hair loose over shoulders, plain neutral grey form-fitting bodysuit, "
+    "curvy thick hourglass South Asian woman with large fuller bust, tiny defined waist, "
+    "wide curvy hips, thick thighs, photorealistic candid fashion photograph shot on "
+    "Sony A7IV 50mm, full-body three-quarter standing pose of a 23-year-old "
+    "with dark hair loose over shoulders, plain neutral grey form-fitting bodysuit, "
     "soft natural daylight, plain light grey backdrop, "
     "natural skin texture with visible pores, light film grain, sharp focus on face, "
     "no plastic AI smoothing"

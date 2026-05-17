@@ -12,7 +12,7 @@ studio-perfect, not over-airbrushed.
 ```
 1. PHOTOGRAPHIC ANCHOR     — pins aesthetic, must be first
 2. FRAMING + FOCAL         — close-up / waist-up / full-body, 50mm / 35mm
-3. SUBJECT + HAIR          — "23-year-old South Asian woman with <hair>"
+3. SUBJECT + BODY + HAIR   — "23-year-old South Asian woman with hourglass figure, ..."
 4. OUTFIT (specific)       — fabric, color, cut, details
 5. JEWELRY / ACCESSORIES   — specific items
 6. POSE + EXPRESSION       — concrete photographer language
@@ -21,6 +21,47 @@ studio-perfect, not over-airbrushed.
 9. DOF + LENS              — f/1.8 shallow / f/2.8 moderate / f/8 deep
 10. SKIN + GRAIN ANCHOR    — defeats AI plastic look
 ```
+
+## CANONICAL BODY DESCRIPTOR (FRONT-LOAD in EVERY anchor + slide prompt)
+
+**MUST be first tokens** in every prompt. FLUX schnell weights position 1-10 heavily —
+body descriptors buried mid-prompt get washed out and FLUX defaults to slim editorial
+model body.
+
+**Standard front-loaded descriptor** (positions 1-15 of every prompt):
+
+```
+curvy thick hourglass South Asian woman with large fuller bust, tiny defined
+waist, wide curvy hips, thick thighs, [rest of prompt...]
+```
+
+Validated 2026-05-17: produces visibly curvy hourglass body in standalone test
+(see `output/_body_test_strong.png`). Tokens dilute when buried after position 15.
+
+Compact variant (close-up portraits where lower body not visible):
+```
+curvy thick hourglass South Asian woman with large fuller bust and tiny defined
+waist, [rest...]
+```
+
+Why these specific tokens work in FLUX schnell:
+- "curvy thick hourglass" — strongest single combined phrase, position 1
+- "large fuller bust" — explicit, not "fuller bust" alone
+- "tiny defined waist" — preserves waist definition, prevents thick = chunky
+- "wide curvy hips, thick thighs" — anchors lower body
+- "23-year-old" still included but AFTER body tokens (position ~16)
+
+NEVER use:
+- `not skinny` / `not thin` — FLUX may ignore negation
+- `plus size` — overshoots to different body type
+- `medium build` — too vague, renders slim
+- `voluptuous` — pushes toward exaggerated AI render
+- Body tokens buried at position 3-5 with photographic anchor first — wash out
+
+Side-effect note: strong body + ethnicity tokens at front pull skin tone darker.
+Acceptable — ReActor swap overrides face skin from face_ref_v2 anyway.
+
+---
 
 ## Template
 

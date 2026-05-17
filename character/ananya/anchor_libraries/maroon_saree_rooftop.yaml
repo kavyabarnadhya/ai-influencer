@@ -23,15 +23,19 @@ shared_tail: >
 anchors:
   standing:
     prompt: >
-      photorealistic full body editorial photo of a 23-year-old South Asian woman
-      standing in neutral three-quarter pose facing camera weight shifted on right leg,
+      curvy thick hourglass South Asian woman with large fuller bust, tiny defined waist,
+      wide curvy hips, thick thighs, photorealistic full body editorial photo of a
+      23-year-old standing in neutral three-quarter pose facing camera weight shifted
+      on right leg,
 
   sitting:
     prompt: >
-      photorealistic full body editorial photo of a 23-year-old South Asian woman
-      seated comfortably on rooftop ledge cross-legged side angle,
+      curvy thick hourglass South Asian woman with large fuller bust, tiny defined waist,
+      wide curvy hips, thick thighs, photorealistic full body editorial photo of a
+      23-year-old seated comfortably on rooftop ledge cross-legged side angle,
 
   closeup:
     prompt: >
-      photorealistic Instagram editorial waist-up portrait of a 23-year-old South Asian woman
-      facing camera with slight smile,
+      curvy thick hourglass South Asian woman with large fuller bust and tiny defined
+      waist, photorealistic Instagram editorial waist-up portrait of a 23-year-old facing
+      camera with slight smile,

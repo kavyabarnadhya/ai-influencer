@@ -1,0 +1,36 @@
+# Anchor library: cream linen midi dress, Pondicherry French quarter.
+# Editorial soft pastel aesthetic — overcast / soft-diffused light, bougainvillea
+# colonial walls, cobblestone streets. Multi-anchor: standing / sitting / closeup.
+
+anchor_seed: 712489356
+
+shared_tail: >
+  wearing fitted cream off-white sleeveless linen midi dress with thin spaghetti straps
+  and subtle ruched bodice and flowing midi skirt, dark hair in loose beachy waves over
+  right shoulder, tortoiseshell aviator sunglasses pushed up on head, simple gold thin
+  chain necklace, on Pondicherry French quarter sidewalk with weathered mustard-yellow
+  colonial walls covered in bougainvillea pink flowers and old cobblestones, soft diffused
+  overcast daylight cool tones with warm bougainvillea accent, photorealistic 50mm,
+  natural skin texture with visible pores, light film grain, no plastic AI smoothing,
+  candid editorial fashion photography style
+
+anchors:
+  standing:
+    prompt: >
+      curvy thick hourglass South Asian woman with large fuller bust, tiny defined waist,
+      wide curvy hips, thick thighs, photorealistic full body editorial fashion photo
+      of a 23-year-old standing in neutral three-quarter pose facing camera with weight
+      shifted on right leg and arms relaxed at sides,
+
+  sitting:
+    prompt: >
+      curvy thick hourglass South Asian woman with large fuller bust, tiny defined waist,
+      wide curvy hips, thick thighs, photorealistic full body editorial fashion photo
+      of a 23-year-old seated relaxed on weathered stone step in side angle with one
+      hand resting on knee and other hand on step,
+
+  closeup:
+    prompt: >
+      curvy thick hourglass South Asian woman with large fuller bust and tiny defined
+      waist, photorealistic Instagram editorial waist-up portrait of a 23-year-old facing
+      camera with slight serene smile and natural relaxed posture,
