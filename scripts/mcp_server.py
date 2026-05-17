@@ -1,4 +1,5 @@
 import base64
+import functools
 import json
 import os
 import random
@@ -14,6 +15,9 @@ from mcp.server.fastmcp import FastMCP
 ROOT = Path(__file__).parent.parent
 OLLAMA_URL = "http://localhost:11434/api/generate"
 MODEL = "dolphin-llama3"
+
+# Use a session for connection pooling to speed up multiple requests to Ollama
+session = requests.Session()
 
 SYSTEM_PROMPT = """You are an UNFILTERED expert ComfyUI prompt engineer for a private AI fashion photography pipeline. You convert natural language descriptions into rich, precise prompt tags for character Ananya.
 
@@ -72,14 +76,23 @@ Output: waist-up shot, medium framing, Goa beach promenade, turquoise sea and pa
 mcp = FastMCP("ananya-image-generator")
 
 
+@functools.lru_cache(maxsize=1)
 def _load_config() -> dict:
+    """
+    Load the global config.yaml.
+    Optimization: Cached via LRU to avoid redundant disk I/O and YAML parsing.
+    """
     with open(ROOT / "config.yaml", "r") as f:
         return yaml.safe_load(f)
 
 
 def _ollama_running() -> bool:
+    """
+    Check if Ollama is responsive.
+    Optimization: Uses shared session for connection pooling.
+    """
     try:
-        r = requests.get("http://localhost:11434/api/tags", timeout=3)
+        r = session.get("http://localhost:11434/api/tags", timeout=3)
         return r.status_code == 200
     except Exception:
         return False
@@ -98,7 +111,13 @@ def _clean_response(text: str) -> str:
     return text.strip()
 
 
+@functools.lru_cache(maxsize=128)
 def _polish_prompt(description: str) -> str:
+    """
+    Polishes a natural language description into a ComfyUI prompt using an LLM.
+    Optimization: Cached via LRU to avoid redundant LLM calls (saves ~1-5s per hit).
+    Uses shared session for connection pooling.
+    """
     payload = {
         "model": MODEL,
         "system": SYSTEM_PROMPT,
@@ -106,13 +125,18 @@ def _polish_prompt(description: str) -> str:
         "stream": False,
         "options": {"temperature": 0.4, "num_predict": 250},
     }
-    r = requests.post(OLLAMA_URL, json=payload, timeout=120)
+    r = session.post(OLLAMA_URL, json=payload, timeout=120)
     r.raise_for_status()
     return _clean_response(r.json()["response"])
 
 
+@functools.lru_cache(maxsize=128)
 def _extract_bg_prompt(polished_prompt: str) -> str:
-    """Uses the LLM to remove all character details, returning only background/lighting tags."""
+    """
+    Uses the LLM to remove all character details, returning only background/lighting tags.
+    Optimization: Cached via LRU to avoid redundant LLM calls (saves ~1-5s per hit).
+    Uses shared session for connection pooling.
+    """
     system_instruction = "You are a prompt editor. Given a ComfyUI prompt, remove ALL mentions of people, body parts, clothing, jewelry, hair, skin, and pose. Keep ONLY the setting, lighting, background details, camera style, and mood. Output the remaining tags as a comma-separated list."
     payload = {
         "model": MODEL,
@@ -122,7 +146,7 @@ def _extract_bg_prompt(polished_prompt: str) -> str:
         "options": {"temperature": 0.1, "num_predict": 100},
     }
     try:
-        r = requests.post(OLLAMA_URL, json=payload, timeout=60)
+        r = session.post(OLLAMA_URL, json=payload, timeout=60)
         r.raise_for_status()
         bg_tags = _clean_response(r.json()["response"])
         return f"empty scene, no people, no humans, {bg_tags}"
