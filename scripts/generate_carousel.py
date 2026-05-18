@@ -403,7 +403,9 @@ def main(
                     overrides["_claude_inject_controlnet"] = {"inputs.control_net_name": cfg["models"]["controlnet_openpose"]}
                     overrides["ControlNet Apply"] = {"inputs.strength": current_controlnet_strength}
 
-            patched = inject_workflow_values(workflow_data, overrides)
+            # Performance Optimization: Skip cache propagation on the final injection
+            # to avoid an extra dictionary copy in client.submit_workflow().
+            patched = inject_workflow_values(workflow_data, overrides, propagate_cache=False)
             mode_label = "img2img" if use_img2img else "t2i"
             console.print(
                 f"[cyan]Slide {slide_num}/{len(slide_sequence)} cand {candidate_num}/{role_candidate_count} "

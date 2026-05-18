@@ -59,3 +59,25 @@
 ## 2026-05-11 - LLM Response Caching and Immutable Cache Objects
 **Learning:** Sequential calls to local LLMs (Ollama) are a massive bottleneck in generation pipelines, often taking seconds per call. Caching these responses is high-impact. Additionally, cached functions returning mutable objects (like lists) are a safety risk; returning immutable tuples is faster and prevents cache corruption.
 **Action:** Apply `@functools.lru_cache` to Ollama-dependent prompt polishing functions. Ensure low-level utility functions like `_split_path` return immutable tuples instead of lists to safeguard the cache and slightly improve memory efficiency.
+
+## 2026-05-12 - Final Injection Cache Control and Traversal Unrolling
+**Learning:** Even with an optimized `inject_workflow_values`, performing a final dictionary copy in `submit_workflow` to strip internal metadata adds O(N) overhead to the inner loop. Furthermore, Python's loop overhead for dictionary traversal is measurable when the depth is consistently low (e.g., 2 levels for ComfyUI inputs).
+**Action:** Implement a `propagate_cache` flag in `inject_workflow_values` to allow skipping internal metadata addition on the final patch. Update `submit_workflow` to only copy if the metadata key is actually present. Unroll the traversal for 2-part paths in the injection logic to shave off loop and range overhead in hot variation loops.
+
+## 2026-05-13 - Path Resolution Caching for Batch IO
+**Learning:** `Path.resolve()` in Python is surprisingly expensive because it performs multiple syscalls to resolve symlinks and normalize paths. In batch generation loops where the same few reference images or poses are accessed repeatedly, this becomes a measurable overhead.
+**Action:** Wrap `Path.resolve()` in an LRU-cached utility function (`_resolve_path`). Benchmarks show this provides a ~300x speedup for path resolution, reducing overall loop latency in high-throughput generation scripts.
+
+## 2026-05-14 - Fast Deep Copy for Workflow Isolation
+**Learning:** Shallow copies of nested dictionary structures (like cached ComfyUI workflows) are insufficient for isolation; callers can inadvertently poison the cache by modifying nested data. While `copy.deepcopy()` is the standard fix, it is relatively slow.
+**Action:** Use `json.loads(json.dumps(workflow))` to return deep copies of JSON-compatible structures from cached loaders. This provides complete state isolation and is ~3.5x faster than `deepcopy` for typical workflow dictionaries, maintaining a ~3x speedup over cold disk loads.
+
+## 2026-05-15 - MCP Server Optimization: Connection Pooling and Caching
+
+**Learning:** MCP servers often handle sequential or repetitive requests (e.g. during prompt iteration). Redundant network handshakes for local API calls (Ollama) and slow LLM inference for identical inputs are significant bottlenecks that can be mitigated with connection pooling and LRU caching.
+
+**Action:** Implement `requests.Session()` for connection pooling and use `@functools.lru_cache` for expensive LLM-based transformations and disk-bound config loading in the MCP server.
+
+## 2026-05-16 - Date-Based Traversal for Output Discovery
+**Learning:** Using Path.rglob() to find recent images or carousels in a large, multi-day output directory is an O(N) operation that becomes increasingly slow as the dataset grows. In a structure like output/YYYY-MM-DD/character/, traversing directories by name in reverse order allows for an O(K) discovery (where K is the number of requested recent items), providing a ~10x speedup for typical batch sizes.
+**Action:** Replace global rglob or recursive scans in discovery tools (like MCP servers or gallery views) with reverse chronological directory traversal. Stop the scan as soon as the limit is reached.

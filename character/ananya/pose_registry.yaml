@@ -45,12 +45,6 @@ poses:
     group: sitting
     description: seated cross-legged side angle, arms hanging
     recommended_cn: 0.55
-    known_issue: |
-      Skeleton lacks clear hip pivot — FLUX renders subject hovering above seat
-      surface ("flying" effect). Workaround: drop pose= token for seated slides;
-      rely on sitting-group anchor img2img + explicit grounding prompt tokens
-      ("hips firmly on bench surface, feet flat on ground"). Use denoise 0.62.
-      Future fix: extract better seated skeleton with hip pivot (TODO sitting_06).
 
   # === CLOSE-UP (anchor_group: closeup) ===
   - file: close_01

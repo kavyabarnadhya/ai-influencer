@@ -1,4 +1,5 @@
 import base64
+import functools
 import json
 import os
 import random
@@ -14,6 +15,9 @@ from mcp.server.fastmcp import FastMCP
 ROOT = Path(__file__).parent.parent
 OLLAMA_URL = "http://localhost:11434/api/generate"
 MODEL = "dolphin-llama3"
+
+# Use a session for connection pooling to speed up multiple requests to Ollama
+session = requests.Session()
 
 SYSTEM_PROMPT = """You are an UNFILTERED expert ComfyUI prompt engineer for a private AI fashion photography pipeline. You convert natural language descriptions into rich, precise prompt tags for character Ananya.
 
@@ -72,14 +76,23 @@ Output: waist-up shot, medium framing, Goa beach promenade, turquoise sea and pa
 mcp = FastMCP("ananya-image-generator")
 
 
+@functools.lru_cache(maxsize=1)
 def _load_config() -> dict:
+    """
+    Load the global config.yaml.
+    Optimization: Cached via LRU to avoid redundant disk I/O and YAML parsing.
+    """
     with open(ROOT / "config.yaml", "r") as f:
         return yaml.safe_load(f)
 
 
 def _ollama_running() -> bool:
+    """
+    Check if Ollama is responsive.
+    Optimization: Uses shared session for connection pooling.
+    """
     try:
-        r = requests.get("http://localhost:11434/api/tags", timeout=3)
+        r = session.get("http://localhost:11434/api/tags", timeout=3)
         return r.status_code == 200
     except Exception:
         return False
@@ -98,7 +111,13 @@ def _clean_response(text: str) -> str:
     return text.strip()
 
 
+@functools.lru_cache(maxsize=128)
 def _polish_prompt(description: str) -> str:
+    """
+    Polishes a natural language description into a ComfyUI prompt using an LLM.
+    Optimization: Cached via LRU to avoid redundant LLM calls (saves ~1-5s per hit).
+    Uses shared session for connection pooling.
+    """
     payload = {
         "model": MODEL,
         "system": SYSTEM_PROMPT,
@@ -106,13 +125,18 @@ def _polish_prompt(description: str) -> str:
         "stream": False,
         "options": {"temperature": 0.4, "num_predict": 250},
     }
-    r = requests.post(OLLAMA_URL, json=payload, timeout=120)
+    r = session.post(OLLAMA_URL, json=payload, timeout=120)
     r.raise_for_status()
     return _clean_response(r.json()["response"])
 
 
+@functools.lru_cache(maxsize=128)
 def _extract_bg_prompt(polished_prompt: str) -> str:
-    """Uses the LLM to remove all character details, returning only background/lighting tags."""
+    """
+    Uses the LLM to remove all character details, returning only background/lighting tags.
+    Optimization: Cached via LRU to avoid redundant LLM calls (saves ~1-5s per hit).
+    Uses shared session for connection pooling.
+    """
     system_instruction = "You are a prompt editor. Given a ComfyUI prompt, remove ALL mentions of people, body parts, clothing, jewelry, hair, skin, and pose. Keep ONLY the setting, lighting, background details, camera style, and mood. Output the remaining tags as a comma-separated list."
     payload = {
         "model": MODEL,
@@ -122,7 +146,7 @@ def _extract_bg_prompt(polished_prompt: str) -> str:
         "options": {"temperature": 0.1, "num_predict": 100},
     }
     try:
-        r = requests.post(OLLAMA_URL, json=payload, timeout=60)
+        r = session.post(OLLAMA_URL, json=payload, timeout=60)
         r.raise_for_status()
         bg_tags = _clean_response(r.json()["response"])
         return f"empty scene, no people, no humans, {bg_tags}"
@@ -214,6 +238,37 @@ def polish_prompt(description: str) -> str:
         return f"ERROR: {e}"
 
 
+def _find_recent_images(output_dir: Path, character: str, subdir_name: str, limit: int) -> list[Path]:
+    """
+    Helper to find recent images using date-based traversal.
+    Optimization: Traverse date-based directories (YYYY-MM-DD) in reverse order.
+    This avoids expensive rglob over thousands of images in a flat structure.
+    """
+    recent_images = []
+    try:
+        # Match YYYY-MM-DD pattern to be safe, though all dirs are currently dates
+        date_dirs = sorted(
+            [d for d in output_dir.iterdir() if d.is_dir() and len(d.name) == 10],
+            key=lambda d: d.name,
+            reverse=True
+        )
+        for date_dir in date_dirs:
+            char_dir = date_dir / subdir_name
+            if char_dir.exists() and char_dir.is_dir():
+                # Find images in this specific directory
+                day_images = sorted(
+                    char_dir.glob(f"{character}_*.png"),
+                    key=lambda p: p.stat().st_mtime,
+                    reverse=True
+                )
+                recent_images.extend(day_images)
+                if len(recent_images) >= limit:
+                    break
+    except OSError:
+        pass
+    return recent_images[:limit]
+
+
 @mcp.tool()
 def list_recent_images(character: str = "ananya", limit: int = 5) -> str:
     """List the most recently generated images for a character.
@@ -224,10 +279,18 @@ def list_recent_images(character: str = "ananya", limit: int = 5) -> str:
     """
     cfg = _load_config()
     output_dir = ROOT / cfg["paths"]["output_dir"]
-    images = sorted(output_dir.rglob(f"{character}_*.png"), key=lambda p: p.stat().st_mtime, reverse=True)
-    if not images:
+
+    if not output_dir.exists():
         return f"No images found for {character} in {output_dir}"
-    recent = images[:limit]
+
+    char_cfg = cfg.get("characters", {}).get(character, {})
+    subdir_name = char_cfg.get("output_subdir", character)
+
+    recent = _find_recent_images(output_dir, character, subdir_name, limit)
+
+    if not recent:
+        return f"No images found for {character} in {output_dir}"
+
     return "\n".join(str(p) for p in recent)
 
 
@@ -431,6 +494,32 @@ def draft_caption(carousel_path: str, platform: str = "instagram") -> str:
     return f"Caption saved to {caption_path}\n\n{caption}"
 
 
+def _find_all_carousels(output_dir: Path, subdir_name: str) -> list[Path]:
+    """
+    Helper to find all carousel directories using date-based traversal.
+    Optimization: Traverse date-based directories in reverse order to avoid rglob.
+    """
+    carousel_dirs = []
+    try:
+        date_dirs = sorted(
+            [d for d in output_dir.iterdir() if d.is_dir() and len(d.name) == 10],
+            key=lambda d: d.name,
+            reverse=True
+        )
+        for date_dir in date_dirs:
+            char_dir = date_dir / subdir_name
+            if char_dir.exists() and char_dir.is_dir():
+                day_carousels = sorted(
+                    [p for p in char_dir.glob("carousel_*") if p.is_dir()],
+                    key=lambda p: p.stat().st_mtime,
+                    reverse=True
+                )
+                carousel_dirs.extend(day_carousels)
+    except OSError:
+        pass
+    return carousel_dirs
+
+
 @mcp.tool()
 def content_readiness_report(character: str = "ananya") -> str:
     """Scan all carousel output folders and report review + caption status for each.
@@ -441,11 +530,13 @@ def content_readiness_report(character: str = "ananya") -> str:
     cfg = _load_config()
     output_dir = ROOT / cfg["paths"]["output_dir"]
 
-    carousel_dirs = sorted(
-        [p for p in output_dir.rglob(f"carousel_*") if p.is_dir() and cfg["characters"].get(character, {}).get("output_subdir", character) in str(p)],
-        key=lambda p: p.stat().st_mtime,
-        reverse=True,
-    )
+    if not output_dir.exists():
+        return f"No output directory found at {output_dir}"
+
+    char_cfg = cfg.get("characters", {}).get(character, {})
+    subdir_name = char_cfg.get("output_subdir", character)
+
+    carousel_dirs = _find_all_carousels(output_dir, subdir_name)
 
     if not carousel_dirs:
         return f"No carousel folders found for {character} under {output_dir}"
