@@ -1,0 +1,27 @@
+# SINGLE-ANCHOR OOTD — maroon Banarasi saree on Mumbai rooftop golden hour.
+# All slides img2img off this ONE anchor. Accessories rendered once → consistent.
+#
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/maroon_saree_rooftop_single.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name maroon_single_prod \
+#     --anchor-config character/ananya/anchor_libraries/maroon_saree_rooftop_single.yaml \
+#     --flux-dev
+
+anchor_seed: 1018996843
+
+anchor_prompt: >
+  size M hourglass figure woman with fuller bust, slim defined small waist, balanced
+  curvy hips, slim toned thighs, soft feminine curves, slim with curves not plus size,
+  South Asian 23 year old, photorealistic full body editorial fashion photograph
+  shot on Sony A7IV 50mm, three-quarter pose standing facing camera
+  with weight shifted on right leg, dark hair in loose beachy waves over right shoulder,
+  wearing deep maroon silk Banarasi saree with intricate gold zari border draped pleated
+  over left shoulder and fitted black short-sleeve blouse with v-neckline, gold jhumka
+  earrings prominent, single delicate gold pendant on collarbone, gold bangles stack
+  on right wrist, Mumbai high-rise rooftop at golden hour with hazy city skyline behind,
+  warm orange backlight rim-lighting hair, f/2.0 shallow depth of field, sharp focus
+  on face, shot on Kodak Portra 400 film, visible skin pores and faint peach fuzz,
+  subtle skin imperfections, slight natural oil shine on T-zone, 35mm film grain,
+  candid unretouched amateur photography style, raw unedited look, no retouching
