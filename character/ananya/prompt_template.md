@@ -22,44 +22,74 @@ studio-perfect, not over-airbrushed.
 10. SKIN + GRAIN ANCHOR    — defeats AI plastic look
 ```
 
-## CANONICAL BODY DESCRIPTOR (FRONT-LOAD in EVERY anchor + slide prompt)
+## CANONICAL ANANYA BODY DESCRIPTOR — LOCKED BASELINE (2026-05-18)
 
-**MUST be first tokens** in every prompt. FLUX schnell weights position 1-10 heavily —
-body descriptors buried mid-prompt get washed out and FLUX defaults to slim editorial
-model body.
+**THIS IS THE PERMANENT ANANYA BODY RECIPE.** Validated on FLUX dev with XLabs LoRA at
+strength 0.5. Produces M-size hourglass: slim defined waist + balanced curves + fuller
+bust, NOT plus-size XL.
 
-**Standard front-loaded descriptor** (positions 1-15 of every prompt):
+**LOCKED FRONT-LOADED DESCRIPTOR** (positions 1-20 of EVERY anchor + slide prompt):
 
 ```
-curvy thick hourglass South Asian woman with large fuller bust, tiny defined
-waist, wide curvy hips, thick thighs, [rest of prompt...]
+size M hourglass figure woman with fuller bust, slim defined small waist,
+balanced curvy hips, slim toned thighs, soft feminine curves, slim with curves
+not plus size, South Asian 23 year old, [rest of prompt...]
 ```
 
-Validated 2026-05-17: produces visibly curvy hourglass body in standalone test
-(see `output/_body_test_strong.png`). Tokens dilute when buried after position 15.
+Validated reference: `output/2026-05-18/ananya/carousel_maroon_single_Msize_v2/_intermediate/anchor.png`
+— maroon Banarasi saree, Mumbai rooftop golden hour, M-size hourglass confirmed.
 
-Compact variant (close-up portraits where lower body not visible):
+### Recipe history (DO NOT regress)
+
+| Version | Tokens | Result |
+|---------|--------|--------|
+| 2026-05-17 v1 | `size M hourglass South Asian woman with fuller bust, defined small waist, balanced curvy hips` | M-size on FLUX schnell, slim on FLUX dev |
+| 2026-05-17 v2 | `curvy thick hourglass + large fuller bust + wide curvy hips + thick thighs` | **OVERSHOT to plus-size XL** — rejected |
+| **2026-05-18 LOCKED** | `size M hourglass figure + fuller bust + slim defined small waist + balanced curvy hips + slim toned thighs + soft feminine curves + slim with curves not plus size + South Asian 23 year old` | **M-size hourglass ✓ on FLUX dev** |
+
+### Why each token
+
+- **"size M hourglass figure"** — explicit dress-size + shape anchor at position 1-3
+- **"fuller bust"** — moderate emphasis, not "large fuller" (which pushes XL)
+- **"slim defined small waist"** — "slim" + "small" double-locks waist (prevents thick)
+- **"balanced curvy hips"** — "balanced" moderates hip width (prevents "wide")
+- **"slim toned thighs"** — "slim toned" counters FLUX "thick thighs" XL drift
+- **"soft feminine curves"** — softens silhouette without volume
+- **"slim with curves not plus size"** — explicit negation of XL bias (FLUX dev respects)
+- **"South Asian 23 year old"** — identity anchor AFTER body (positions ~18-20)
+
+### LoRA strength LOCKED
+
+XLabs Realism LoRA at strength **0.5** (NOT 0.8) in all 3 FLUX dev workflows. At 0.8 LoRA's
+slim editorial bias overrides body tokens. 0.5 preserves M-size + still gains skin texture.
+
+### Outfit-specific body token adjustment
+
+Form-fitting western outfits (crop top, bodycon, slip dress) expose midriff/legs directly
+— FLUX defaults to slim editorial. Add these to anchor prompt when outfit is form-fitting:
 ```
-curvy thick hourglass South Asian woman with large fuller bust and tiny defined
-waist, [rest...]
+visible waist-to-hip curve, soft rounded midriff, medium build curvy not skinny,
+```
+Draped ethnic wear (saree, lehenga) adds visual volume so base recipe is sufficient.
+
+### NEVER use (regression risks)
+
+- `curvy thick` / `large fuller bust` / `wide curvy hips` / `thick thighs` — overshoots XL
+- `not skinny` / `not thin` — negation ignored
+- `medium build` alone — too vague, renders slim
+- `voluptuous` — exaggerated AI render
+- LoRA strength 0.8 in dev workflows — body slims regardless of tokens
+
+### Compact variant (close-up portraits)
+
+```
+size M hourglass figure woman with fuller bust and slim defined small waist,
+soft feminine curves, slim with curves not plus size, South Asian 23 year old,
+[rest...]
 ```
 
-Why these specific tokens work in FLUX schnell:
-- "curvy thick hourglass" — strongest single combined phrase, position 1
-- "large fuller bust" — explicit, not "fuller bust" alone
-- "tiny defined waist" — preserves waist definition, prevents thick = chunky
-- "wide curvy hips, thick thighs" — anchors lower body
-- "23-year-old" still included but AFTER body tokens (position ~16)
-
-NEVER use:
-- `not skinny` / `not thin` — FLUX may ignore negation
-- `plus size` — overshoots to different body type
-- `medium build` — too vague, renders slim
-- `voluptuous` — pushes toward exaggerated AI render
-- Body tokens buried at position 3-5 with photographic anchor first — wash out
-
-Side-effect note: strong body + ethnicity tokens at front pull skin tone darker.
-Acceptable — ReActor swap overrides face skin from face_ref_v2 anyway.
+Side-effect: strong body + ethnicity tokens at front pull skin tone darker. Acceptable —
+ReActor swap overrides face skin from face_ref_v2 anyway.
 
 ---
 
@@ -160,10 +190,38 @@ natural skin texture with visible pores, light film grain, no AI plastic smoothi
 - `f/4 mid-range, foreground sharp with some background detail`
 - `f/8 deep focus, full scene in focus, environmental portrait`
 
-### Skin + grain anchors (always append)
-- `natural skin texture with visible pores and subtle imperfections`
-- `light 35mm film grain`
-- `no plastic AI smoothing, no airbrushed look, authentic skin`
+### Skin + grain anchors (ALWAYS append at end of every prompt)
+
+**Validated recipe (2026-05-17 A/B/C test) — defeats FLUX schnell plastic skin:**
+```
+shot on Kodak Portra 400 film, visible skin pores and faint peach fuzz,
+subtle skin imperfections, slight natural oil shine on T-zone, 35mm film grain,
+photographic grain noise, candid unretouched amateur photography style,
+raw unedited look, no retouching
+```
+
+A/B/C test results (output/_skin_test_*.png, fixed seed 99999):
+- A (baseline `natural skin texture, light film grain, no plastic AI smoothing`)
+  → plastic AI gloss, even-toned, no pores. **REJECTED.**
+- B (Portra + pores + oil shine + amateur style) → film-stock texture, subtle
+  variation, no AI sheen. **WINNER.**
+- C (Portra + iPhone authenticity) → mid-quality, smoother than B. Acceptable
+  fallback if B too strong for a specific use case.
+
+Why this works (FLUX schnell skin):
+- "Kodak Portra 400 film" — pulls from real film photography training data,
+  not AI render aesthetic
+- "visible pores and faint peach fuzz" — concrete imperfection details FLUX
+  renders literally
+- "slight oil shine on T-zone" — natural skin reflection FLUX otherwise smooths
+- "amateur photography" + "raw unedited" — counters editorial gloss
+- "no retouching" works as positive directive (FLUX-friendly)
+
+DEPRECATED phrases (weak in FLUX schnell, don't use):
+- `no plastic AI smoothing` — negation, sometimes ignored
+- `no airbrushed look` — too generic
+- `natural skin texture` alone — needs concrete pore/oil tokens to anchor
+- `light film grain` alone — needs explicit film-stock name (Portra 400)
 
 ---
 

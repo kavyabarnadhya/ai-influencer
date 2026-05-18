@@ -17,25 +17,31 @@ shared_tail: >
   wearing deep maroon silk Banarasi saree with intricate gold zari border draped pleated
   over left shoulder and fitted black short-sleeve blouse, gold jhumka earrings,
   dark hair loose beachy waves, Mumbai high-rise rooftop at golden hour with hazy city
-  skyline behind, warm orange backlight, photorealistic 50mm, natural skin texture,
-  light film grain, no plastic AI smoothing
+  skyline behind, warm orange backlight, photorealistic 50mm,
+  shot on Kodak Portra 400 film, visible skin pores and faint peach fuzz, subtle skin
+  imperfections, slight natural oil shine on T-zone, 35mm film grain, photographic
+  grain noise, candid unretouched amateur photography style, raw unedited look,
+  no retouching
 
 anchors:
   standing:
     prompt: >
-      curvy thick hourglass South Asian woman with large fuller bust, tiny defined waist,
-      wide curvy hips, thick thighs, photorealistic full body editorial photo of a
+      size M hourglass figure woman with fuller bust, slim defined small waist,
+      balanced curvy hips, slim toned thighs, soft feminine curves, slim with curves
+      not plus size, South Asian 23 year old, photorealistic full body editorial photo of a
       23-year-old standing in neutral three-quarter pose facing camera weight shifted
       on right leg,
 
   sitting:
     prompt: >
-      curvy thick hourglass South Asian woman with large fuller bust, tiny defined waist,
-      wide curvy hips, thick thighs, photorealistic full body editorial photo of a
+      size M hourglass figure woman with fuller bust, slim defined small waist,
+      balanced curvy hips, slim toned thighs, soft feminine curves, slim with curves
+      not plus size, South Asian 23 year old, photorealistic full body editorial photo of a
       23-year-old seated comfortably on rooftop ledge cross-legged side angle,
 
   closeup:
     prompt: >
-      curvy thick hourglass South Asian woman with large fuller bust and tiny defined
-      waist, photorealistic Instagram editorial waist-up portrait of a 23-year-old facing
+      size M hourglass figure woman with fuller bust and slim defined small waist,
+      soft feminine curves, slim with curves not plus size, South Asian 23 year old,
+      photorealistic Instagram editorial waist-up portrait facing
       camera with slight smile,

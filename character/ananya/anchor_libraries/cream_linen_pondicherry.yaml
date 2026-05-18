@@ -11,26 +11,31 @@ shared_tail: >
   chain necklace, on Pondicherry French quarter sidewalk with weathered mustard-yellow
   colonial walls covered in bougainvillea pink flowers and old cobblestones, soft diffused
   overcast daylight cool tones with warm bougainvillea accent, photorealistic 50mm,
-  natural skin texture with visible pores, light film grain, no plastic AI smoothing,
-  candid editorial fashion photography style
+  shot on Kodak Portra 400 film, visible skin pores and faint peach fuzz, subtle skin
+  imperfections, slight natural oil shine on T-zone, 35mm film grain, photographic
+  grain noise, candid unretouched amateur photography style, raw unedited look,
+  no retouching
 
 anchors:
   standing:
     prompt: >
-      curvy thick hourglass South Asian woman with large fuller bust, tiny defined waist,
-      wide curvy hips, thick thighs, photorealistic full body editorial fashion photo
+      size M hourglass figure woman with fuller bust, slim defined small waist,
+      balanced curvy hips, slim toned thighs, soft feminine curves, slim with curves
+      not plus size, South Asian 23 year old, photorealistic full body editorial fashion photo
       of a 23-year-old standing in neutral three-quarter pose facing camera with weight
       shifted on right leg and arms relaxed at sides,
 
   sitting:
     prompt: >
-      curvy thick hourglass South Asian woman with large fuller bust, tiny defined waist,
-      wide curvy hips, thick thighs, photorealistic full body editorial fashion photo
+      size M hourglass figure woman with fuller bust, slim defined small waist,
+      balanced curvy hips, slim toned thighs, soft feminine curves, slim with curves
+      not plus size, South Asian 23 year old, photorealistic full body editorial fashion photo
       of a 23-year-old seated relaxed on weathered stone step in side angle with one
       hand resting on knee and other hand on step,
 
   closeup:
     prompt: >
-      curvy thick hourglass South Asian woman with large fuller bust and tiny defined
-      waist, photorealistic Instagram editorial waist-up portrait of a 23-year-old facing
+      size M hourglass figure woman with fuller bust and slim defined small waist,
+      soft feminine curves, slim with curves not plus size, South Asian 23 year old,
+      photorealistic Instagram editorial waist-up portrait facing
       camera with slight serene smile and natural relaxed posture,
