@@ -11,6 +11,7 @@ logs/
 training_data_*.zip
 
 # Training dataset images (large binaries — stored locally only)
+character/ananya/Samples/
 character/ananya/seeds_v2/
 character/ananya/seeds_v2_rejected/
 character/ananya/seeds_v2_stock_source/

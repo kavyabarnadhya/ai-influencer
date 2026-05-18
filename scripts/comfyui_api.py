@@ -100,11 +100,11 @@ class ComfyUIClient:
             time.sleep(polling_interval)
         raise ComfyUIError(f"Prompt {prompt_id} did not complete within {timeout}s")
 
-    def download_image(self, filename: str, subfolder: str = "", img_type: str = "output") -> bytes:
+    def download_image(self, filename: str, subfolder: str = "", img_type: str = "output", timeout: float = 120.0) -> bytes:
         params = {"filename": filename, "subfolder": subfolder, "type": img_type}
         url = f"{self.base_url}/view"
         try:
-            resp = self.session.get(url, params=params, timeout=30)
+            resp = self.session.get(url, params=params, timeout=timeout)
             resp.raise_for_status()
             return resp.content
         except requests.exceptions.RequestException as e:

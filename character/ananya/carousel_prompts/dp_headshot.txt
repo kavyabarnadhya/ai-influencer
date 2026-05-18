@@ -1,0 +1,10 @@
+# Display picture — tight headshot, profile photo quality
+# Single image, no carousel. Face-locked via ReActor.
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/dp_headshot.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name ananya_dp_v1 \
+#     --flux-dev
+
+denoise=0.90 | curvy hourglass body full bust size M South Asian 23 year old woman, photorealistic Instagram profile headshot photograph shot on Sony A7IV 85mm portrait lens, extreme tight close-up face and neck only filling entire frame, dark hair loosely down with soft natural waves, subtle natural makeup with warm brown eyeshadow and glossy nude lips, small gold hoop earring visible, confident direct gaze into camera with soft natural smile, warm golden hour window light from left side casting soft glow on face, shallow bokeh background warm cream and gold tones, f/1.2 very shallow depth of field, sharp focus on eyes and skin texture, visible skin pores natural skin texture no retouching, shot on Kodak Portra 400 film grain, candid unretouched editorial portrait

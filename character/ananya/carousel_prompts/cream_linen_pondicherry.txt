@@ -1,0 +1,28 @@
+# Multi-anchor OOTD — cream linen midi sundress on Pondicherry French quarter.
+# 6 slides routing across standing/sitting/closeup anchors with curated poses.
+# Soft pastel editorial vibe — overcast cool light + warm bougainvillea accent.
+#
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/cream_linen_pondicherry.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name cream_linen_pondicherry_01 \
+#     --anchor-config character/ananya/anchor_libraries/cream_linen_pondicherry.yaml
+
+# 1. Standing 3/4 — classic editorial wide
+denoise=0.55 | anchor=standing | pose=character/ananya/poses/standing_01.png | cn=0.60 | photorealistic Instagram editorial fashion photograph shot on Sony A7IV 50mm, full body three-quarter pose of a 23-year-old South Asian woman with dark hair in loose beachy waves over right shoulder, wearing fitted cream off-white sleeveless linen midi dress with thin spaghetti straps and flowing midi skirt, tortoiseshell aviator sunglasses pushed up on head, gold thin chain necklace, slight serene smile looking directly at camera, Pondicherry French quarter sidewalk with weathered mustard-yellow colonial walls and bougainvillea pink flowers cascading behind her, soft diffused overcast daylight cool tones with warm bougainvillea accent, f/2.0 shallow depth of field, sharp focus on face, natural skin texture, light film grain, no AI plastic smoothing
+
+# 2. Hands on hips — fashion stance
+denoise=0.55 | anchor=standing | pose=character/ananya/poses/standing_07.png | cn=0.65 | photorealistic Instagram editorial fashion photograph shot on Sony A7IV 50mm, full body pose of a 23-year-old South Asian woman with both hands on hips and one foot forward in confident fashion editorial stance, dark hair in loose beachy waves, wearing fitted cream off-white linen midi dress with thin spaghetti straps and flowing skirt, tortoiseshell aviator sunglasses on head, gold chain necklace, slight smirk looking off camera, Pondicherry French quarter cobblestone street with bougainvillea-covered yellow colonial walls behind her, soft overcast daylight with warm bougainvillea bounce, f/2.0 shallow depth of field, sharp focus on face, natural skin texture, light film grain
+
+# 3. Sitting on step — candid casual
+denoise=0.62 | anchor=sitting | photorealistic candid editorial fashion photograph shot on Sony A7IV 50mm, full body pose of a 23-year-old South Asian woman seated firmly on weathered stone step with hips resting on stone surface and feet flat on cobblestones, cross-legged or knees bent side angle with one hand resting on knee, dark hair in loose beachy waves, wearing cream off-white linen midi dress with thin spaghetti straps flowing over knees, tortoiseshell aviator sunglasses pushed up on head, gold chain necklace, looking thoughtfully into distance, Pondicherry colonial doorway with bougainvillea pink flowers around her, soft diffused overcast light with warm accent from flowers, f/2.0 moderate depth of field, sharp focus on face, natural skin texture, light film grain
+
+# 4. Close-up — hand near face
+denoise=0.55 | anchor=closeup | pose=character/ananya/poses/close_04.png | cn=0.55 | photorealistic Instagram lifestyle photograph shot on Sony A7IV 50mm, tight close-up portrait of a 23-year-old South Asian woman with dark hair in loose beachy waves catching soft daylight, wearing fitted cream off-white linen midi dress with thin spaghetti strap visible on shoulder, tortoiseshell aviator sunglasses pushed up on head, slight playful smile with right hand near face brushing hair behind ear, soft Pondicherry bougainvillea pink bokeh behind, soft diffused overcast daylight with warm pink accent, f/1.4 very shallow depth of field, sharp focus on eyes, natural skin texture with visible pores, light film grain
+
+# 5. Arms behind head — confident hair-up
+denoise=0.55 | anchor=standing | pose=character/ananya/poses/standing_08.png | cn=0.55 | photorealistic editorial fashion photograph shot on Sony A7IV 50mm, full body pose of a 23-year-old South Asian woman with both arms raised running fingers through hair, dark hair in loose beachy waves caught in soft breeze, wearing cream off-white linen midi dress with thin spaghetti straps, tortoiseshell aviator sunglasses on head, gold chain necklace, soft serene smile looking at camera, Pondicherry French quarter cobblestone street with bougainvillea-covered yellow walls and old colonial windows behind, soft overcast daylight, f/2.0 shallow depth of field, sharp focus on face, natural skin texture, light film grain
+
+# 6. Close-up — arms crossed confident
+denoise=0.55 | anchor=closeup | pose=character/ananya/poses/close_03.png | cn=0.55 | photorealistic Instagram editorial portrait shot on Sony A7IV 50mm, close-up waist-up portrait of a 23-year-old South Asian woman with arms folded across chest in confident editorial pose, dark hair in loose beachy waves, wearing cream off-white linen midi dress with thin spaghetti straps and ruched bodice visible, tortoiseshell aviator sunglasses on head, gold chain necklace, direct gaze with slight smirk, Pondicherry yellow colonial wall with bougainvillea pink flower bokeh behind, soft diffused daylight with warm accent, f/1.8 shallow depth of field, sharp focus on face, natural skin texture, light film grain

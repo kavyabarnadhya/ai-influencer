@@ -39,11 +39,20 @@
       "batch_size": 1
     }
   },
+  "15": {
+    "_meta": {"title": "_claude_inject_skin_lora"},
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "model": ["1", 0],
+      "lora_name": "flux-xlabs-realism.safetensors",
+      "strength_model": 0.8
+    }
+  },
   "6": {
     "_meta": {"title": "Model Sampling Flux"},
     "class_type": "ModelSamplingFlux",
     "inputs": {
-      "model": ["1", 0],
+      "model": ["15", 0],
       "max_shift": 1.15,
       "base_shift": 0.5,
       "width": 896,

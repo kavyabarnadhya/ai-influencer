@@ -1,0 +1,21 @@
+# Production OOTD — maroon Banarasi saree on Mumbai rooftop golden hour.
+# Single-anchor + FLUX dev. Validated pose subset: standing variations + close-ups.
+# Denoise 0.45-0.50, cn 0.50-0.55, LoRA strength 0.5 (body curves preserved).
+
+# 1. Standing 3/4 — hero shot
+denoise=0.48 | pose=character/ananya/poses/standing_01.png | cn=0.55 | size M hourglass South Asian woman with fuller bust defined small waist balanced curvy hips, wearing deep maroon silk Banarasi saree with gold zari border and fitted black short-sleeve blouse, gold jhumka earrings, photorealistic Instagram editorial fashion photograph shot on Sony A7IV 50mm, full body three-quarter pose facing camera, slight serene smile looking at camera with hand gently holding saree pallu at waist, Mumbai high-rise rooftop at golden hour with hazy city skyline behind, warm orange backlight, f/2.0 shallow depth of field, sharp focus on face
+
+# 2. Standing weight-shifted variation
+denoise=0.48 | pose=character/ananya/poses/standing_06.png | cn=0.55 | size M hourglass South Asian woman with fuller bust defined small waist balanced curvy hips, wearing deep maroon silk Banarasi saree with gold zari border and fitted black blouse, gold jhumka earrings, photorealistic candid fashion photograph shot on Sony A7IV 50mm, full body casual weight-shifted standing pose with arms relaxed and saree pallu draped over left shoulder, looking thoughtfully off camera, Mumbai rooftop at golden hour with hazy skyline behind, warm orange backlight, f/2.0 shallow depth of field, sharp focus on face
+
+# 3. Standing side angle — pallu detail
+denoise=0.48 | pose=character/ananya/poses/standing_04.png | cn=0.55 | size M hourglass South Asian woman with fuller bust defined small waist balanced curvy hips, wearing deep maroon silk Banarasi saree with gold zari border and fitted black blouse, gold jhumka earrings, photorealistic candid fashion photograph shot on Sony A7IV 50mm, full body slight side angle with hand reaching up gently touching hair showing pallu drape detail, looking thoughtfully off camera, Mumbai rooftop golden hour with hazy skyline behind, warm orange side light, f/2.0 shallow depth of field, sharp focus on face
+
+# 4. Close-up neutral portrait
+denoise=0.50 | pose=character/ananya/poses/close_06.png | cn=0.55 | size M hourglass South Asian woman with fuller bust, wearing deep maroon silk Banarasi saree with visible gold zari border at neckline area and fitted black blouse, gold jhumka earrings prominent, photorealistic Instagram lifestyle photograph shot on Sony A7IV 50mm, tight close-up portrait from chest up filling frame, soft natural smile looking at camera, hazy Mumbai golden hour rooftop bokeh behind, warm orange sun flare from upper right, f/1.4 very shallow depth of field with melted background bokeh, sharp focus on eyes
+
+# 5. Close-up head tilt
+denoise=0.50 | pose=character/ananya/poses/close_01.png | cn=0.55 | size M hourglass South Asian woman, wearing deep maroon silk Banarasi saree with visible gold zari at neckline and fitted black blouse, gold jhumka earrings catching golden light, photorealistic Instagram lifestyle photograph shot on Sony A7IV 50mm, tight close-up portrait with head tilted slightly and dark hair catching warm light, slight playful expression looking at camera, hazy Mumbai golden hour rooftop bokeh behind, warm orange sun flare, f/1.4 very shallow depth of field, sharp focus on eyes
+
+# 6. Close-up arms folded editorial
+denoise=0.50 | pose=character/ananya/poses/close_03.png | cn=0.55 | size M hourglass South Asian woman with fuller bust, wearing deep maroon silk Banarasi saree with gold zari border draped pleated over left shoulder and fitted black blouse, gold jhumka earrings prominent, photorealistic Instagram editorial portrait shot on Sony A7IV 50mm, close-up waist-up portrait with arms folded across chest in confident editorial pose showing pallu drape detail, direct gaze with slight smirk, Mumbai golden hour rooftop bokeh behind with warm orange light, f/1.8 shallow depth of field, sharp focus on face
