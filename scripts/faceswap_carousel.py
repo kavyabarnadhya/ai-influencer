@@ -47,13 +47,15 @@ ROOT = Path(__file__).parent.parent
 # Dark-clothed so outfit color in slides doesn't pull toward beige.
 # Natural lighting + 50mm framing seeds FLUX with photographic style anchor.
 DEFAULT_ANCHOR_PROMPT = (
-    "curvy thick hourglass South Asian woman with large fuller bust, tiny defined waist, "
-    "wide curvy hips, thick thighs, photorealistic candid fashion photograph shot on "
-    "Sony A7IV 50mm, full-body three-quarter standing pose of a 23-year-old "
+    "size M hourglass figure woman with fuller bust, slim defined small waist, "
+    "balanced curvy hips, slim toned thighs, soft feminine curves, slim with curves "
+    "not plus size, South Asian 23 year old, full-body three-quarter standing pose "
     "with dark hair loose over shoulders, plain neutral grey form-fitting bodysuit, "
     "soft natural daylight, plain light grey backdrop, "
-    "natural skin texture with visible pores, light film grain, sharp focus on face, "
-    "no plastic AI smoothing"
+    "shot on Kodak Portra 400 film, visible skin pores and faint peach fuzz, "
+    "subtle skin imperfections, slight natural oil shine on T-zone, 35mm film grain, "
+    "photographic grain noise, candid unretouched amateur photography style, "
+    "raw unedited look, no retouching"
 )
 DEFAULT_DENOISE_VARIED = 0.85
 DEFAULT_DENOISE_OUTFIT_LOCK = 0.40
@@ -161,27 +163,49 @@ def parse_prompts_file(path: Path, default_denoise: float) -> list[dict]:
 
 
 def load_anchor_config(path: Path) -> dict:
-    """Load + validate anchor YAML. Schema:
+    """Load + validate anchor YAML. Two supported schemas:
+
+    SINGLE-ANCHOR (preferred for OOTD — accessory consistency):
+        anchor_seed: int (optional)
+        anchor_prompt: <full anchor description: body + outfit + accessories + scene>
+
+    MULTI-ANCHOR (legacy — for varied-pose carousels needing back-view / sitting / etc):
         anchor_seed: int (optional)
         shared_tail: str (optional)
         anchors:
           <group_name>:
             prompt: str
-    Raises ValueError on schema violations.
+
+    Returns cfg dict with added 'mode' key: 'single' or 'multi'.
     """
     with open(path, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     if not isinstance(cfg, dict):
         raise ValueError(f"{path}: root must be a mapping")
-    if "anchors" not in cfg or not isinstance(cfg["anchors"], dict):
-        raise ValueError(f"{path}: missing or invalid 'anchors' mapping")
-    if not cfg["anchors"]:
-        raise ValueError(f"{path}: 'anchors' must have at least one group")
-    for group_name, group_cfg in cfg["anchors"].items():
-        if not isinstance(group_cfg, dict) or "prompt" not in group_cfg:
-            raise ValueError(f"{path}: anchor group '{group_name}' missing required 'prompt' field")
-        if not isinstance(group_cfg["prompt"], str) or not group_cfg["prompt"].strip():
-            raise ValueError(f"{path}: anchor group '{group_name}' prompt must be a non-empty string")
+
+    has_anchors = "anchors" in cfg
+    has_single = "anchor_prompt" in cfg
+    if has_anchors and has_single:
+        raise ValueError(f"{path}: cannot have both 'anchors' (multi mode) and 'anchor_prompt' (single mode)")
+    if not has_anchors and not has_single:
+        raise ValueError(f"{path}: must have either 'anchor_prompt' (single mode) or 'anchors' (multi mode)")
+
+    if has_single:
+        cfg["mode"] = "single"
+        if not isinstance(cfg["anchor_prompt"], str) or not cfg["anchor_prompt"].strip():
+            raise ValueError(f"{path}: 'anchor_prompt' must be a non-empty string")
+    else:
+        cfg["mode"] = "multi"
+        if not isinstance(cfg["anchors"], dict):
+            raise ValueError(f"{path}: 'anchors' must be a mapping")
+        if not cfg["anchors"]:
+            raise ValueError(f"{path}: 'anchors' must have at least one group")
+        for group_name, group_cfg in cfg["anchors"].items():
+            if not isinstance(group_cfg, dict) or "prompt" not in group_cfg:
+                raise ValueError(f"{path}: anchor group '{group_name}' missing required 'prompt' field")
+            if not isinstance(group_cfg["prompt"], str) or not group_cfg["prompt"].strip():
+                raise ValueError(f"{path}: anchor group '{group_name}' prompt must be a non-empty string")
+
     if "anchor_seed" in cfg and not isinstance(cfg["anchor_seed"], int):
         raise ValueError(f"{path}: 'anchor_seed' must be an integer")
     return cfg
@@ -197,25 +221,39 @@ def load_anchor_config(path: Path) -> dict:
 @click.option("--anchor-outfit-prompt", default=None)
 @click.option("--anchor-prompt", default=None)
 @click.option("--anchor-config", default=None, type=click.Path(exists=True),
-              help="YAML with multiple anchors (per pose group: standing/sitting/closeup)")
+              help="YAML with anchor(s) — single mode (anchor_prompt:) or multi mode (anchors:)")
+@click.option("--flux-dev", is_flag=True,
+              help="Use FLUX dev workflows (20 steps, CFG 3.5) instead of schnell (4 steps). ~5x slower, better prompt adherence.")
 @click.option("--character", default="ananya", show_default=True)
 def main(prompts_file: str, face_ref: str, name: str, candidates: int,
          anchor_seed: int | None, outfit_lock: bool,
          anchor_outfit_prompt: str | None, anchor_prompt: str | None,
-         anchor_config: str | None, character: str):
+         anchor_config: str | None, flux_dev: bool, character: str):
     """Carousel: FLUX img2img (person+BG together) → ReActor face swap."""
 
     prompts_path = Path(prompts_file)
     face_ref_path = Path(face_ref)
 
-    # Multi-anchor mode if --anchor-config provided
-    multi_anchor_cfg = None
+    # Pick FLUX schnell or dev workflows. Dev is ~5x slower but better prompt adherence.
+    flux_wf = {
+        "t2i":      "flux_dev.json"                       if flux_dev else "flux_schnell.json",
+        "i2i":      "flux_dev_img2img.json"               if flux_dev else "flux_img2img.json",
+        "i2i_cn":   "flux_dev_img2img_controlnet.json"    if flux_dev else "flux_img2img_controlnet.json",
+    }
+    # Per-call timeout: dev img2img+ControlNet runs 10-20min on RTX 3050, schnell ~1-2min
+    flux_timeout = 3600 if flux_dev else 300
+
+    # Anchor config mode (single or multi) if --anchor-config provided
+    anchor_cfg = None
     if anchor_config:
-        multi_anchor_cfg = load_anchor_config(Path(anchor_config))
+        anchor_cfg = load_anchor_config(Path(anchor_config))
         if anchor_seed is None:
-            anchor_seed = multi_anchor_cfg.get("anchor_seed", random.randint(1, 2**31 - 1))
+            anchor_seed = anchor_cfg.get("anchor_seed", random.randint(1, 2**31 - 1))
         default_denoise = DEFAULT_DENOISE_OUTFIT_LOCK
-        mode_label = f"multi-anchor ({len(multi_anchor_cfg['anchors'])} groups)"
+        if anchor_cfg["mode"] == "single":
+            mode_label = "single-anchor (OOTD, accessory-locked)"
+        else:
+            mode_label = f"multi-anchor ({len(anchor_cfg['anchors'])} groups)"
     elif outfit_lock:
         if not anchor_outfit_prompt:
             console.print("[red]--outfit-lock requires --anchor-outfit-prompt or --anchor-config[/red]")
@@ -256,21 +294,40 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
 
     uploaded_face = client.upload_image(str(face_ref_path))
 
-    # Stage 1: anchor body (one or many)
+    # Stage 1: anchor body — single or multi based on config
     uploaded_anchors: dict[str, str] = {}  # group_name -> uploaded filename
-    if multi_anchor_cfg:
-        console.print(f"\n[bold cyan]Stage 1 — Generating {len(multi_anchor_cfg['anchors'])} anchors[/bold cyan]")
-        tail = multi_anchor_cfg.get("shared_tail", "").strip()
-        for group_name, group_cfg in multi_anchor_cfg["anchors"].items():
+    if anchor_cfg and anchor_cfg["mode"] == "single":
+        console.print(f"\n[bold cyan]Stage 1 — Single anchor (accessory-locked)[/bold cyan]")
+        anchor_prompt_text = anchor_cfg["anchor_prompt"].strip()
+        console.print(f"  {anchor_prompt_text[:100]}...")
+        anchor_path = inter / "anchor.png"
+        wf1 = _inject_flux_t2i(
+            load_workflow(str(ROOT / "workflows" / flux_wf["t2i"])),
+            anchor_prompt_text, anchor_seed,
+        )
+        try:
+            _run_and_save(client, wf1, anchor_path, timeout=flux_timeout)
+            console.print(f"  [green]OK[/green] anchor.png")
+        except ComfyUIError as e:
+            console.print(f"[red]Anchor failed: {e}[/red]")
+            raise SystemExit(1)
+        # In single-anchor mode, ALL anchor groups route to this one anchor
+        uploaded_single = client.upload_image(str(anchor_path))
+        for group in ("default", "standing", "sitting", "closeup", "dynamic"):
+            uploaded_anchors[group] = uploaded_single
+    elif anchor_cfg and anchor_cfg["mode"] == "multi":
+        console.print(f"\n[bold cyan]Stage 1 — Generating {len(anchor_cfg['anchors'])} anchors[/bold cyan]")
+        tail = anchor_cfg.get("shared_tail", "").strip()
+        for group_name, group_cfg in anchor_cfg["anchors"].items():
             anchor_prompt_text = (group_cfg["prompt"].strip() + " " + tail).strip()
             anchor_path = inter / f"anchor_{group_name}.png"
             console.print(f"  [{group_name}] {anchor_prompt_text[:80]}...")
             wf1 = _inject_flux_t2i(
-                load_workflow(str(ROOT / "workflows" / "flux_schnell.json")),
+                load_workflow(str(ROOT / "workflows" / flux_wf["t2i"])),
                 anchor_prompt_text, anchor_seed,
             )
             try:
-                _run_and_save(client, wf1, anchor_path)
+                _run_and_save(client, wf1, anchor_path, timeout=flux_timeout)
                 uploaded_anchors[group_name] = client.upload_image(str(anchor_path))
                 console.print(f"  [green]OK[/green] anchor_{group_name}.png")
             except ComfyUIError as e:
@@ -279,11 +336,11 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
     else:
         anchor_path = inter / "anchor.png"
         wf1 = _inject_flux_t2i(
-            load_workflow(str(ROOT / "workflows" / "flux_schnell.json")),
+            load_workflow(str(ROOT / "workflows" / flux_wf["t2i"])),
             anchor_text, anchor_seed,
         )
         try:
-            _run_and_save(client, wf1, anchor_path)
+            _run_and_save(client, wf1, anchor_path, timeout=flux_timeout)
             console.print(f"  Saved: {anchor_path.relative_to(ROOT)}")
         except ComfyUIError as e:
             console.print(f"[red]Anchor failed: {e}[/red]")
@@ -334,13 +391,13 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
 
             try:
                 # Stage 2: img2img off anchor (with ControlNet if pose specified)
-                workflow_file = "flux_img2img_controlnet.json" if use_cn else "flux_img2img.json"
+                workflow_file = flux_wf["i2i_cn"] if use_cn else flux_wf["i2i"]
                 wf2 = _inject_flux_img2img(
                     load_workflow(str(ROOT / "workflows" / workflow_file)),
                     slide_prompt, uploaded_anchor, denoise, slide_seed,
                     pose_image_name=uploaded_pose, cn_strength=cn_strength,
                 )
-                _run_and_save(client, wf2, base_path)
+                _run_and_save(client, wf2, base_path, timeout=flux_timeout)
 
                 # Stage 3: ReActor face swap
                 uploaded_target = client.upload_image(str(base_path))

@@ -1,0 +1,36 @@
+# Production OOTD v2 — single-anchor + FLUX dev. Same outfit + same location + visible pose variation.
+# Pose vocabulary: standing_01/04/06 + close_01/03/06 (validated reliable subset).
+# Anti-patterns excluded: standing_07 (hands-on-hip → outfit drift), standing_08 (arms-up → drift),
+#                        sitting_01 (CN unreliable), back-view (anchor faces camera).
+# v2 changes vs v1:
+#   - Standing denoise raised 0.48→0.62 + cn raised 0.55→0.70: enables visible pose shift
+#   - Close-up denoise 0.50→0.55 + cn 0.55→0.65: more expression variety
+#   - Body tokens in slides strengthened to match new anchor (visible waist-to-hip curve)
+#   - Pose descriptions made more specific per slide
+#
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/offshoulder_skirt_bandra_single.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name bandra_v11_dev \
+#     --anchor-config character/ananya/anchor_libraries/offshoulder_skirt_bandra_single.yaml \
+#     --flux-dev
+
+# 1. Standing 3/4 — classic editorial hero shot, direct gaze
+# denoise=0.80: high enough to break anchor composition lock, CN drives pose
+denoise=0.80 | pose=character/ananya/poses/standing_01.png | cn=0.75 | curvy hourglass body wide hips visible hip flare size M South Asian woman with visible waist-to-hip curve, soft rounded midriff, medium build curvy not skinny, in fitted white off-shoulder cropped top and denim mini skirt, photorealistic Instagram editorial fashion photograph shot on Sony A7IV 50mm, full body three-quarter pose weight on right leg arms relaxed at sides, slight serene smile looking directly at camera, Bandra Mumbai cafe street at dusk with warm string lights and orange shopfront behind, mixed warm evening light, f/2.0 shallow depth of field, sharp focus on face
+
+# 2. Standing weight-shifted — one hand on hip, looking off camera
+denoise=0.80 | pose=character/ananya/poses/standing_06.png | cn=0.75 | curvy hourglass body wide hips visible hip flare size M South Asian woman with visible waist-to-hip curve, soft rounded midriff, medium build curvy not skinny, in fitted white off-shoulder cropped top and denim mini skirt, photorealistic candid fashion photograph shot on Sony A7IV 50mm, full body casual stance left hand on hip right arm relaxed, chin slightly lifted looking off camera left with relaxed smile, Bandra Mumbai cafe street with warm shopfront glow and parked scooters behind, mixed warm evening light, f/2.0 shallow depth of field, sharp focus on face
+
+# 3. Standing — one hand raised touching hair, slight turn
+denoise=0.80 | pose=character/ananya/poses/standing_04.png | cn=0.75 | curvy hourglass body wide hips visible hip flare size M South Asian woman with visible waist-to-hip curve, soft rounded midriff, medium build curvy not skinny, in fitted white off-shoulder cropped top and denim mini skirt, photorealistic candid fashion photograph shot on Sony A7IV 50mm, full body pose with right hand raised brushing hair back off shoulder, slight three-quarter turn body angled, looking thoughtfully off camera, Bandra Mumbai cafe street with warm string lights behind, soft warm evening ambient light, f/2.0 shallow depth of field, sharp focus on face
+
+# 4. Close-up — direct smile, chest-up (denoise=0.90: breaks anchor full-body framing, prompt drives crop)
+denoise=0.90 | curvy hourglass body full bust visible collarbone size M South Asian woman in fitted white off-shoulder cropped top showing collarbones and shoulders, photorealistic Instagram lifestyle photograph shot on Sony A7IV 50mm, tight close-up portrait from chest up filling frame, bright warm smile looking directly at camera, warm Bandra cafe street bokeh with string lights behind, warm evening tungsten and neon glow, f/1.4 very shallow depth of field, sharp focus on eyes
+
+# 5. Close-up — head tilt, playful expression, hand near face (denoise=0.90)
+denoise=0.90 | curvy hourglass body full bust size M South Asian woman in fitted white off-shoulder cropped top, photorealistic Instagram lifestyle photograph shot on Sony A7IV 50mm, tight close-up portrait head tilted right with right hand resting lightly on collarbone, dark hair catching warm light, playful half-smile looking at camera, warm Bandra cafe bokeh with neon glow behind, f/1.4 very shallow depth of field, sharp focus on eyes
+
+# 6. Close-up — arms folded, confident editorial smirk (denoise=0.90)
+denoise=0.90 | curvy hourglass body full bust size M South Asian woman in fitted white off-shoulder cropped top, photorealistic Instagram editorial portrait shot on Sony A7IV 50mm, waist-up portrait arms folded across chest in confident editorial pose shoulders back, direct gaze with slight smirk, warm Bandra street bokeh with string lights and neon sign behind, warm evening light, f/1.8 shallow depth of field, sharp focus on face

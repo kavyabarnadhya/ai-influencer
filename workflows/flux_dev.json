@@ -1,0 +1,110 @@
+{
+  "1": {
+    "_meta": {"title": "UNET Loader (GGUF)"},
+    "class_type": "UnetLoaderGGUF",
+    "inputs": {
+      "unet_name": "flux1-dev-Q4_K_S.gguf"
+    }
+  },
+  "2": {
+    "_meta": {"title": "CLIP Loader (dual)"},
+    "class_type": "DualCLIPLoader",
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "t5xxl_fp8_e4m3fn.safetensors",
+      "type": "flux"
+    }
+  },
+  "3": {
+    "_meta": {"title": "VAE Loader"},
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    }
+  },
+  "4": {
+    "_meta": {"title": "_claude_inject_prompt"},
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "photorealistic portrait, 8k, sharp focus",
+      "clip": ["2", 0]
+    }
+  },
+  "5": {
+    "_meta": {"title": "_claude_inject_latent"},
+    "class_type": "EmptySD3LatentImage",
+    "inputs": {
+      "width": 896,
+      "height": 1152,
+      "batch_size": 1
+    }
+  },
+  "15": {
+    "_meta": {"title": "_claude_inject_skin_lora"},
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "model": ["1", 0],
+      "lora_name": "flux-xlabs-realism.safetensors",
+      "strength_model": 0.3
+    }
+  },
+  "16": {
+    "_meta": {"title": "Flux Guidance"},
+    "class_type": "FluxGuidance",
+    "inputs": {
+      "conditioning": ["4", 0],
+      "guidance": 3.5
+    }
+  },
+  "6": {
+    "_meta": {"title": "Model Sampling Flux"},
+    "class_type": "ModelSamplingFlux",
+    "inputs": {
+      "model": ["15", 0],
+      "max_shift": 1.15,
+      "base_shift": 0.5,
+      "width": 896,
+      "height": 1152
+    }
+  },
+  "7": {
+    "_meta": {"title": "_claude_inject_seed"},
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["6", 0],
+      "positive": ["16", 0],
+      "negative": ["8", 0],
+      "latent_image": ["5", 0],
+      "seed": 0,
+      "steps": 20,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0
+    }
+  },
+  "8": {
+    "_meta": {"title": "Empty Negative"},
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "skinny, thin, slim, petite, small frame, bony, flat hips, no curves, underweight, stick thin",
+      "clip": ["2", 0]
+    }
+  },
+  "9": {
+    "_meta": {"title": "VAE Decode"},
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["7", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "10": {
+    "_meta": {"title": "Save Image"},
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["9", 0],
+      "filename_prefix": "flux_dev"
+    }
+  }
+}

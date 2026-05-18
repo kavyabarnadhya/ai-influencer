@@ -1,0 +1,29 @@
+# Production OOTD v2 — multi-anchor + FLUX dev.
+# standing anchor (full-body) → slides 1-3 at denoise=0.80, outfit locked via anchor
+# closeup anchor (waist-up) → slides 4-6 at denoise=0.65, outfit locked via closeup anchor
+#
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/offshoulder_skirt_bandra_multi.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name bandra_v16_dev \
+#     --anchor-config character/ananya/anchor_libraries/offshoulder_skirt_bandra_multi_v2.yaml \
+#     --flux-dev
+
+# 1. Standing 3/4 — classic editorial hero shot, direct gaze
+denoise=0.80 | anchor=standing | pose=character/ananya/poses/standing_01.png | cn=0.75 | curvy hourglass body wide hips visible hip flare size M South Asian woman with visible waist-to-hip curve, soft rounded midriff, medium build curvy not skinny, in fitted white off-shoulder cropped top and denim mini skirt, photorealistic Instagram editorial fashion photograph shot on Sony A7IV 50mm, full body three-quarter pose weight on right leg arms relaxed at sides, slight serene smile looking directly at camera, Bandra Mumbai cafe street at dusk with warm string lights and orange shopfront behind, mixed warm evening light, f/2.0 shallow depth of field, sharp focus on face
+
+# 2. Standing weight-shifted — hand on hip, looking off camera
+denoise=0.80 | anchor=standing | pose=character/ananya/poses/standing_06.png | cn=0.75 | curvy hourglass body wide hips visible hip flare size M South Asian woman with visible waist-to-hip curve, soft rounded midriff, medium build curvy not skinny, in fitted white off-shoulder cropped top and denim mini skirt, photorealistic candid fashion photograph shot on Sony A7IV 50mm, full body casual stance left hand on hip right arm relaxed, chin slightly lifted looking off camera left with relaxed smile, Bandra Mumbai cafe street with warm shopfront glow and parked scooters behind, mixed warm evening light, f/2.0 shallow depth of field, sharp focus on face
+
+# 3. Standing — hand raised touching hair, slight turn
+denoise=0.80 | anchor=standing | pose=character/ananya/poses/standing_04.png | cn=0.75 | curvy hourglass body wide hips visible hip flare size M South Asian woman with visible waist-to-hip curve, soft rounded midriff, medium build curvy not skinny, in fitted white off-shoulder cropped top and denim mini skirt, photorealistic candid fashion photograph shot on Sony A7IV 50mm, full body pose with right hand raised brushing hair back off shoulder, slight three-quarter turn body angled, looking thoughtfully off camera, Bandra Mumbai cafe street with warm string lights behind, soft warm evening ambient light, f/2.0 shallow depth of field, sharp focus on face
+
+# 4. Close-up — direct smile, both hands framing face
+denoise=0.65 | anchor=closeup | curvy hourglass body full bust visible collarbone size M South Asian woman in fitted white off-shoulder cropped top showing collarbones and shoulders, photorealistic Instagram lifestyle photograph shot on Sony A7IV 50mm, tight close-up portrait from chest up, both hands raised framing jaw and cheeks with fingers spread, bright open-mouth smile looking directly at camera, warm Bandra cafe street bokeh with string lights behind, warm evening tungsten and neon glow, f/1.4 very shallow depth of field, sharp focus on eyes
+
+# 5. Close-up — one hand raised pushing hair back, looking sideways
+denoise=0.65 | anchor=closeup | curvy hourglass body full bust size M South Asian woman in fitted white off-shoulder cropped top, photorealistic Instagram lifestyle photograph shot on Sony A7IV 50mm, tight close-up portrait right arm raised with hand pushing hair off left shoulder exposing collarbone, head turned slightly left looking off camera with relaxed expression mouth slightly open, dark hair tousled by hand motion, warm Bandra cafe bokeh with neon glow behind, f/1.4 very shallow depth of field, sharp focus on eyes
+
+# 6. Close-up — arms folded tight, chin down, direct smirk
+denoise=0.65 | anchor=closeup | curvy hourglass body full bust size M South Asian woman in fitted white off-shoulder cropped top, photorealistic Instagram editorial portrait shot on Sony A7IV 50mm, waist-up portrait both arms folded tight across chest hands gripping opposite arms, chin slightly lowered, direct camera gaze with confident closed-lip smirk, warm Bandra street bokeh with string lights and neon sign behind, warm evening light, f/1.8 shallow depth of field, sharp focus on face

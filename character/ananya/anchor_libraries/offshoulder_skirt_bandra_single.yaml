@@ -1,0 +1,36 @@
+# SINGLE-ANCHOR OOTD — off-shoulder crop top + denim midi skirt, Bandra cafe dusk.
+# All 6 slides img2img off this ONE anchor. Accessories rendered once → consistent.
+#
+# Schema: single anchor_prompt with everything baked in (body + outfit + accessories
+# + scene + lighting + style). Slide prompts only describe pose + framing variations.
+#
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/offshoulder_skirt_bandra_single.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name bandra_single_01 \
+#     --anchor-config character/ananya/anchor_libraries/offshoulder_skirt_bandra_single.yaml
+
+anchor_seed: 482917365
+
+# v2: stronger body tokens for form-fitting western outfit (crop top exposes midriff
+# so body reads smaller — need explicit midriff + hip curve tokens beyond base recipe)
+anchor_prompt: >
+  curvy hourglass body, wide hips, visible hip flare, thick thighs, full rounded hips,
+  size M hourglass figure woman with fuller bust, slim defined small waist, balanced
+  curvy hips, visible waist-to-hip curve, soft rounded midriff, slim toned thighs,
+  soft feminine curves, medium build curvy not skinny,
+  South Asian 23 year old, photorealistic full body editorial fashion photograph
+  shot on Sony A7IV 50mm, three-quarter pose standing facing camera
+  with weight shifted on right leg, dark hair in loose beachy waves over right shoulder,
+  wearing fitted white off-shoulder cropped top with elasticated neckline showing
+  shoulders and collarbones, paired with flared blue denim mini skirt with visible
+  hemline at mid-thigh, bare legs visible below skirt hem, small gold hoop earrings, single delicate gold chain
+  necklace on collarbone, brown leather small crossbody bag worn diagonally with sling
+  clearly visible across right shoulder and chest, Bandra Mumbai cafe street at dusk
+  with warm string lights and orange shopfront glow and parked scooters behind,
+  mixed warm ambient evening light with neon shopfront accents, f/2.0 shallow depth
+  of field, sharp focus on face, shot on Kodak Portra 400 film, visible skin pores
+  and faint peach fuzz, subtle skin imperfections, slight natural oil shine on T-zone,
+  35mm film grain, candid unretouched amateur photography style, raw unedited look,
+  no retouching
