@@ -238,6 +238,37 @@ def polish_prompt(description: str) -> str:
         return f"ERROR: {e}"
 
 
+def _find_recent_images(output_dir: Path, character: str, subdir_name: str, limit: int) -> list[Path]:
+    """
+    Helper to find recent images using date-based traversal.
+    Optimization: Traverse date-based directories (YYYY-MM-DD) in reverse order.
+    This avoids expensive rglob over thousands of images in a flat structure.
+    """
+    recent_images = []
+    try:
+        # Match YYYY-MM-DD pattern to be safe, though all dirs are currently dates
+        date_dirs = sorted(
+            [d for d in output_dir.iterdir() if d.is_dir() and len(d.name) == 10],
+            key=lambda d: d.name,
+            reverse=True
+        )
+        for date_dir in date_dirs:
+            char_dir = date_dir / subdir_name
+            if char_dir.exists() and char_dir.is_dir():
+                # Find images in this specific directory
+                day_images = sorted(
+                    char_dir.glob(f"{character}_*.png"),
+                    key=lambda p: p.stat().st_mtime,
+                    reverse=True
+                )
+                recent_images.extend(day_images)
+                if len(recent_images) >= limit:
+                    break
+    except OSError:
+        pass
+    return recent_images[:limit]
+
+
 @mcp.tool()
 def list_recent_images(character: str = "ananya", limit: int = 5) -> str:
     """List the most recently generated images for a character.
@@ -248,10 +279,18 @@ def list_recent_images(character: str = "ananya", limit: int = 5) -> str:
     """
     cfg = _load_config()
     output_dir = ROOT / cfg["paths"]["output_dir"]
-    images = sorted(output_dir.rglob(f"{character}_*.png"), key=lambda p: p.stat().st_mtime, reverse=True)
-    if not images:
+
+    if not output_dir.exists():
         return f"No images found for {character} in {output_dir}"
-    recent = images[:limit]
+
+    char_cfg = cfg.get("characters", {}).get(character, {})
+    subdir_name = char_cfg.get("output_subdir", character)
+
+    recent = _find_recent_images(output_dir, character, subdir_name, limit)
+
+    if not recent:
+        return f"No images found for {character} in {output_dir}"
+
     return "\n".join(str(p) for p in recent)
 
 
@@ -455,6 +494,32 @@ def draft_caption(carousel_path: str, platform: str = "instagram") -> str:
     return f"Caption saved to {caption_path}\n\n{caption}"
 
 
+def _find_all_carousels(output_dir: Path, subdir_name: str) -> list[Path]:
+    """
+    Helper to find all carousel directories using date-based traversal.
+    Optimization: Traverse date-based directories in reverse order to avoid rglob.
+    """
+    carousel_dirs = []
+    try:
+        date_dirs = sorted(
+            [d for d in output_dir.iterdir() if d.is_dir() and len(d.name) == 10],
+            key=lambda d: d.name,
+            reverse=True
+        )
+        for date_dir in date_dirs:
+            char_dir = date_dir / subdir_name
+            if char_dir.exists() and char_dir.is_dir():
+                day_carousels = sorted(
+                    [p for p in char_dir.glob("carousel_*") if p.is_dir()],
+                    key=lambda p: p.stat().st_mtime,
+                    reverse=True
+                )
+                carousel_dirs.extend(day_carousels)
+    except OSError:
+        pass
+    return carousel_dirs
+
+
 @mcp.tool()
 def content_readiness_report(character: str = "ananya") -> str:
     """Scan all carousel output folders and report review + caption status for each.
@@ -465,11 +530,13 @@ def content_readiness_report(character: str = "ananya") -> str:
     cfg = _load_config()
     output_dir = ROOT / cfg["paths"]["output_dir"]
 
-    carousel_dirs = sorted(
-        [p for p in output_dir.rglob(f"carousel_*") if p.is_dir() and cfg["characters"].get(character, {}).get("output_subdir", character) in str(p)],
-        key=lambda p: p.stat().st_mtime,
-        reverse=True,
-    )
+    if not output_dir.exists():
+        return f"No output directory found at {output_dir}"
+
+    char_cfg = cfg.get("characters", {}).get(character, {})
+    subdir_name = char_cfg.get("output_subdir", character)
+
+    carousel_dirs = _find_all_carousels(output_dir, subdir_name)
 
     if not carousel_dirs:
         return f"No carousel folders found for {character} under {output_dir}"

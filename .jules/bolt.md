@@ -77,3 +77,7 @@
 **Learning:** MCP servers often handle sequential or repetitive requests (e.g. during prompt iteration). Redundant network handshakes for local API calls (Ollama) and slow LLM inference for identical inputs are significant bottlenecks that can be mitigated with connection pooling and LRU caching.
 
 **Action:** Implement `requests.Session()` for connection pooling and use `@functools.lru_cache` for expensive LLM-based transformations and disk-bound config loading in the MCP server.
+
+## 2026-05-16 - Date-Based Traversal for Output Discovery
+**Learning:** Using Path.rglob() to find recent images or carousels in a large, multi-day output directory is an O(N) operation that becomes increasingly slow as the dataset grows. In a structure like output/YYYY-MM-DD/character/, traversing directories by name in reverse order allows for an O(K) discovery (where K is the number of requested recent items), providing a ~10x speedup for typical batch sizes.
+**Action:** Replace global rglob or recursive scans in discovery tools (like MCP servers or gallery views) with reverse chronological directory traversal. Stop the scan as soon as the limit is reached.
