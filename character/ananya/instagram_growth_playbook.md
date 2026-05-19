@@ -1,11 +1,12 @@
 # Instagram Growth Playbook — Ananya
-**Last updated: 2026-05-19**
+**Last updated: 2026-05-19 | Verification status per claim noted inline**
 
 ---
 
 ## Hashtags — 5 Cap (enforced December 2025)
+**[VERIFIED — Later.com, techbuzz.ai]**
 
-Instagram hard-capped hashtags platform-wide. 5 max, no exceptions.
+Instagram hard-capped hashtags platform-wide. 5 max, no exceptions. Applies to caption + comments combined.
 
 **Strategy:**
 - 2 hyper-niche (50K–500K posts): `#chikankari`, `#MumbaiFashionBlogger`, `#SalwarSuitOOTD`
@@ -24,12 +25,15 @@ Instagram hard-capped hashtags platform-wide. 5 max, no exceptions.
 ---
 
 ## Format Priority for 0-Follower Reach
+**[PARTIALLY VERIFIED — directional finding verified, specific multipliers not]**
 
-| Format | Non-follower reach | Engagement rate |
-|--------|-------------------|-----------------|
-| Reels | Highest (1.36x over carousels) | ~6% |
-| Carousels | Medium | ~10% |
-| Static | Lowest | ~7% |
+| Format | Non-follower reach | Notes |
+|--------|-------------------|-------|
+| Reels | Highest (~30.8% avg reach) | Best for discovery |
+| Carousels | Medium (~14.5% avg reach) | Better engagement rate; use once followers exist |
+| Static | Lowest | Near-useless for growth |
+
+The "1.36x" Reels multiplier was unverified — actual benchmark shows Reels achieve ~2x the reach rate of carousels for non-follower discovery. For accounts >1M, carousels can outperform Reels.
 
 **Rule: Reels first for growth. Carousels for depth once followers exist.**
 
@@ -43,37 +47,40 @@ For Ananya: OOTD Reel = quick outfit transition, walking shot, or mirror reveal.
 ---
 
 ## Posting Times — India (IST)
+**[PARTIALLY VERIFIED — general windows confirmed, "7:30 PM Wed as single best slot" is unsupported precision]**
 
 | Window | Notes |
 |--------|-------|
 | 12:00–2:00 PM | Lunch scroll spike, feed posts |
 | 7:00–9:00 PM | Highest Reel consumption |
-| **7:30 PM Wed** | Best single slot of the week |
+| Wed 2:00–9:00 PM | Strong overall Wednesday window (WSCubeTech + Digisimba) |
 | Fri 7:30–9:00 PM | Strong for lifestyle/fashion |
 | Avoid 3–4 PM weekdays | Low engagement |
 | Avoid after 11 PM | Dead zone |
 
-**Default:** Post Reels at 7:30 PM IST on Tuesday, Wednesday, or Friday.
+**Default:** Post Reels between 7:00–9:00 PM IST on Tuesday, Wednesday, or Friday.
 
-After 8–10 posts, check Instagram Insights for your account-specific peak — that overrides these averages.
+After 8–10 posts, check Instagram Insights for account-specific peak — overrides all averages.
 
 ---
 
 ## Algorithm Signals — Ranked
+**[VERIFIED — Buffer, Mosseri 2025 Meta update, multiple sources]**
 
 1. **Watch time / swipe-through rate** — most important for Reels/carousels
-2. **Sends per reach (DM shares)** — Instagram's #1 growth signal; drives distribution
-3. **Saves** — "I want this later" = high value; strong for OOTD
+2. **Sends per reach (DM shares)** — weighted 3–5x higher than likes per Meta 2025 update; primary growth signal
+3. **Saves** — strong for OOTD; drives Explore surfacing
 4. **Comments** (thread replies especially)
 5. **Likes** — weakest; won't rescue a low-save post
 
-**Implication:** Design every carousel/Reel to be save-worthy. Style breakdowns, outfit details, "screenshot this" compositions. A post with 50 saves + 20 shares beats 200 likes + 0 saves.
+**Implication:** Design every carousel/Reel to be save-worthy. Style breakdowns, outfit details, "screenshot this" compositions. 50 saves + 20 DM shares beats 200 likes + 0 saves.
 
 ---
 
-## First 60 Minutes — Critical
+## First 30–60 Minutes — Critical
+**[VERIFIED — principle confirmed; exact threshold varies 30–60 min by source]**
 
-The first 60 minutes determine whether the algorithm expands distribution. Early engagement = test group passes.
+Early engagement velocity determines whether the algorithm expands distribution to wider non-follower pools ("audition system").
 
 **Right after posting:**
 1. Share to your own Story immediately
@@ -81,50 +88,54 @@ The first 60 minutes determine whether the algorithm expands distribution. Early
 3. Reply to every comment within the hour
 4. DM 3–5 people directly and ask them to save it
 
-Target: 10–20 saves + DM shares in the first hour to pass the test group threshold.
+Target: 10–20 saves + DM shares in the first hour.
 
 ---
 
-## New Account Probation Period
+## New Account Consistency Rule
+**[Note: formal "30-day probation" is unverified — no documented official basis found]**
 
-Instagram treats new accounts as unknowns. First 30 days = suppressed reach while the model classifies your content.
-
-- Post 4–5 quality pieces in month 1 to shorten probation
-- Sporadic posting extends it
-- First posts matter most — use your absolute best content to launch
-- Don't post 1 image and wait a week
+The 30-day suppression window is a widely repeated claim with no confirmed source. What is confirmed:
+- New accounts are unclassified — algorithm needs signal to know who to show your content to
+- **Consistent posting builds classification faster** — sporadic posting leaves you unclassified longer
+- Post 4–5 quality pieces in month 1
+- First posts matter most — use best content to launch
+- Don't post once and wait a week
 
 ---
 
 ## Stories — When to Start
+**[VERIFIED — Buffer, Hootsuite, Later, Sprout Social all confirm]**
 
-Stories don't reach non-followers. At 0 followers they serve no discovery purpose.
+Stories only surface to existing followers. Zero discovery function at 0 followers.
 
 - Skip Stories until 500+ followers
-- Exception: add a poll or link sticker to your first story (interactive elements boost tray visibility)
+- Exception: poll or link sticker can boost tray visibility for existing followers
 - Month 1: Reels only
 
 ---
 
 ## Collab Posts — Most Underused Tactic
+**[VERIFIED: no follower minimum, 5 collaborators — Skedsocial. Engagement boost directional but "3.4x" figure unverified; socialrails.com cites 2.5x reach]**
 
-No follower minimum. Up to 5 collaborators per post. Collab posts appear in both accounts' feeds and merge all engagement stats. Up to **3.4x more engagement** than solo content.
+No follower minimum. Up to 5 collaborators (6 total profiles). Appears in all collaborators' feeds, engagement stats merge.
 
 **Playbook:**
 1. Find 3–5 Indian fashion micro-accounts (2K–20K followers, high engagement rate — check likes/comments ratio)
-2. DM with a collab pitch: "I make AI-assisted fashion content, would love to collab on a post"
+2. DM with a collab pitch
 3. You can add collaborators after publishing — no pre-planning needed
 4. Even 1 accepted collab on your first Reel = instant audience borrowing
 
 ---
 
 ## Caption Rules
+**[Directional — specific multipliers recycled in marketing copy, no primary study found]**
 
-- **First 125 characters are shown before "more"** — put the hook or CTA there
-- Optimal length: 150–200 words for lifestyle, OR under 50 characters for punchy captions
-- Specific CTAs outperform generic by ~3x: "save this for your next day out" beats "let me know your thoughts"
+- **First 125 characters shown before "more"** — put the hook there
+- Optimal length: 150–200 words for lifestyle, OR under 50 chars for punchy captions
+- Specific CTAs outperform generic (widely cited as ~3x, but unverified at source level — treat as directional)
 - No emojis in the first line
-- Posts with a CTA get ~70% more comments
+- CTAs do drive more comments — the "70%" figure circulates widely but has no documented original study
 
 ---
 
@@ -133,22 +144,23 @@ No follower minimum. Up to 5 collaborators per post. Collab posts appear in both
 - **Maximalist + cultural pride** dominates: heavy jewellery, mirror work, Banarasi-streetwear fusion, phulkari jackets
 - **Fusion OOTD** (crop top + saree, kurta + sneakers) drives saves from 18–34 demo
 - **Real locations beat studio** — Delhi/Mumbai street context outperforms clean backdrops
-- Hindi/Hinglish audio on Reels outperforms English-only in Indian discovery (unverified but directionally strong)
-- **Peak content window: September–November** (Navratri, Dussehra, Diwali) — highest reach for Indian fashion; plan best drops here
-- India: 413M monthly active users, 18–34 dominant, 97% mobile, higher late-night usage (9–11 PM) than global average
+- **Hindi/Hinglish audio on Reels outperforms English-only** [VERIFIED — Instagram India 2025 Mega Report: 25–30% higher engagement; Meta's own AI dubbing expansion into Hindi/Bengali/Tamil confirms local language as discovery signal]
+- **Peak content window: September–November** (Navratri, Dussehra, Diwali) — highest reach for Indian fashion
+- India: ~415–480M monthly active users (413M is early 2025 low estimate; likely 480M+ by late 2025), 18–34 dominant, 97% mobile
 
 ---
 
 ## Launch Checklist (0 → First 100 Followers)
 
 - [ ] First post: Reel, not carousel
-- [ ] Post at 7:30 PM IST Wednesday
+- [ ] Post 7:00–9:00 PM IST Tuesday, Wednesday, or Friday
 - [ ] Initiate 2–3 collab posts immediately (no follower count required)
 - [ ] First 60 min: share to Story + WhatsApp + reply all comments
 - [ ] Post 4–5 times in month 1 — no gaps over 7 days
 - [ ] Every caption: save-driving CTA in first 125 chars
 - [ ] Max 5 hashtags, niche > broad
 - [ ] No Stories until 500 followers
+- [ ] Hinglish audio on Reels where natural
 - [ ] Festive content ready by September
 
 ---
@@ -164,3 +176,24 @@ No follower minimum. Up to 5 collaborators per post. Collab posts appear in both
 | Location | `#delhidiaries` `#mumbaidiaries` `#bangalorediaries` |
 | Community | `#indianblogger` `#indianfashion` `#desifashion` `#indianstyle` |
 | Broad anchors | `#ootd` `#fashionblogger` |
+
+---
+
+## Verification Summary
+
+| Claim | Status |
+|-------|--------|
+| 5-hashtag hard cap Dec 2025 | VERIFIED |
+| Posting window (general evening Wed/Fri) | PARTIALLY VERIFIED |
+| Reels best for non-follower reach | VERIFIED (directional) |
+| Reels 1.36x multiplier (specific) | UNVERIFIED — dropped |
+| Saves + DM shares outweigh likes | VERIFIED |
+| First 60 min critical | VERIFIED |
+| 30-day new account suppression | UNVERIFIED — reframed |
+| Collab posts: no follower min, 5 collabs | VERIFIED |
+| Collab 3.4x engagement boost | UNVERIFIED — cited 2.5x as lower-bound |
+| Stories don't reach non-followers | VERIFIED |
+| India ~413–480M MAU | PARTIALLY VERIFIED (range) |
+| Emoji caps underperform India 25–35 | UNVERIFIED — dropped |
+| Hindi/Hinglish outperforms English | VERIFIED |
+| Specific CTA = 3x / 70% more comments | PARTIALLY VERIFIED (directional only) |
