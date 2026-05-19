@@ -1,3 +1,4 @@
+# COMPLETED 2026-05-19 — do not rerun. Output merged into carousel_grwm_brunch_v1 as slide_02.
 # Rerun — GRWM Brunch slide 3 only (timed out in parallel run)
 # Output slide_00 maps to grwm_brunch_v1 slide_02
 # Run:

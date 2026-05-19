@@ -19,23 +19,23 @@ shared_tail: >
 anchors:
   standing:
     prompt: >
-      size M hourglass figure woman with fuller bust, slim defined small waist,
-      balanced curvy hips, slim toned thighs, soft feminine curves, slim with curves
-      not plus size, South Asian 23 year old, photorealistic full body editorial fashion photo
+      23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips,
+      soft natural curves not slim editorial, not plus-size, average Indian build,
+      photorealistic full body editorial fashion photo
       of a 23-year-old standing in neutral three-quarter pose facing camera with weight
       shifted on right leg and arms relaxed at sides,
 
   sitting:
     prompt: >
-      size M hourglass figure woman with fuller bust, slim defined small waist,
-      balanced curvy hips, slim toned thighs, soft feminine curves, slim with curves
-      not plus size, South Asian 23 year old, photorealistic full body editorial fashion photo
+      23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips,
+      soft natural curves not slim editorial, not plus-size, average Indian build,
+      photorealistic full body editorial fashion photo
       of a 23-year-old seated relaxed on weathered stone step in side angle with one
       hand resting on knee and other hand on step,
 
   closeup:
     prompt: >
-      size M hourglass figure woman with fuller bust and slim defined small waist,
-      soft feminine curves, slim with curves not plus size, South Asian 23 year old,
+      23-year-old South Asian woman with M-size hourglass figure, defined waist,
+      soft natural curves not slim editorial,
       photorealistic Instagram editorial waist-up portrait facing
       camera with slight serene smile and natural relaxed posture,

@@ -2,6 +2,9 @@
 # Two anchor groups: standing (full-body) + closeup (waist-up).
 # Slides use anchor=standing or anchor=closeup at low denoise — outfit stays locked per group.
 # v2: stronger body tokens front-loaded; corrected outfit (mini skirt not A-line).
+# Body stack: Bandra-specific (curvy hourglass + hip flare) — differs from canonical M-size stack.
+# Reason: crop top exposes midriff, needs explicit hip curve tokens beyond standard recipe.
+# Do NOT use this body stack for ethnic wear or layered outfits — use canonical stack instead.
 
 anchor_seed: 482917365
 

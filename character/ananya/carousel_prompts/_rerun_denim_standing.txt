@@ -1,3 +1,4 @@
+# COMPLETED 2026-05-19 — do not rerun. Outputs merged into carousel_weekend_denim_v1.
 # Rerun — Weekend Denim standing slides 2-4 only (timed out in parallel run)
 # Outputs go to carousel_weekend_denim_rerun — copy slide_00/01/02 to weekend_denim_v1 as slide_01/02/03
 # Run:
