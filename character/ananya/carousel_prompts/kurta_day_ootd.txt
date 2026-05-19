@@ -1,0 +1,27 @@
+# Kurta Day OOTD — 6-slide carousel
+# Slide order: 1=closeup hook, 2-4=standing full-body, 5-6=closeup detail
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/kurta_day_ootd.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name kurta_day_v1 \
+#     --anchor-config character/ananya/anchor_libraries/kurta_day_ootd.yaml \
+#     --flux-dev
+
+# Slide 1 — closeup hook, direct gaze, embroidery detail visible
+denoise=0.65 | anchor=closeup | 23-year-old South Asian woman with M-size hourglass figure, defined waist, soft natural curves not slim editorial, wearing fitted mustard yellow chikankari kurta with white floral embroidery dense at neckline, white dupatta on left shoulder visible, photorealistic Instagram candid portrait, tight chest-up framing, confident direct gaze into camera soft natural smile, shot on Sony A7IV 50mm f/1.4 very shallow depth of field sharp focus on eyes, authentic skin texture visible pores, asymmetric facial features, one side of face in soft shadow, candid not posed
+
+# Slide 2 — standing, full body, direct gaze editorial hero
+denoise=0.80 | anchor=standing | pose=character/ananya/poses/standing_01.png | cn=0.65 | 23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips, soft natural curves not slim editorial, not plus-size, wearing fitted mustard yellow chikankari kurta tailored close to body, white palazzo pants, white chiffon dupatta over left shoulder, photorealistic full body candid street photograph, weight on right hip arms relaxed at sides, soft direct gaze and slight smile, in upscale South Delhi Lodhi Colony aesthetic with manicured trees and clean pavement behind, overcast diffused afternoon light, shot on Sony A7IV 50mm f/2.0 shallow depth of field, authentic skin texture visible pores, asymmetric features, slightly off-center, candid not posed
+
+# Slide 3 — standing, hand on hip, looking off camera
+denoise=0.80 | anchor=standing | pose=character/ananya/poses/standing_06.png | cn=0.65 | 23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips, soft natural curves not slim editorial, not plus-size, wearing fitted mustard yellow chikankari kurta tailored close to body, white palazzo pants, white chiffon dupatta over left shoulder, photorealistic full body candid street photograph, left hand on hip right arm relaxed, chin slightly lifted looking off camera right with relaxed expression, in upscale South Delhi Lodhi Colony aesthetic with restored colonial bungalow facades behind, overcast diffused afternoon light, shot on Sony A7IV 50mm f/2.0 shallow depth of field, authentic skin texture visible pores, asymmetric features, candid not posed
+
+# Slide 4 — standing, hand raised adjusting dupatta, slight turn
+denoise=0.80 | anchor=standing | pose=character/ananya/poses/standing_04.png | cn=0.65 | 23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips, soft natural curves not slim editorial, not plus-size, wearing fitted mustard yellow chikankari kurta tailored close to body, white palazzo pants, white chiffon dupatta over left shoulder, photorealistic full body candid street photograph, right hand raised adjusting dupatta on left shoulder, body at slight three-quarter angle, thoughtful expression looking down briefly, in upscale South Delhi Lodhi Colony aesthetic with tree-lined pavement behind, overcast diffused afternoon light, shot on Sony A7IV 50mm f/2.0 shallow depth of field, authentic skin texture visible pores, asymmetric features, candid not posed
+
+# Slide 5 — closeup, hand pushing hair back, looking sideways
+denoise=0.65 | anchor=closeup | 23-year-old South Asian woman with M-size hourglass figure, defined waist, soft natural curves not slim editorial, wearing fitted mustard yellow chikankari kurta with white embroidery at neckline, white dupatta on left shoulder, photorealistic Instagram candid portrait, tight chest-up framing, right arm raised with hand pushing hair off shoulder exposing ear and jhumka earring, head turned slightly left looking off camera with relaxed expression, shot on Sony A7IV 50mm f/1.4 very shallow depth of field sharp focus on eyes, authentic skin texture visible pores, asymmetric features, candid not posed
+
+# Slide 6 — closeup, soft smile, silver bangles and earrings visible
+denoise=0.65 | anchor=closeup | 23-year-old South Asian woman with M-size hourglass figure, defined waist, soft natural curves not slim editorial, wearing fitted mustard yellow chikankari kurta with white embroidery at neckline, white dupatta draped over left shoulder visible, photorealistic Instagram candid portrait, tight chest-up framing, both hands relaxed at sides, soft open-mouth smile looking directly at camera, silver oxidized hoop earrings and silver bangles on wrist visible, shot on Sony A7IV 50mm f/1.4 very shallow depth of field sharp focus on eyes, authentic skin texture visible pores, asymmetric features, candid not posed

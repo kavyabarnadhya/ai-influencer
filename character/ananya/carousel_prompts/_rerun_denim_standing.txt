@@ -1,0 +1,18 @@
+# Rerun — Weekend Denim standing slides 2-4 only (timed out in parallel run)
+# Outputs go to carousel_weekend_denim_rerun — copy slide_00/01/02 to weekend_denim_v1 as slide_01/02/03
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/_rerun_denim_standing.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name weekend_denim_rerun \
+#     --anchor-config character/ananya/anchor_libraries/weekend_denim_ootd.yaml \
+#     --flux-dev
+
+# Slide 2 — standing, full body, casual hands-in-pockets
+denoise=0.80 | anchor=standing | pose=character/ananya/poses/standing_01.png | cn=0.65 | 23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips, soft natural curves not slim editorial, not plus-size, wearing high-waisted vintage cropped blue denim jeans, fitted ribbed white tank top, unbuttoned cream linen overshirt worn OPEN sleeves rolled, photorealistic full body candid street photograph, asymmetric casual stance weight on left leg both hands in jeans front pockets, easy expression looking at camera, in upscale Bengaluru Indiranagar cafe terrace with outdoor chairs and potted plants and exposed brick wall behind, overcast soft morning light, shot on Sony A7IV 50mm f/2.0 shallow depth of field, authentic skin texture visible pores, asymmetric features, slightly off-center, candid not posed
+
+# Slide 3 — standing, one hand on hip, chin lifted
+denoise=0.80 | anchor=standing | pose=character/ananya/poses/standing_06.png | cn=0.65 | 23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips, soft natural curves not slim editorial, not plus-size, wearing high-waisted vintage cropped blue denim jeans, fitted ribbed white tank top, unbuttoned cream linen overshirt worn OPEN sleeves rolled, photorealistic full body candid street photograph, right hand on hip left arm relaxed, chin slightly lifted looking off camera with confident relaxed expression, in upscale Bengaluru Indiranagar cafe terrace with brick wall and parked scooters behind, overcast soft morning light, shot on Sony A7IV 50mm f/2.0 shallow depth of field, authentic skin texture visible pores, asymmetric features, candid not posed
+
+# Slide 4 — standing, walking, slight motion
+denoise=0.80 | anchor=standing | pose=character/ananya/poses/standing_04.png | cn=0.65 | 23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips, soft natural curves not slim editorial, not plus-size, wearing high-waisted vintage cropped blue denim jeans, fitted ribbed white tank top, unbuttoned cream linen overshirt worn OPEN sleeves rolled, photorealistic full body candid street photograph, mid-stride walking forward arms swinging naturally, candid caught-in-motion expression slight smile, in upscale Bengaluru Indiranagar cafe street with shopfronts behind, overcast soft morning light, shot on Sony A7IV 50mm f/2.0 shallow depth of field, authentic skin texture visible pores, asymmetric features, candid not posed

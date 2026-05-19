@@ -1,0 +1,11 @@
+# Validation shot — Weekend Denim (per FLUX rulebook)
+# Body BEFORE outfit. Layered = "unbuttoned worn OPEN sleeves rolled" + "fitted tank"
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/_validate_weekend_denim.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name validate_weekend_denim_v2 \
+#     --anchor-config character/ananya/anchor_libraries/_validate_weekend_denim.yaml \
+#     --flux-dev
+
+denoise=0.80 | anchor=standing | 23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips, soft natural curves not slim editorial, not plus-size, average Indian build, wearing high-waisted vintage cropped blue denim jeans accentuating waist and fitted ribbed white tank top tucked at front, unbuttoned cream linen overshirt worn OPEN with sleeves rolled to elbows collar lying flat asymmetrically, photorealistic full body candid street photograph, asymmetric casual stance weight on left leg right hand in jeans front pocket easy natural expression looking at camera, in upscale Bengaluru Indiranagar cafe terrace street with outdoor wooden chairs potted plants and exposed brick wall behind, overcast soft morning light gentle shadow on one side of face, f/2.0 shallow depth of field sharp focus on face, shot on iPhone 14 IMG_3158.HEIC slight grain amateur snapshot quality, visible skin pores faint freckles asymmetric features slightly off-center composition

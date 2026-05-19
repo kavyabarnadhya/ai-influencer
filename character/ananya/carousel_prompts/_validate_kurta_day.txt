@@ -1,0 +1,10 @@
+# Validation shot — Kurta Day (per verified flux_dev_rulebook.md ETHNIC WEAR TEMPLATE)
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/_validate_kurta_day.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name validate_kurta_day_v5 \
+#     --anchor-config character/ananya/anchor_libraries/_validate_kurta_day.yaml \
+#     --flux-dev
+
+denoise=0.80 | anchor=standing | 23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips, soft natural curves not slim editorial, not plus-size, average Indian build, wearing fitted mustard yellow chikankari kurta tailored close to body with subtle cinch at waist, white floral chikankari embroidery dense at neckline scattered on sleeves, semi-sheer cotton fabric untucked straight hemline at mid-hip, white cotton straight-cut palazzo pants, white soft chiffon dupatta draped asymmetrically over left shoulder with loose end falling to right hip and visible fold lines, asymmetric pose weight shifted on right hip arms relaxed soft smile looking at camera, in upscale South Delhi neighborhood Lodhi Colony aesthetic with manicured trees lining wide clean pavement and freshly painted walls behind, overcast diffused afternoon light gentle shadow on one side of face, shot on Sony A7IV 50mm f/2.0 shallow depth of field sharp focus on face, authentic skin texture visible pores natural skin imperfections no plasticky skin, asymmetric facial features slightly off-center composition candid moment not posed

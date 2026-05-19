@@ -1,0 +1,11 @@
+# Validation shot — Casual Saree (per FLUX rulebook)
+# Body BEFORE outfit. Saree = "fitted blouse showing waist definition" + pallu pinned at LEFT shoulder
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/_validate_casual_saree.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name validate_casual_saree_v2 \
+#     --anchor-config character/ananya/anchor_libraries/_validate_casual_saree.yaml \
+#     --flux-dev
+
+denoise=0.80 | anchor=standing | 23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips, soft natural curves not slim editorial, not plus-size, average Indian build, wearing fitted white cotton short-sleeve blouse showing waist definition paired with sage green chanderi cotton saree with thin gold zari border draped in casual Nivi style, pallu pleated and pinned at LEFT shoulder falling behind to mid-calf, photorealistic full body candid street photograph, asymmetric natural standing pose weight on right hip arms relaxed easy confident expression looking directly at camera with soft smile, in upscale South Delhi village area near medieval ruins with old stone walls and tall green trees behind, overcast diffused daylight slightly cool tones gentle shadow on one side of face, f/2.8 moderate depth of field sharp focus on face, shot on iPhone 14 IMG_2746.HEIC slight grain amateur snapshot quality, visible skin pores faint freckles asymmetric features slightly off-center composition
