@@ -1,0 +1,27 @@
+# Casual Saree OOTD — 6-slide carousel
+# Slide order: 1=closeup hook, 2-4=standing full-body, 5-6=closeup detail
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/casual_saree_ootd.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name casual_saree_v1 \
+#     --anchor-config character/ananya/anchor_libraries/casual_saree_ootd.yaml \
+#     --flux-dev
+
+# Slide 1 — closeup hook, jhumka earrings and saree pallu visible
+denoise=0.65 | anchor=closeup | 23-year-old South Asian woman with M-size hourglass figure, defined waist, soft natural curves not slim editorial, wearing fitted white cotton blouse with sage green saree pallu draped over left shoulder, gold jhumka earrings visible, photorealistic Instagram candid portrait, tight chest-up framing, soft natural smile direct gaze into camera, shot on Sony A7IV 50mm f/1.4 very shallow depth of field sharp focus on eyes, authentic skin texture visible pores, asymmetric facial features, one side of face in soft shadow, candid not posed
+
+# Slide 2 — standing, full body, relaxed easy pose
+denoise=0.80 | anchor=standing | pose=character/ananya/poses/standing_01.png | cn=0.65 | 23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips, soft natural curves not slim editorial, not plus-size, wearing fitted white cotton short-sleeve blouse showing waist definition with sage green chanderi cotton saree with thin gold zari border draped in casual Nivi style, pallu pinned at left shoulder falling behind to mid-calf, photorealistic full body candid street photograph, asymmetric natural pose weight on right hip arms relaxed, easy confident expression looking directly at camera with soft smile, in upscale South Delhi village area near medieval ruins with old stone walls and tall green trees behind, overcast diffused daylight, shot on Sony A7IV 50mm f/2.8 moderate depth of field, authentic skin texture visible pores, asymmetric features, slightly off-center, candid not posed
+
+# Slide 3 — standing, one hand adjusting pallu, looking off
+denoise=0.80 | anchor=standing | pose=character/ananya/poses/standing_06.png | cn=0.65 | 23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips, soft natural curves not slim editorial, not plus-size, wearing fitted white cotton blouse with sage green chanderi saree casual Nivi drape, pallu pinned at left shoulder, photorealistic full body candid street photograph, right hand raised lightly adjusting pallu at shoulder, chin slightly lifted looking off camera right with serene expression, in upscale South Delhi village area near medieval ruins with stone walls and parked motorcycles behind, overcast diffused daylight, shot on Sony A7IV 50mm f/2.8 moderate depth of field, authentic skin texture visible pores, asymmetric features, candid not posed
+
+# Slide 4 — standing, walking, saree pleats moving
+denoise=0.80 | anchor=standing | pose=character/ananya/poses/standing_04.png | cn=0.65 | 23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips, soft natural curves not slim editorial, not plus-size, wearing fitted white cotton blouse with sage green chanderi saree casual Nivi drape, saree pleats swaying with movement, photorealistic full body candid street photograph, mid-stride walking forward arms moving naturally, candid caught-in-motion slight smile, in upscale South Delhi village area near medieval ruins with cafe signage and green trees behind, overcast diffused daylight, shot on Sony A7IV 50mm f/2.8 moderate depth of field, authentic skin texture visible pores, asymmetric features, candid not posed
+
+# Slide 5 — closeup, looking sideways, jhumka and ponytail visible
+denoise=0.65 | anchor=closeup | 23-year-old South Asian woman with M-size hourglass figure, defined waist, soft natural curves not slim editorial, wearing fitted white cotton blouse with sage green saree pallu over left shoulder, gold jhumka earrings, dark hair in high ponytail with wispy baby hairs visible, photorealistic Instagram candid portrait, tight chest-up framing, head turned slightly left looking off camera serene expression, shot on Sony A7IV 50mm f/1.4 very shallow depth of field sharp focus on face, authentic skin texture visible pores, asymmetric features, candid not posed
+
+# Slide 6 — closeup, direct soft smile, gold bangle visible
+denoise=0.65 | anchor=closeup | 23-year-old South Asian woman with M-size hourglass figure, defined waist, soft natural curves not slim editorial, wearing fitted white cotton blouse with sage green saree pallu visible, gold jhumka earrings, photorealistic Instagram candid portrait, tight chest-up framing, right hand lightly touching saree at collarbone, direct soft warm smile into camera, gold bangle on wrist visible, shot on Sony A7IV 50mm f/1.4 very shallow depth of field sharp focus on eyes, authentic skin texture visible pores, asymmetric features, candid not posed

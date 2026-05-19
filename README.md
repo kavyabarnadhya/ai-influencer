@@ -24,7 +24,8 @@ Local pipeline for generating photorealistic, face-consistent images of virtual 
 |------|----------|------|----------|
 | SDXL + LoRA | ComfyUI workflow | 30–60s | Primary — face-locked |
 | SDXL + IP-Adapter | ComfyUI workflow | 45–90s | Identity + style ref |
-| FLUX.1-schnell | ComfyUI workflow | 5–15 min | Text-only, premium quality |
+| FLUX.1-schnell | ComfyUI workflow | 5–15 min | Text-only, no LoRA |
+| FLUX.1-dev | ComfyUI workflow | 20–40 min/slide (RTX 3050) | Premium quality, multi-anchor carousel |
 | Bootstrap | Seed generation | Varies | Pre-LoRA training seeds |
 
 > **Note:** Never load SDXL LoRAs into FLUX workflows — architecturally incompatible, crashes ComfyUI.
@@ -52,13 +53,13 @@ Local pipeline for generating photorealistic, face-consistent images of virtual 
 
 ## Setup
 
-```bash
+```powershell
 # Install dependencies
 pip install -r requirements.txt
 
-# Set environment variables
-export HF_TOKEN=your_huggingface_token
-export ANTHROPIC_API_KEY=your_anthropic_key
+# Set environment variables (PowerShell)
+$env:HF_TOKEN = "your_huggingface_token"
+$env:ANTHROPIC_API_KEY = "your_anthropic_key"  # pragma: allowlist secret
 
 # Download models
 python setup/download_models.py

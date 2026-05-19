@@ -1,0 +1,11 @@
+# Validation shot — GRWM Brunch (per FLUX rulebook)
+# Body BEFORE outfit. Form-fitting = "fabric shows soft midsection" to counter slim-default
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/_validate_grwm_brunch.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name validate_grwm_brunch_v2 \
+#     --anchor-config character/ananya/anchor_libraries/_validate_grwm_brunch.yaml \
+#     --flux-dev
+
+denoise=0.80 | anchor=standing | 23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips, soft natural curves not slim editorial, not plus-size, average Indian build, fabric shows soft midsection, wearing fitted black satin slip midi dress with cowl neckline and thin adjustable straps following natural body curves, smooth satin fabric with subtle sheen falling to mid-calf, photorealistic full body editorial fashion photograph, asymmetric three-quarter pose weight on right hip left hand resting at side confident serene expression looking directly at camera, in upscale Delhi rooftop cafe terrace with rattan furniture string lights potted plants and urban skyline behind, overcast bright diffused daylight warm ambient cafe light gentle shadow on one side of face, f/2.0 shallow depth of field sharp focus on face, shot on iPhone 14 IMG_5219.HEIC slight grain amateur snapshot quality, visible skin pores faint freckles asymmetric features slightly off-center composition

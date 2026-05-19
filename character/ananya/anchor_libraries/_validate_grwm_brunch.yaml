@@ -1,0 +1,38 @@
+# Validation anchor — GRWM Brunch: black satin slip dress, rooftop cafe, overcast
+# Per FLUX rulebook: form-fitting = add "soft natural curves, fabric shows soft midsection" to fight slim
+anchor_seed: 638492715
+
+shared_tail: >
+  wearing fitted black satin slip midi dress with cowl neckline and thin adjustable straps,
+  dress follows natural body curves with fabric showing soft midsection and full hips,
+  smooth satin fabric with subtle sheen falling to mid-calf,
+  dark hair loosely down with soft natural waves over right shoulder,
+  delicate gold pendant necklace visible at collarbone, small gold stud earrings,
+  in upscale Delhi rooftop cafe terrace with rattan furniture and string lights,
+  potted plants and urban skyline soft in background,
+  overcast bright diffused daylight, warm ambient cafe light, gentle shadow on one side of face,
+  shot on iPhone 14, IMG_5219.HEIC, slight grain, amateur snapshot quality,
+  visible skin pores and faint freckles, asymmetric facial features,
+  slightly off-center composition, candid moment not posed
+
+anchors:
+  standing:
+    prompt: >
+      23-year-old South Asian woman with M-size hourglass figure,
+      defined waist and full hips, soft natural curves not slim editorial,
+      not plus-size, average Indian build, fabric shows soft midsection,
+      photorealistic full body editorial fashion photograph,
+      asymmetric three-quarter pose weight on right hip, left hand resting at side,
+      confident serene expression looking directly at camera,
+      one side of face in soft shadow,
+      f/2.0 shallow depth of field, sharp focus on face,
+
+  closeup:
+    prompt: >
+      23-year-old South Asian woman with M-size hourglass figure,
+      defined waist, soft natural curves not slim editorial,
+      photorealistic Instagram editorial portrait,
+      tight chest-up framing showing cowl neckline and pendant necklace,
+      confident serene expression, direct gaze, soft closed-lip smile,
+      asymmetric facial features, one side of face in soft shadow,
+      f/1.4 very shallow depth of field, sharp focus on eyes,

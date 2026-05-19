@@ -1,0 +1,38 @@
+# Production anchor — Casual Saree OOTD
+# Validated 2026-05-18 v2. Ethnic wear template per flux_dev_rulebook.md
+anchor_seed: 519382647
+
+shared_tail: >
+  wearing fitted white cotton short-sleeve blouse showing waist definition,
+  paired with sage green chanderi cotton saree with thin gold zari border,
+  saree draped in casual everyday Nivi style, pallu pleated and pinned at left shoulder
+  falling behind to mid-calf, lightweight cotton catching gentle light,
+  dark hair in high ponytail with wispy baby hairs framing face,
+  gold jhumka earrings, delicate gold bangle on left wrist,
+  in upscale South Delhi village area near medieval ruins, old stone walls and tall green trees,
+  parked motorcycles and cafe signage soft in background,
+  overcast diffused daylight, slightly cool even tones, gentle shadow on one side of face
+
+anchors:
+  standing:
+    prompt: >
+      23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips,
+      soft natural curves not slim editorial, not plus-size, average Indian build,
+      photorealistic full body candid street photograph,
+      asymmetric natural standing pose weight on right hip arms relaxed,
+      easy confident expression looking directly at camera with soft natural smile,
+      shot on Sony A7IV 50mm f/2.8 moderate depth of field sharp focus on face,
+      authentic skin texture with visible pores, natural skin imperfections,
+      no plasticky skin, asymmetric facial features, slightly off-center composition,
+      one side of face in soft shadow, candid moment not posed
+
+  closeup:
+    prompt: >
+      23-year-old South Asian woman with M-size hourglass figure, defined waist,
+      soft natural curves not slim editorial,
+      photorealistic Instagram candid portrait,
+      tight chest-up framing showing saree pallu over left shoulder and fitted blouse,
+      soft natural smile, direct gaze, jhumka earrings visible,
+      shot on Sony A7IV 50mm f/1.4 very shallow depth of field sharp focus on eyes,
+      authentic skin texture with visible pores, asymmetric facial features,
+      one side of face in soft shadow, candid not posed
