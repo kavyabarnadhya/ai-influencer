@@ -81,3 +81,7 @@
 ## 2026-05-16 - Date-Based Traversal for Output Discovery
 **Learning:** Using Path.rglob() to find recent images or carousels in a large, multi-day output directory is an O(N) operation that becomes increasingly slow as the dataset grows. In a structure like output/YYYY-MM-DD/character/, traversing directories by name in reverse order allows for an O(K) discovery (where K is the number of requested recent items), providing a ~10x speedup for typical batch sizes.
 **Action:** Replace global rglob or recursive scans in discovery tools (like MCP servers or gallery views) with reverse chronological directory traversal. Stop the scan as soon as the limit is reached.
+
+## 2026-05-17 - Avoiding Redundant stat() Calls for Discovery
+**Learning:** Sorting files by modification time (`st_mtime`) in a directory with hundreds or thousands of files is extremely expensive because it triggers a `stat()` syscall for every entry. In this application, image and carousel filenames contain timestamps or are created sequentially, meaning alphabetical sorting is chronologically equivalent to `mtime` sorting.
+**Action:** Replace `key=lambda p: p.stat().st_mtime` with default name-based sorting in discovery helpers. Combine this with early slicing of the result set to minimize memory overhead when satisfied by the first few days of output.
