@@ -38,7 +38,7 @@ import yaml
 from rich.console import Console
 
 sys.path.insert(0, str(Path(__file__).parent))
-from comfyui_api import ComfyUIClient, ComfyUIError, find_comfyui_port, load_workflow
+from comfyui_api import ComfyUIClient, ComfyUIError, find_comfyui_port, load_workflow, inject_workflow_values
 
 console = Console()
 ROOT = Path(__file__).parent.parent
@@ -62,49 +62,46 @@ DEFAULT_DENOISE_OUTFIT_LOCK = 0.40
 
 
 def _inject_flux_t2i(wf: dict, prompt: str, seed: int) -> dict:
-    for node in wf.values():
-        if not isinstance(node, dict):
-            continue
-        title = node.get("_meta", {}).get("title", "")
-        if title == "_claude_inject_prompt":
-            node["inputs"]["text"] = prompt
-        elif title == "_claude_inject_seed":
-            node["inputs"]["seed"] = seed
-    return wf
+    """
+    Inject prompt and seed into FLUX T2I workflow.
+    Optimization: Uses inject_workflow_values for O(1) node lookup and optimized copying.
+    """
+    overrides = {
+        "_claude_inject_prompt": {"inputs.text": prompt},
+        "_claude_inject_seed": {"inputs.seed": seed}
+    }
+    return inject_workflow_values(wf, overrides)
 
 
 def _inject_flux_img2img(wf: dict, prompt: str, init_image_name: str,
                         denoise: float, seed: int,
                         pose_image_name: str | None = None,
                         cn_strength: float = 0.65) -> dict:
-    for node in wf.values():
-        if not isinstance(node, dict):
-            continue
-        title = node.get("_meta", {}).get("title", "")
-        if title == "_claude_inject_prompt":
-            node["inputs"]["text"] = prompt
-        elif title == "_claude_inject_init_image":
-            node["inputs"]["image"] = init_image_name
-        elif title == "_claude_inject_pose_image" and pose_image_name:
-            node["inputs"]["image"] = pose_image_name
-        elif title == "_claude_inject_controlnet_apply" and pose_image_name:
-            node["inputs"]["strength"] = cn_strength
-        elif title == "_claude_inject_seed":
-            node["inputs"]["seed"] = seed
-            node["inputs"]["denoise"] = denoise
-    return wf
+    """
+    Inject prompt, init image, denoise, and seed into FLUX img2img workflow.
+    Optimization: Uses inject_workflow_values for O(1) node lookup and optimized copying.
+    """
+    overrides = {
+        "_claude_inject_prompt": {"inputs.text": prompt},
+        "_claude_inject_init_image": {"inputs.image": init_image_name},
+        "_claude_inject_seed": {"inputs.seed": seed, "inputs.denoise": denoise}
+    }
+    if pose_image_name:
+        overrides["_claude_inject_pose_image"] = {"inputs.image": pose_image_name}
+        overrides["_claude_inject_controlnet_apply"] = {"inputs.strength": cn_strength}
+    return inject_workflow_values(wf, overrides)
 
 
 def _inject_faceswap(wf: dict, face_ref_name: str, target_name: str) -> dict:
-    for node in wf.values():
-        if not isinstance(node, dict):
-            continue
-        title = node.get("_meta", {}).get("title", "")
-        if title == "_claude_inject_source_image":
-            node["inputs"]["image"] = face_ref_name
-        elif title == "_claude_inject_target_image":
-            node["inputs"]["image"] = target_name
-    return wf
+    """
+    Inject face source and target into faceswap workflow.
+    Optimization: Uses inject_workflow_values for O(1) node lookup and optimized copying.
+    """
+    overrides = {
+        "_claude_inject_source_image": {"inputs.image": face_ref_name},
+        "_claude_inject_target_image": {"inputs.image": target_name}
+    }
+    return inject_workflow_values(wf, overrides)
 
 
 def _run_and_save(client: ComfyUIClient, wf: dict, out_path: Path,
@@ -296,13 +293,15 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
 
     # Stage 1: anchor body — single or multi based on config
     uploaded_anchors: dict[str, str] = {}  # group_name -> uploaded filename
+    t2i_template = load_workflow(str(ROOT / "workflows" / flux_wf["t2i"]))
+
     if anchor_cfg and anchor_cfg["mode"] == "single":
         console.print(f"\n[bold cyan]Stage 1 — Single anchor (accessory-locked)[/bold cyan]")
         anchor_prompt_text = anchor_cfg["anchor_prompt"].strip()
         console.print(f"  {anchor_prompt_text[:100]}...")
         anchor_path = inter / "anchor.png"
         wf1 = _inject_flux_t2i(
-            load_workflow(str(ROOT / "workflows" / flux_wf["t2i"])),
+            t2i_template,
             anchor_prompt_text, anchor_seed,
         )
         try:
@@ -323,7 +322,7 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
             anchor_path = inter / f"anchor_{group_name}.png"
             console.print(f"  [{group_name}] {anchor_prompt_text[:80]}...")
             wf1 = _inject_flux_t2i(
-                load_workflow(str(ROOT / "workflows" / flux_wf["t2i"])),
+                t2i_template,
                 anchor_prompt_text, anchor_seed,
             )
             try:
@@ -336,7 +335,7 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
     else:
         anchor_path = inter / "anchor.png"
         wf1 = _inject_flux_t2i(
-            load_workflow(str(ROOT / "workflows" / flux_wf["t2i"])),
+            t2i_template,
             anchor_text, anchor_seed,
         )
         try:
@@ -346,6 +345,13 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
             console.print(f"[red]Anchor failed: {e}[/red]")
             raise SystemExit(1)
         uploaded_anchors["default"] = client.upload_image(str(anchor_path))
+
+    # Pre-load stage 2/3 templates
+    i2i_templates = {
+        "i2i":    load_workflow(str(ROOT / "workflows" / flux_wf["i2i"])),
+        "i2i_cn": load_workflow(str(ROOT / "workflows" / flux_wf["i2i_cn"])),
+    }
+    faceswap_template = load_workflow(str(ROOT / "workflows" / "faceswap_reactor.json"))
 
     failed = []
     for idx, slide in enumerate(slides):
@@ -391,9 +397,9 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
 
             try:
                 # Stage 2: img2img off anchor (with ControlNet if pose specified)
-                workflow_file = flux_wf["i2i_cn"] if use_cn else flux_wf["i2i"]
+                template = i2i_templates["i2i_cn"] if use_cn else i2i_templates["i2i"]
                 wf2 = _inject_flux_img2img(
-                    load_workflow(str(ROOT / "workflows" / workflow_file)),
+                    template,
                     slide_prompt, uploaded_anchor, denoise, slide_seed,
                     pose_image_name=uploaded_pose, cn_strength=cn_strength,
                 )
@@ -402,7 +408,7 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                 # Stage 3: ReActor face swap
                 uploaded_target = client.upload_image(str(base_path))
                 wf3 = _inject_faceswap(
-                    load_workflow(str(ROOT / "workflows" / "faceswap_reactor.json")),
+                    faceswap_template,
                     uploaded_face, uploaded_target,
                 )
                 _run_and_save(client, wf3, final_path, timeout=180)
