@@ -45,7 +45,16 @@
     "inputs": {
       "model": ["1", 0],
       "lora_name": "flux-xlabs-realism.safetensors",
-      "strength_model": 0.3
+      "strength_model": 0.5
+    }
+  },
+  "17": {
+    "_meta": {"title": "_claude_inject_body_lora"},
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "model": ["15", 0],
+      "lora_name": "Body FIX FLUX.safetensors",
+      "strength_model": 0.0
     }
   },
   "16": {
@@ -60,7 +69,7 @@
     "_meta": {"title": "Model Sampling Flux"},
     "class_type": "ModelSamplingFlux",
     "inputs": {
-      "model": ["15", 0],
+      "model": ["17", 0],
       "max_shift": 1.15,
       "base_shift": 0.5,
       "width": 768,
@@ -87,7 +96,7 @@
     "_meta": {"title": "Empty Negative"},
     "class_type": "CLIPTextEncode",
     "inputs": {
-      "text": "skinny, thin, slim, petite, small frame, bony, flat hips, no curves, underweight, stick thin",
+      "text": "skinny, thin, slim, petite, small frame, bony, flat hips, no curves, underweight, stick thin, plastic skin, smooth airbrushed skin, CGI, rendered, artificial studio lighting, overexposed, flat lighting",
       "clip": ["2", 0]
     }
   },

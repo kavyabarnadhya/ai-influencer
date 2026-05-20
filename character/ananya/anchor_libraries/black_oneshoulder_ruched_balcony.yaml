@@ -4,6 +4,8 @@
 # Used with: --kontext flag
 
 anchor_seed: 293847561
+anchor_body_lora_strength: 0.7
+
 
 anchor_prompt: >
   23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips,

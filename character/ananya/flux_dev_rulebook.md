@@ -285,6 +285,57 @@ authentic skin texture with visible pores, asymmetric features, candid snapshot
 ---
 
 
+## RULE 15: Kontext OOTD Carousel — Validated Recipe (2026-05-20)
+
+**Confirmed working stack for multi-slide outfit-locked carousels:**
+
+### Workflow config
+- Model: `flux1-dev-Q4_K_S.gguf`
+- Realism LoRA: `flux-xlabs-realism.safetensors` strength **0.5** (node 15)
+- Body LoRA: `Body FIX FLUX.safetensors` strength **0.7** for bodycon/fitted dresses (node 17)
+  - Set via YAML `anchor_body_lora_strength: 0.7`
+  - Use `0.0` (disabled) if dress is loose/flowy — LoRA amplifies fabric volume
+- BG lock: **automatically appended** to every Kontext slide via `_inject_flux_kontext()`:
+  `, same background, same scene, unchanged environment`
+  — no per-file changes needed, applies universally
+
+### Anchor prompt structure
+```
+[body descriptor 4-token stack]
+wearing [outfit — physical neckline + fabric + fit]
+[asymmetric starting pose, weight on one hip]
+on [location — physical descriptors matching slide prompts exactly]
+[lighting]
+shot on Sony A7IV 50mm
+[skin realism tail]
+```
+
+### Slide prompt structure
+```
+anchor=standing | same woman in same [brief outfit name] [new pose/framing],
+[optional: single accessory callout], [optional: expression],
+keeping exact same [neckline geometry], [left/right shoulder detail], [fabric detail], and [accessories]
+```
+
+### BG consistency rule
+**Slide prompts must describe the same scene as the anchor — no scene invention.**
+Bodyfix_test failed because slides said "rooftop + golden hour" while anchor was "apartment balcony + daylight."
+v1 and red dress carousel passed because slides matched anchor scene tokens.
+
+### Per-outfit body LoRA strength
+| Outfit type | `anchor_body_lora_strength` |
+|---|---|
+| Bodycon midi / fitted dress | `0.7` |
+| Midriff / crop top | `0.4` |
+| Loose / flowy / ethnic | `0.0` |
+
+### Validated results
+- `carousel_black_oneshoulder_ruched_v1` — no body LoRA (pre-recipe), BG consistent, natural slim
+- `carousel_black_oneshoulder_bglock_test` — Body FIX 0.7 + BG lock, curvy + consistent ✓
+- `carousel_red_oneshoulder_ruched_v1` — full 6-slide validation, all 3 targets met ✓ **(gold standard)**
+
+---
+
 ## WHAT TO IGNORE (unverified claims stripped from prior rulebook)
 
 - "40% influence loss past 3rd clause" — fabricated specific number

@@ -15,9 +15,7 @@ console = Console()
 
 WORKFLOW_SENTINELS = {
     "bootstrap_seeds": ["_claude_inject_prompt", "_claude_inject_negative", "_claude_inject_seed", "_claude_inject_checkpoint", "_claude_inject_latent"],
-    "bootstrap_ipadapter": ["_claude_inject_prompt", "_claude_inject_negative", "_claude_inject_seed", "_claude_inject_checkpoint", "_claude_inject_latent", "_claude_inject_ipadapter_image"],
     "t2i_sdxl_lora": ["_claude_inject_prompt", "_claude_inject_negative", "_claude_inject_seed", "_claude_inject_checkpoint", "_claude_inject_latent", "_claude_inject_lora"],
-    "t2i_ipadapter": ["_claude_inject_prompt", "_claude_inject_negative", "_claude_inject_seed", "_claude_inject_checkpoint", "_claude_inject_latent", "_claude_inject_lora", "_claude_inject_ipadapter_image"],
     "flux_schnell": ["_claude_inject_prompt", "_claude_inject_seed", "_claude_inject_latent", "_claude_inject_skin_lora"],
     "flux_schnell_lora": ["_claude_inject_prompt", "_claude_inject_seed", "_claude_inject_latent", "_claude_inject_flux_lora"],
     "flux_img2img": ["_claude_inject_prompt", "_claude_inject_seed", "_claude_inject_init_image", "_claude_inject_skin_lora"],
@@ -25,6 +23,7 @@ WORKFLOW_SENTINELS = {
     "flux_dev": ["_claude_inject_prompt", "_claude_inject_seed", "_claude_inject_latent", "_claude_inject_skin_lora"],
     "flux_dev_img2img": ["_claude_inject_prompt", "_claude_inject_seed", "_claude_inject_init_image", "_claude_inject_skin_lora"],
     "flux_dev_img2img_controlnet": ["_claude_inject_prompt", "_claude_inject_seed", "_claude_inject_init_image", "_claude_inject_controlnet", "_claude_inject_pose_image", "_claude_inject_skin_lora"],
+    "flux_kontext": ["_claude_inject_prompt", "_claude_inject_init_image", "_claude_inject_seed"],
     "faceswap_reactor": ["_claude_inject_source_image", "_claude_inject_target_image"],
 }
 

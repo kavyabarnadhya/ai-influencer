@@ -1,0 +1,27 @@
+# Red one-shoulder ruched midi dress — single-anchor OOTD
+# Outfit: coral red sleeveless one-shoulder ruched bodycon midi dress with side slit
+# Location: Mumbai apartment balcony, beige wall panel, palm plants, iron railing, towers
+# Used with: --kontext flag
+
+anchor_seed: 748291035
+anchor_body_lora_strength: 0.7
+
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips,
+  soft natural curves not slim editorial, not plus-size, average Indian build,
+  wearing coral red sleeveless one-shoulder ruched bodycon midi dress,
+  single strap over left shoulder, right shoulder completely bare,
+  diagonal asymmetric neckline from left shoulder strap across to right underarm,
+  ruched gathered fabric from bust to hip creating vertical texture folds,
+  dress ending at mid-calf with side slit at hem,
+  white structured top-handle handbag held in left hand,
+  gold hoop earrings, white flat sandals,
+  long dark brown wavy hair falling over left shoulder,
+  standing three-quarter to camera weight shifted on right hip,
+  on Mumbai apartment balcony with beige textured wall panel behind,
+  large palm plant in terracotta pot beside her,
+  iron railing visible, residential towers behind in soft daylight,
+  bright warm Indian daylight, soft even light,
+  shot on Sony A7IV 50mm,
+  authentic skin texture with visible pores, natural skin imperfections, no plasticky skin,
+  asymmetric facial features, slightly off-center composition, candid moment not posed
