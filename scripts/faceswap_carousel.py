@@ -94,8 +94,10 @@ def _inject_flux_img2img(wf: dict, prompt: str, init_image_name: str,
     return inject_workflow_values(wf, overrides)
 
 
-def _inject_flux_kontext(wf: dict, prompt: str, init_image_name: str, seed: int) -> dict:
-    prompt = f"{prompt}, same background, same scene, unchanged environment"
+def _inject_flux_kontext(wf: dict, prompt: str, init_image_name: str, seed: int,
+                         bg_lock: bool = True) -> dict:
+    if bg_lock:
+        prompt = f"{prompt}, same background, same scene, unchanged environment"
     for node in wf.values():
         if not isinstance(node, dict):
             continue
@@ -226,9 +228,15 @@ def load_anchor_config(path: Path) -> dict:
         raise ValueError(f"{path}: 'anchor_seed' must be an integer")
 
     if "anchor_init_denoise" in cfg:
+        # Deprecated: img2img body-ref anchor approach was abandoned. Field is ignored.
         v = cfg["anchor_init_denoise"]
         if not isinstance(v, (int, float)) or not (0.0 < float(v) < 1.0):
             raise ValueError(f"{path}: 'anchor_init_denoise' must be float between 0 and 1")
+
+    if "anchor_body_lora_strength" in cfg:
+        v = cfg["anchor_body_lora_strength"]
+        if not isinstance(v, (int, float)) or not (0.0 <= float(v) <= 1.0):
+            raise ValueError(f"{path}: 'anchor_body_lora_strength' must be float between 0.0 and 1.0")
 
     if cfg["mode"] == "multi":
         _validate_multi_anchor_consistency(cfg, path)
@@ -396,11 +404,15 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
     # Body LoRA strength for anchor t2i — controls _claude_inject_body_lora node in flux_dev.json
     # YAML field anchor_body_lora_strength overrides default; 0.0 = disabled (no-op node)
     _body_lora_strength = float(
-        anchor_cfg.get("anchor_body_lora_strength", 0.75)
-        if anchor_cfg else 0.75
+        anchor_cfg.get("anchor_body_lora_strength", 0.0)
+        if anchor_cfg else 0.0
     )
     if _body_lora_strength > 0.0:
         console.print(f"  Body LoRA strength={_body_lora_strength}")
+
+    # BG lock: append scene-lock token to every Kontext slide prompt.
+    # Set bg_lock: false in YAML to disable (e.g. carousels with intentional scene changes).
+    _bg_lock = anchor_cfg.get("bg_lock", True) if anchor_cfg else True
 
     def _make_anchor_wf(prompt_text: str, seed: int) -> dict:
         """Build anchor t2i workflow with body LoRA strength from anchor config."""
@@ -507,6 +519,7 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                     wf2 = _inject_flux_kontext(
                         i2i_templates["kontext"],
                         slide_prompt, uploaded_anchor, slide_seed,
+                        bg_lock=_bg_lock,
                     )
                 else:
                     template = i2i_templates["i2i_cn"] if use_cn else i2i_templates["i2i"]
