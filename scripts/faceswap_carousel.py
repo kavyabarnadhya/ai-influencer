@@ -35,6 +35,7 @@ from pathlib import Path
 
 import click
 import yaml
+from PIL import Image
 from rich.console import Console
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -90,6 +91,20 @@ def _inject_flux_img2img(wf: dict, prompt: str, init_image_name: str,
         overrides["_claude_inject_pose_image"] = {"inputs.image": pose_image_name}
         overrides["_claude_inject_controlnet_apply"] = {"inputs.strength": cn_strength}
     return inject_workflow_values(wf, overrides)
+
+
+def _inject_flux_kontext(wf: dict, prompt: str, init_image_name: str, seed: int) -> dict:
+    for node in wf.values():
+        if not isinstance(node, dict):
+            continue
+        title = node.get("_meta", {}).get("title", "")
+        if title == "_claude_inject_prompt":
+            node["inputs"]["text"] = prompt
+        elif title == "_claude_inject_init_image":
+            node["inputs"]["image"] = init_image_name
+        elif title == "_claude_inject_seed":
+            node["inputs"]["seed"] = seed
+    return wf
 
 
 def _inject_faceswap(wf: dict, face_ref_name: str, target_name: str) -> dict:
@@ -151,6 +166,8 @@ def parse_prompts_file(path: Path, default_denoise: float) -> list[dict]:
                     cn_strength = float(part.split("=", 1)[1])
                 except (ValueError, IndexError):
                     pass
+            elif low.startswith("kontext_strength="):
+                pass  # FluxKontextImageScale has no strength input — token accepted but ignored
             else:
                 remaining.append(part)
         text = " ".join(remaining).strip() if remaining else line
@@ -205,7 +222,75 @@ def load_anchor_config(path: Path) -> dict:
 
     if "anchor_seed" in cfg and not isinstance(cfg["anchor_seed"], int):
         raise ValueError(f"{path}: 'anchor_seed' must be an integer")
+
+    if cfg["mode"] == "multi":
+        _validate_multi_anchor_consistency(cfg, path)
+
     return cfg
+
+
+# Outfit/location signal words that must NOT appear exclusively in one anchor group
+# (they belong in shared_tail so all anchors render identically).
+_OUTFIT_SIGNALS = {
+    "fabrics": ["satin", "linen", "silk", "chiffon", "denim", "cotton", "georgette",
+                "velvet", "crepe", "organza", "brocade", "khadi"],
+    "garments": ["dress", "kurta", "saree", "skirt", "blouse", "top", "shirt",
+                 "jumpsuit", "co-ord", "palazzo", "lehenga", "salwar", "dupatta"],
+    "colors": ["red", "blue", "green", "yellow", "orange", "pink", "purple", "white",
+               "black", "maroon", "mustard", "coral", "rust", "sage", "ivory", "beige",
+               "emerald", "navy", "teal", "cream", "olive"],
+    "locations": ["balcony", "rooftop", "cafe", "street", "market", "corridor",
+                  "garden", "beach", "hotel", "airport", "restaurant", "mall",
+                  "delhi", "mumbai", "bandra", "goa", "jaipur", "pondicherry",
+                  "chandigarh", "bengaluru", "bangalore"],
+}
+_ALL_SIGNALS = [w for words in _OUTFIT_SIGNALS.values() for w in words]
+
+
+def _extract_signals(text: str) -> set[str]:
+    lower = text.lower()
+    return {w for w in _ALL_SIGNALS if w in lower}
+
+
+def _validate_multi_anchor_consistency(cfg: dict, path: Path) -> None:
+    """Warn if anchor group prompts contain outfit/location signals not in shared_tail.
+
+    Signals in shared_tail = intentional (present in all anchors via concatenation).
+    Signals only in a group prompt = risk of per-anchor visual divergence.
+    Missing shared_tail entirely = no consistency guarantee → hard error.
+    """
+    tail = cfg.get("shared_tail", "").strip()
+    if not tail:
+        raise ValueError(
+            f"{path}: multi-anchor config missing 'shared_tail'.\n"
+            "  shared_tail carries outfit + accessories + location — required for visual\n"
+            "  consistency across anchor groups. Add shared_tail or use single-anchor mode."
+        )
+
+    tail_signals = _extract_signals(tail)
+    warnings = []
+    for group_name, group_cfg in cfg["anchors"].items():
+        group_prompt = group_cfg["prompt"].strip()
+        group_signals = _extract_signals(group_prompt)
+        # Signals in the group prompt but NOT in shared_tail = potential divergence
+        exclusive = group_signals - tail_signals
+        if exclusive:
+            warnings.append(
+                f"  anchor '{group_name}' has outfit/location tokens not in shared_tail: "
+                + ", ".join(sorted(exclusive))
+                + "\n    -> move these to shared_tail or they will diverge across anchor groups"
+            )
+
+    if warnings:
+        console.print(f"[yellow bold]WARN: Anchor consistency warnings ({path.name}):[/yellow bold]")
+        for w in warnings:
+            console.print(f"[yellow]{w}[/yellow]")
+        console.print(
+            "[yellow]  These tokens appear in individual anchor prompts but not shared_tail.\n"
+            "  Each anchor is generated independently -- if outfit/location tokens\n"
+            "  differ per group, slides will look visually inconsistent.\n"
+            "  Recommendation: move all outfit + accessories + location to shared_tail.[/yellow]"
+        )
 
 
 @click.command()
@@ -221,11 +306,13 @@ def load_anchor_config(path: Path) -> dict:
               help="YAML with anchor(s) — single mode (anchor_prompt:) or multi mode (anchors:)")
 @click.option("--flux-dev", is_flag=True,
               help="Use FLUX dev workflows (20 steps, CFG 3.5) instead of schnell (4 steps). ~5x slower, better prompt adherence.")
+@click.option("--kontext", is_flag=True,
+              help="Use FLUX Kontext Dev for Stage 2 (image editing). Replaces img2img. Requires flux1-kontext-dev-Q4_K_S.gguf.")
 @click.option("--character", default="ananya", show_default=True)
 def main(prompts_file: str, face_ref: str, name: str, candidates: int,
          anchor_seed: int | None, outfit_lock: bool,
          anchor_outfit_prompt: str | None, anchor_prompt: str | None,
-         anchor_config: str | None, flux_dev: bool, character: str):
+         anchor_config: str | None, flux_dev: bool, kontext: bool, character: str):
     """Carousel: FLUX img2img (person+BG together) → ReActor face swap."""
 
     prompts_path = Path(prompts_file)
@@ -348,8 +435,9 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
 
     # Pre-load stage 2/3 templates
     i2i_templates = {
-        "i2i":    load_workflow(str(ROOT / "workflows" / flux_wf["i2i"])),
-        "i2i_cn": load_workflow(str(ROOT / "workflows" / flux_wf["i2i_cn"])),
+        "i2i":     load_workflow(str(ROOT / "workflows" / flux_wf["i2i"])),
+        "i2i_cn":  load_workflow(str(ROOT / "workflows" / flux_wf["i2i_cn"])),
+        "kontext": load_workflow(str(ROOT / "workflows" / "flux_kontext.json")),
     }
     faceswap_template = load_workflow(str(ROOT / "workflows" / "faceswap_reactor.json"))
 
@@ -396,13 +484,19 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
             final_path = out_dir / f"slide_{idx:02d}_cand_{cand}.png"
 
             try:
-                # Stage 2: img2img off anchor (with ControlNet if pose specified)
-                template = i2i_templates["i2i_cn"] if use_cn else i2i_templates["i2i"]
-                wf2 = _inject_flux_img2img(
-                    template,
-                    slide_prompt, uploaded_anchor, denoise, slide_seed,
-                    pose_image_name=uploaded_pose, cn_strength=cn_strength,
-                )
+                # Stage 2: Kontext edit OR standard img2img off anchor
+                if kontext:
+                    wf2 = _inject_flux_kontext(
+                        i2i_templates["kontext"],
+                        slide_prompt, uploaded_anchor, slide_seed,
+                    )
+                else:
+                    template = i2i_templates["i2i_cn"] if use_cn else i2i_templates["i2i"]
+                    wf2 = _inject_flux_img2img(
+                        template,
+                        slide_prompt, uploaded_anchor, denoise, slide_seed,
+                        pose_image_name=uploaded_pose, cn_strength=cn_strength,
+                    )
                 _run_and_save(client, wf2, base_path, timeout=flux_timeout)
 
                 # Stage 3: ReActor face swap
@@ -412,6 +506,12 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                     uploaded_face, uploaded_target,
                 )
                 _run_and_save(client, wf3, final_path, timeout=180)
+
+                # Resize to 1080×1920 (9:16 — Instagram Reels + carousel native res)
+                # Original preserved in _intermediate/ base file before overwrite
+                img = Image.open(final_path)
+                img_resized = img.resize((1080, 1920), Image.LANCZOS)
+                img_resized.save(final_path)
 
                 console.print(f"  [green]cand {cand}[/green] -> {final_path.name} (seed {slide_seed})")
 

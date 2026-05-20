@@ -1,0 +1,30 @@
+# Production OOTD — red satin halter dress, apartment balcony, daytime.
+# Phase A strategy: single anchor (standing full-body), 6 standing slides at denoise=0.35
+# Outfit pixel-locked via low denoise + ControlNet pose variation.
+# Closeup slides cropped in post from best standing output (scripts/crop_closeup.py).
+#
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/red_dress_balcony.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name red_dress_balcony_v2 \
+#     --anchor-config character/ananya/anchor_libraries/red_dress_balcony.yaml \
+#     --flux-dev
+
+# 1. Standing full body — hands on hips, direct gaze
+denoise=0.35 | anchor=standing | pose=character/ananya/poses/standing_01.png | cn=0.85 | 23-year-old South Asian woman with M-size hourglass figure defined waist and full hips soft natural curves not slim editorial fabric shows soft midsection not plus-size, wearing floor-length fitted red satin halter-neck dress with neck strap tied behind neck bare shoulders open back fabric following natural body curves strappy black heeled sandals gold bangle, photorealistic full body editorial fashion photograph shot on Sony A7IV 50mm, standing on high-rise apartment balcony both hands on hips weight shifted on right leg confident stance, looking directly at camera with soft smile, residential towers and lush greenery visible behind steel railing, bright Indian afternoon daylight, f/2.0 shallow depth of field sharp focus on face, authentic skin texture visible pores asymmetric facial features slightly off-center composition
+
+# 2. Standing — leaning on railing, three-quarter profile
+denoise=0.35 | anchor=standing | pose=character/ananya/poses/standing_06.png | cn=0.85 | 23-year-old South Asian woman with M-size hourglass figure defined waist and full hips soft natural curves not slim editorial fabric shows soft midsection not plus-size, wearing floor-length fitted red satin halter-neck dress with neck strap tied behind neck bare shoulders open back strappy black heeled sandals, photorealistic candid fashion photograph shot on Sony A7IV 50mm, full body leaning with both forearms resting on balcony railing weight forward, head turned slightly right looking off camera into distance with relaxed expression, city high-rise towers and green canopy behind, warm afternoon side light catching satin sheen, f/2.0 shallow depth of field, authentic skin texture visible pores candid not posed
+
+# 3. Standing — hand raised pushing hair back, slight body turn
+denoise=0.35 | anchor=standing | pose=character/ananya/poses/standing_04.png | cn=0.85 | 23-year-old South Asian woman with M-size hourglass figure defined waist and full hips soft natural curves not slim editorial fabric shows soft midsection not plus-size, wearing floor-length fitted red satin halter-neck dress with neck strap tied behind neck bare shoulders open back gold bangle on left wrist, photorealistic candid fashion photograph shot on Sony A7IV 50mm, full body on balcony right hand raised pushing dark hair off left shoulder, body angled three-quarter to camera, eyes slightly downcast with soft expression, potted plant visible at balcony corner, bright Indian daylight with slight haze, f/2.0 shallow depth of field, authentic skin texture off-center composition
+
+# 4. Standing — arms crossed at waist, side angle
+denoise=0.35 | anchor=standing | pose=character/ananya/poses/standing_02.png | cn=0.85 | 23-year-old South Asian woman with M-size hourglass figure defined waist and full hips soft natural curves not slim editorial fabric shows soft midsection not plus-size, wearing floor-length fitted red satin halter-neck dress with neck strap tied behind neck bare shoulders open back, photorealistic candid fashion photograph shot on Sony A7IV 50mm, full body standing on balcony body angled left arms loosely crossed at waist, gaze toward camera with closed-lip smile, residential towers visible behind steel railing, warm afternoon sunlight from left, f/2.0 shallow depth of field, authentic skin texture visible pores asymmetric composition
+
+# 5. Standing — one hand on railing looking down toward city
+denoise=0.35 | anchor=standing | pose=character/ananya/poses/standing_07.png | cn=0.85 | 23-year-old South Asian woman with M-size hourglass figure defined waist and full hips soft natural curves not slim editorial fabric shows soft midsection not plus-size, wearing floor-length fitted red satin halter-neck dress with neck strap tied behind neck bare shoulders open back gold bangle, photorealistic candid fashion photograph shot on Sony A7IV 50mm, full body standing at balcony railing right hand resting on top rail head turned looking down at city below, contemplative expression hair falling forward over right shoulder, residential towers and greenery soft bokeh, warm side light, f/2.0 shallow depth of field, authentic skin texture candid moment
+
+# 6. Standing — walking step toward camera, hair in motion
+denoise=0.35 | anchor=standing | pose=character/ananya/poses/standing_03.png | cn=0.85 | 23-year-old South Asian woman with M-size hourglass figure defined waist and full hips soft natural curves not slim editorial fabric shows soft midsection not plus-size, wearing floor-length fitted red satin halter-neck dress with neck strap tied behind neck bare shoulders open back strappy black heeled sandals, photorealistic editorial fashion photograph shot on Sony A7IV 50mm, full body mid-stride walking toward camera one foot lifted slight motion in hair and dress hem, looking at camera with confident half-smile, residential towers and greenery behind, bright Indian afternoon light, f/2.0 shallow depth of field sharp focus on face, authentic skin texture asymmetric features off-center composition

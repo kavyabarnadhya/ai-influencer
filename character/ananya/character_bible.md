@@ -24,7 +24,7 @@
 | Hair | Long (mid-back to waist), dark brown-black, straight with natural wave |
 | Face shape | Oval, soft but defined — believable symmetry, not doll-like perfection |
 | Lips | Full, natural rose-pink |
-| Body | Slim, fit, elegant — not hypersexualized proportions |
+| Body | M-size hourglass — defined waist, full hips, soft natural curves, average Indian build — not slim/editorial, not plus-size |
 | Skin texture | Visible pores, subtle warmth, natural unevenness |
 | Distinguishing | Delicate gold jhumka earrings, occasional bindi in lifestyle content |
 
