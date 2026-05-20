@@ -95,6 +95,20 @@ def _inject_flux_img2img(wf: dict, prompt: str, init_image_name: str,
     return wf
 
 
+def _inject_flux_kontext(wf: dict, prompt: str, init_image_name: str, seed: int) -> dict:
+    for node in wf.values():
+        if not isinstance(node, dict):
+            continue
+        title = node.get("_meta", {}).get("title", "")
+        if title == "_claude_inject_prompt":
+            node["inputs"]["text"] = prompt
+        elif title == "_claude_inject_init_image":
+            node["inputs"]["image"] = init_image_name
+        elif title == "_claude_inject_seed":
+            node["inputs"]["seed"] = seed
+    return wf
+
+
 def _inject_faceswap(wf: dict, face_ref_name: str, target_name: str) -> dict:
     for node in wf.values():
         if not isinstance(node, dict):
@@ -136,6 +150,7 @@ def parse_prompts_file(path: Path, default_denoise: float) -> list[dict]:
         anchor = None
         pose = None
         cn_strength = 0.65
+        kontext_strength = 0.85
         parts = [p.strip() for p in line.split("|")]
         remaining = []
         for part in parts:
@@ -154,11 +169,17 @@ def parse_prompts_file(path: Path, default_denoise: float) -> list[dict]:
                     cn_strength = float(part.split("=", 1)[1])
                 except (ValueError, IndexError):
                     pass
+            elif low.startswith("kontext_strength="):
+                try:
+                    kontext_strength = float(part.split("=", 1)[1])
+                except (ValueError, IndexError):
+                    pass
             else:
                 remaining.append(part)
         text = " ".join(remaining).strip() if remaining else line
         out.append({"denoise": denoise, "anchor": anchor, "pose": pose,
-                    "cn_strength": cn_strength, "prompt": text})
+                    "cn_strength": cn_strength, "kontext_strength": kontext_strength,
+                    "prompt": text})
     return out
 
 
@@ -292,11 +313,13 @@ def _validate_multi_anchor_consistency(cfg: dict, path: Path) -> None:
               help="YAML with anchor(s) — single mode (anchor_prompt:) or multi mode (anchors:)")
 @click.option("--flux-dev", is_flag=True,
               help="Use FLUX dev workflows (20 steps, CFG 3.5) instead of schnell (4 steps). ~5x slower, better prompt adherence.")
+@click.option("--kontext", is_flag=True,
+              help="Use FLUX Kontext Dev for Stage 2 (image editing). Replaces img2img. Requires flux1-kontext-dev-Q4_K_S.gguf.")
 @click.option("--character", default="ananya", show_default=True)
 def main(prompts_file: str, face_ref: str, name: str, candidates: int,
          anchor_seed: int | None, outfit_lock: bool,
          anchor_outfit_prompt: str | None, anchor_prompt: str | None,
-         anchor_config: str | None, flux_dev: bool, character: str):
+         anchor_config: str | None, flux_dev: bool, kontext: bool, character: str):
     """Carousel: FLUX img2img (person+BG together) → ReActor face swap."""
 
     prompts_path = Path(prompts_file)
@@ -458,13 +481,19 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
             final_path = out_dir / f"slide_{idx:02d}_cand_{cand}.png"
 
             try:
-                # Stage 2: img2img off anchor (with ControlNet if pose specified)
-                workflow_file = flux_wf["i2i_cn"] if use_cn else flux_wf["i2i"]
-                wf2 = _inject_flux_img2img(
-                    load_workflow(str(ROOT / "workflows" / workflow_file)),
-                    slide_prompt, uploaded_anchor, denoise, slide_seed,
-                    pose_image_name=uploaded_pose, cn_strength=cn_strength,
-                )
+                # Stage 2: Kontext edit OR standard img2img off anchor
+                if kontext:
+                    wf2 = _inject_flux_kontext(
+                        load_workflow(str(ROOT / "workflows" / "flux_kontext.json")),
+                        slide_prompt, uploaded_anchor, slide_seed,
+                    )
+                else:
+                    workflow_file = flux_wf["i2i_cn"] if use_cn else flux_wf["i2i"]
+                    wf2 = _inject_flux_img2img(
+                        load_workflow(str(ROOT / "workflows" / workflow_file)),
+                        slide_prompt, uploaded_anchor, denoise, slide_seed,
+                        pose_image_name=uploaded_pose, cn_strength=cn_strength,
+                    )
                 _run_and_save(client, wf2, base_path, timeout=flux_timeout)
 
                 # Stage 3: ReActor face swap
