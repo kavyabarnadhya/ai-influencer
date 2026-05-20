@@ -1,14 +1,14 @@
 # Black one-shoulder ruched bodycon — FLUX Kontext carousel, 6 slides
-# Anchor: single standing full-body (black_oneshot_ruched_balcony.yaml)
+# Anchor: single standing full-body (black_oneshoulder_ruched_balcony.yaml)
 # Outfit: black one-shoulder long-sleeve ruched bodycon midi dress + gold cuff + block heels
 # All slides via --kontext flag — outfit pixel-consistent across all poses/framings
 #
 # Run:
 #   python scripts/faceswap_carousel.py \
-#     --prompts character/ananya/carousel_prompts/black_onesholder_ruched_kontext.txt \
+#     --prompts character/ananya/carousel_prompts/black_oneshoulder_ruched_kontext.txt \
 #     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
 #     --name black_oneshoulder_ruched_v1 \
-#     --anchor-config character/ananya/anchor_libraries/black_oneshot_ruched_balcony.yaml \
+#     --anchor-config character/ananya/anchor_libraries/black_oneshoulder_ruched_balcony.yaml \
 #     --flux-dev --kontext
 
 # Kontext rules for this outfit:

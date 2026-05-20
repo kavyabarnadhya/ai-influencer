@@ -151,7 +151,6 @@ def parse_prompts_file(path: Path, default_denoise: float) -> list[dict]:
         anchor = None
         pose = None
         cn_strength = 0.65
-        kontext_strength = 0.85
         parts = [p.strip() for p in line.split("|")]
         remaining = []
         for part in parts:
@@ -171,16 +170,12 @@ def parse_prompts_file(path: Path, default_denoise: float) -> list[dict]:
                 except (ValueError, IndexError):
                     pass
             elif low.startswith("kontext_strength="):
-                try:
-                    kontext_strength = float(part.split("=", 1)[1])
-                except (ValueError, IndexError):
-                    pass
+                pass  # FluxKontextImageScale has no strength input — token accepted but ignored
             else:
                 remaining.append(part)
         text = " ".join(remaining).strip() if remaining else line
         out.append({"denoise": denoise, "anchor": anchor, "pose": pose,
-                    "cn_strength": cn_strength, "kontext_strength": kontext_strength,
-                    "prompt": text})
+                    "cn_strength": cn_strength, "prompt": text})
     return out
 
 
@@ -506,6 +501,7 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                 _run_and_save(client, wf3, final_path, timeout=180)
 
                 # Resize to 1080×1920 (9:16 — Instagram Reels + carousel native res)
+                # Original preserved in _intermediate/ base file before overwrite
                 img = Image.open(final_path)
                 img_resized = img.resize((1080, 1920), Image.LANCZOS)
                 img_resized.save(final_path)
