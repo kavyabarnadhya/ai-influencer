@@ -1,0 +1,26 @@
+# Kontext test — red dress balcony, 3 slides
+# Anchor: output/2026-05-20/ananya/carousel_red_dress_balcony_v2/slide_00_cand_0.png
+# Pass criteria:
+#   slide_00: tight chest-up closeup, halter neckline identical to anchor
+#   slide_01: seated on balcony railing, same dress, city behind
+#   slide_02: three-quarter turn left, full body, same dress
+#
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/_red_dress_kontext_test.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name red_dress_kontext_test \
+#     --anchor-config character/ananya/anchor_libraries/red_dress_balcony.yaml \
+#     --flux-dev --kontext
+
+# Kontext prompt style: short, instruction-based. No body descriptor stack needed.
+# Model reads identity/outfit from anchor image directly.
+
+# slide_00: closeup
+kontext_strength=0.85 | anchor=standing | chest-up portrait of same woman in same red satin halter dress on apartment balcony, city towers behind, soft afternoon light, direct camera gaze, tight framing showing face neck shoulders and neckline
+
+# slide_01: sitting
+kontext_strength=0.85 | anchor=standing | same woman in same red satin halter dress seated sideways on balcony railing, legs crossed at ankle, one hand resting on knee, relaxed expression looking off camera, residential towers and greenery behind, bright afternoon daylight
+
+# slide_02: three-quarter turn
+kontext_strength=0.85 | anchor=standing | same woman in same red satin halter dress standing on balcony turned three-quarter to the left, looking back over right shoulder toward camera with soft smile, full body visible, city skyline behind
