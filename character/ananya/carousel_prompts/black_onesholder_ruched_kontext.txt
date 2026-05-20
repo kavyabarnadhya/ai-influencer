@@ -1,0 +1,35 @@
+# Black one-shoulder ruched bodycon — FLUX Kontext carousel, 6 slides
+# Anchor: single standing full-body (black_oneshot_ruched_balcony.yaml)
+# Outfit: black one-shoulder long-sleeve ruched bodycon midi dress + gold cuff + block heels
+# All slides via --kontext flag — outfit pixel-consistent across all poses/framings
+#
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/black_onesholder_ruched_kontext.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name black_oneshoulder_ruched_v1 \
+#     --anchor-config character/ananya/anchor_libraries/black_oneshot_ruched_balcony.yaml \
+#     --flux-dev --kontext
+
+# Kontext rules for this outfit:
+#   - Always say "same woman in same black one-shoulder bodycon dress"
+#   - Always keep: "keeping exact same one-shoulder neckline, long sleeve on left arm, bare right shoulder, ruched waist, gold cuff bracelet"
+#   - Bare right shoulder is the hero detail — mention it in every slide
+
+# slide_00: full body, hand on hip, direct gaze — scroll-stop hook
+anchor=standing | same woman in same black one-shoulder ruched bodycon dress on Mumbai balcony, right hand on hip, left arm relaxed showing gold cuff, looking directly at camera with confident smile, residential towers and tropical plants behind, bright warm daylight, keeping exact same one-shoulder neckline, long sleeve on left arm, bare right shoulder, ruched waist, and gold cuff bracelet
+
+# slide_01: full body, leaning on railing, looking off camera
+anchor=standing | same woman in same black one-shoulder ruched bodycon dress leaning with left forearm on balcony iron railing, right hand resting on railing, head turned slightly looking into distance with relaxed expression, Mumbai skyline and tropical plants behind, warm afternoon side light, keeping exact same one-shoulder neckline, long sleeve on left arm, bare right shoulder, ruched waist, and gold cuff bracelet
+
+# slide_02: chest-up closeup, direct gaze, soft smile — neckline detail slide
+anchor=standing | change to chest-up portrait framing showing face neck shoulders and neckline only, same woman in same black one-shoulder bodycon dress, direct camera gaze with soft smile, bare right shoulder prominent in frame, balcony soft bokeh behind, keeping exact same diagonal one-shoulder neckline, long sleeve on left arm, bare right shoulder, and gold cuff bracelet
+
+# slide_03: full body, right hand pushing hair off bare shoulder, three-quarter
+anchor=standing | same woman in same black one-shoulder ruched bodycon dress on balcony, right hand raised pushing wavy hair off bare right shoulder, body angled three-quarter to camera, soft expression looking slightly off-camera, bright Indian daylight, tropical plants behind, keeping exact same one-shoulder neckline, long sleeve on left arm, bare right shoulder, ruched waist, and gold cuff bracelet
+
+# slide_04: full body, walking toward camera, slight motion in hair
+anchor=standing | same woman in same black one-shoulder ruched bodycon dress mid-stride walking toward camera on balcony, slight motion in wavy hair, confident half-smile looking at camera, Mumbai residential towers behind, bright warm daylight, keeping exact same one-shoulder neckline, long sleeve on left arm, bare right shoulder, ruched waist, and gold cuff bracelet
+
+# slide_05: chest-up closeup, chin down, smirk — closing slide
+anchor=standing | change to chest-up portrait framing, same woman in same black one-shoulder ruched bodycon dress, chin slightly lowered looking at camera with confident smirk, right hand lightly touching bare right shoulder, balcony bokeh behind, keeping exact same diagonal one-shoulder neckline, long sleeve on left arm, bare right shoulder, and gold cuff bracelet
