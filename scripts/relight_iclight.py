@@ -26,7 +26,7 @@ import click
 from rich.console import Console
 
 sys.path.insert(0, str(Path(__file__).parent))
-from comfyui_api import ComfyUIClient, ComfyUIError, find_comfyui_port, load_workflow
+from comfyui_api import ComfyUIClient, ComfyUIError, find_comfyui_port, load_workflow, inject_workflow_values
 
 console = Console()
 ROOT = Path(__file__).parent.parent
@@ -47,15 +47,16 @@ LIGHT_MODES = {
 
 
 def _inject_iclight(wf: dict, image_name: str, light_prompt: str) -> dict:
-    for node in wf.values():
-        if not isinstance(node, dict):
-            continue
-        title = node.get("_meta", {}).get("title", "")
-        if title == "_claude_inject_target_image":
-            node["inputs"]["image"] = image_name
-        elif title == "_claude_inject_light_prompt" and light_prompt:
-            node["inputs"]["text"] = light_prompt
-    return wf
+    """
+    Inject target image and lighting prompt into IC-Light workflow.
+    Optimization: Uses inject_workflow_values for O(1) node lookup and optimized copying.
+    """
+    overrides = {
+        "_claude_inject_target_image": {"inputs.image": image_name}
+    }
+    if light_prompt:
+        overrides["_claude_inject_light_prompt"] = {"inputs.text": light_prompt}
+    return inject_workflow_values(wf, overrides)
 
 
 @click.command()
@@ -107,6 +108,10 @@ def main(input_dir: str, light_mode: str, workflow: str, dry_run: bool, limit: i
 
     client = ComfyUIClient(host="127.0.0.1", port=port)
 
+    # Optimization: Load workflow template once outside the loop.
+    # inject_workflow_values() returns a shallow copy, so the base template is safe.
+    wf_template = load_workflow(str(workflow_path))
+
     date_str = datetime.now().strftime("%Y-%m-%d")
     out_path = ROOT / "character" / "ananya" / "seeds_v2" / "experimental" / f"relight_{date_str}"
     out_path.mkdir(parents=True, exist_ok=True)
@@ -117,8 +122,7 @@ def main(input_dir: str, light_mode: str, workflow: str, dry_run: bool, limit: i
 
         try:
             uploaded = client.upload_image(str(img_path))
-            wf = load_workflow(str(workflow_path))
-            _inject_iclight(wf, image_name=uploaded, light_prompt=light_prompt)
+            wf = _inject_iclight(wf_template, image_name=uploaded, light_prompt=light_prompt)
 
             prompt_id = client.submit_workflow(wf)
             image_refs = client.wait_for_completion(prompt_id, timeout=120)
