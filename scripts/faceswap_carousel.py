@@ -35,6 +35,7 @@ from pathlib import Path
 
 import click
 import yaml
+from PIL import Image
 from rich.console import Console
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -503,6 +504,11 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                     uploaded_face, uploaded_target,
                 )
                 _run_and_save(client, wf3, final_path, timeout=180)
+
+                # Resize to 1080×1920 (9:16 — Instagram Reels + carousel native res)
+                img = Image.open(final_path)
+                img_resized = img.resize((1080, 1920), Image.LANCZOS)
+                img_resized.save(final_path)
 
                 console.print(f"  [green]cand {cand}[/green] -> {final_path.name} (seed {slide_seed})")
 

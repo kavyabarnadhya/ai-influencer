@@ -1,0 +1,35 @@
+# Red dress balcony — FLUX Kontext carousel, 6 slides
+# Anchor: single standing full-body (red_dress_balcony.yaml)
+# All slides via --kontext flag — outfit pixel-consistent across all poses/framings
+#
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/red_dress_balcony_kontext.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name red_dress_balcony_kontext_v1 \
+#     --anchor-config character/ananya/anchor_libraries/red_dress_balcony.yaml \
+#     --flux-dev --kontext
+
+# Kontext prompt rules:
+#   - Short instruction style, no body descriptor stack
+#   - Say "same woman in same red satin halter dress" to anchor outfit
+#   - Explicitly state what to KEEP: "keeping exact same dress, neckline, and accessories"
+#   - For pose changes: describe new pose + say "keeping the person in same position scale"
+
+# slide_00: full body standing, hands on hips, direct gaze
+anchor=standing | same woman in same red satin halter dress standing on apartment balcony with both hands on hips, weight shifted on right leg, looking directly at camera with confident smile, residential towers and greenery behind, bright afternoon daylight, keeping exact same dress neckline and accessories
+
+# slide_01: full body, leaning on railing, looking off camera
+anchor=standing | same woman in same red satin halter dress leaning with both forearms on balcony railing, head turned slightly right looking into distance with relaxed expression, city towers and green canopy behind, warm afternoon side light catching dress fabric, keeping exact same dress neckline and accessories
+
+# slide_02: chest-up closeup, direct gaze, soft smile
+anchor=standing | change to chest-up portrait framing showing face neck shoulders and neckline only, same woman in same red satin halter dress on apartment balcony, direct camera gaze with soft smile, city towers soft bokeh behind, keeping exact same dress neckline and halter strap
+
+# slide_03: full body, hand pushing hair back, three-quarter turn
+anchor=standing | same woman in same red satin halter dress on balcony with right hand raised pushing dark hair off left shoulder, body angled three-quarter to camera, eyes slightly downcast soft expression, bright Indian daylight, keeping exact same dress neckline and accessories
+
+# slide_04: waist-up closeup, chin tilted down, smirk
+anchor=standing | change to waist-up portrait framing, same woman in same red satin halter dress on apartment balcony, chin slightly lowered looking at camera with confident closed-lip smirk, left arm crossed over body, residential towers soft bokeh behind, keeping exact same dress neckline and halter strap
+
+# slide_05: full body, walking toward camera, motion in hair and hem
+anchor=standing | same woman in same red satin halter dress mid-stride walking toward camera on balcony, slight motion in hair and dress hem, confident half-smile looking at camera, residential towers behind, bright afternoon light, keeping exact same dress neckline and accessories

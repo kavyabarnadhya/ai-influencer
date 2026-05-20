@@ -1,0 +1,36 @@
+# Office Casual Friday — FLUX Kontext carousel, 6 slides
+# Anchor: single standing full-body (office_casual_friday.yaml)
+# Outfit: ivory blazer + black cami + straight black trousers + gold hoops
+# All slides via --kontext flag — outfit pixel-consistent across all poses/framings
+#
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/office_casual_friday_kontext.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name office_casual_friday_v1 \
+#     --anchor-config character/ananya/anchor_libraries/office_casual_friday.yaml \
+#     --flux-dev --kontext
+
+# Kontext prompt rules:
+#   - Short instruction style, no body descriptor stack
+#   - Say "same woman in same ivory blazer and black trousers" to anchor outfit
+#   - Explicitly state: "keeping exact same blazer, trousers, heels, and gold hoops"
+#   - For framing changes: lead with "change to [framing] portrait framing"
+
+# slide_00: full body standing, hand in pocket, direct gaze — scroll-stop hook
+anchor=standing | same woman in same ivory blazer and straight black trousers on BKC pavement, standing with right hand in trouser pocket, left hand relaxed at side, looking directly at camera with confident closed-lip expression, glass corporate towers behind, bright overcast daylight, keeping exact same blazer, trousers, heels, and gold hoops
+
+# slide_01: full body, leaning against building pillar, arms loosely crossed
+anchor=standing | same woman in same ivory blazer and straight black trousers leaning with back against smooth concrete building pillar, arms loosely folded at waist height, head tilted slightly right, soft half-smile looking at camera, BKC towers and palm trees behind, keeping exact same blazer, trousers, heels, and gold hoops
+
+# slide_02: chest-up closeup, direct gaze, natural smile
+anchor=standing | change to chest-up portrait framing showing face neck shoulders and neckline only, same woman in same ivory blazer and black cami, direct camera gaze with natural open smile, glass building facade soft bokeh behind, keeping exact same blazer lapel, cami neckline, and gold hoop earrings
+
+# slide_03: full body, walking mid-stride, slight motion in blazer hem
+anchor=standing | same woman in same ivory blazer and straight black trousers mid-stride walking toward camera on wide BKC pavement, slight motion in blazer hem, looking slightly off-camera with confident expression, corporate glass towers behind, bright daylight, keeping exact same blazer, trousers, heels, and gold hoops
+
+# slide_04: full body, turned three-quarter showing back of blazer, glancing over shoulder
+anchor=standing | same woman in same ivory blazer and straight black trousers turned three-quarter showing the back of the blazer, head turned over left shoulder looking back at camera with a half-smile, BKC street behind, bright overcast light, keeping exact same blazer fit, trousers, heels, and gold hoops visible at ear
+
+# slide_05: chest-up closeup, chin down, smirk — closing slide
+anchor=standing | change to chest-up portrait framing, same woman in same ivory blazer and black cami, chin slightly lowered looking up at camera with confident smirk, right hand resting at blazer lapel, glass building bokeh behind, keeping exact same blazer, cami neckline, and gold hoop earrings
