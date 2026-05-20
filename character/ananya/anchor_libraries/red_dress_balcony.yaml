@@ -1,0 +1,20 @@
+# Single-anchor OOTD — red satin halter-neck dress, apartment balcony, daytime.
+# Single anchor = all slides img2img off same image → outfit physically locked.
+# Use single-anchor for ALL OOTD carousels. Multi-anchor only when outfits differ per group.
+
+anchor_seed: 739264801
+
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips,
+  soft natural curves not slim editorial, fabric shows soft midsection, not plus-size, average Indian build,
+  wearing floor-length fitted red satin halter-neck dress with neck strap tied behind neck,
+  bare shoulders, open back, fabric following natural body curves to hem,
+  strappy black heeled sandals, gold bangle on left wrist, small gold hoop earrings,
+  dark hair in loose natural waves falling over right shoulder,
+  standing on high-rise apartment balcony with steel railing,
+  residential towers and lush city greenery visible behind,
+  bright Indian afternoon daylight, warm sun from left side,
+  photorealistic full body editorial fashion photograph shot on Sony A7IV 50mm,
+  authentic skin texture with visible pores, natural skin imperfections,
+  no plasticky skin, asymmetric facial features, slightly off-center composition,
+  weight shifted on right leg, one hand on hip, candid not catalog stance

@@ -208,7 +208,75 @@ def load_anchor_config(path: Path) -> dict:
 
     if "anchor_seed" in cfg and not isinstance(cfg["anchor_seed"], int):
         raise ValueError(f"{path}: 'anchor_seed' must be an integer")
+
+    if cfg["mode"] == "multi":
+        _validate_multi_anchor_consistency(cfg, path)
+
     return cfg
+
+
+# Outfit/location signal words that must NOT appear exclusively in one anchor group
+# (they belong in shared_tail so all anchors render identically).
+_OUTFIT_SIGNALS = {
+    "fabrics": ["satin", "linen", "silk", "chiffon", "denim", "cotton", "georgette",
+                "velvet", "crepe", "organza", "brocade", "khadi"],
+    "garments": ["dress", "kurta", "saree", "skirt", "blouse", "top", "shirt",
+                 "jumpsuit", "co-ord", "palazzo", "lehenga", "salwar", "dupatta"],
+    "colors": ["red", "blue", "green", "yellow", "orange", "pink", "purple", "white",
+               "black", "maroon", "mustard", "coral", "rust", "sage", "ivory", "beige",
+               "emerald", "navy", "teal", "cream", "olive"],
+    "locations": ["balcony", "rooftop", "cafe", "street", "market", "corridor",
+                  "garden", "beach", "hotel", "airport", "restaurant", "mall",
+                  "delhi", "mumbai", "bandra", "goa", "jaipur", "pondicherry",
+                  "chandigarh", "bengaluru", "bangalore"],
+}
+_ALL_SIGNALS = [w for words in _OUTFIT_SIGNALS.values() for w in words]
+
+
+def _extract_signals(text: str) -> set[str]:
+    lower = text.lower()
+    return {w for w in _ALL_SIGNALS if w in lower}
+
+
+def _validate_multi_anchor_consistency(cfg: dict, path: Path) -> None:
+    """Warn if anchor group prompts contain outfit/location signals not in shared_tail.
+
+    Signals in shared_tail = intentional (present in all anchors via concatenation).
+    Signals only in a group prompt = risk of per-anchor visual divergence.
+    Missing shared_tail entirely = no consistency guarantee → hard error.
+    """
+    tail = cfg.get("shared_tail", "").strip()
+    if not tail:
+        raise ValueError(
+            f"{path}: multi-anchor config missing 'shared_tail'.\n"
+            "  shared_tail carries outfit + accessories + location — required for visual\n"
+            "  consistency across anchor groups. Add shared_tail or use single-anchor mode."
+        )
+
+    tail_signals = _extract_signals(tail)
+    warnings = []
+    for group_name, group_cfg in cfg["anchors"].items():
+        group_prompt = group_cfg["prompt"].strip()
+        group_signals = _extract_signals(group_prompt)
+        # Signals in the group prompt but NOT in shared_tail = potential divergence
+        exclusive = group_signals - tail_signals
+        if exclusive:
+            warnings.append(
+                f"  anchor '{group_name}' has outfit/location tokens not in shared_tail: "
+                + ", ".join(sorted(exclusive))
+                + "\n    -> move these to shared_tail or they will diverge across anchor groups"
+            )
+
+    if warnings:
+        console.print(f"[yellow bold]WARN: Anchor consistency warnings ({path.name}):[/yellow bold]")
+        for w in warnings:
+            console.print(f"[yellow]{w}[/yellow]")
+        console.print(
+            "[yellow]  These tokens appear in individual anchor prompts but not shared_tail.\n"
+            "  Each anchor is generated independently -- if outfit/location tokens\n"
+            "  differ per group, slides will look visually inconsistent.\n"
+            "  Recommendation: move all outfit + accessories + location to shared_tail.[/yellow]"
+        )
 
 
 @click.command()

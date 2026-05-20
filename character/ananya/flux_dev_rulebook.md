@@ -267,6 +267,23 @@ authentic skin texture with visible pores, asymmetric features, candid snapshot
 
 ---
 
+## RULE 14: Neckline Contradictions (Empirically validated — 2026-05-20)
+
+**Never mix neckline descriptors that contradict each other.** FLUX picks one and ignores the other unpredictably.
+
+❌ `halter-neck bodycon dress with straight bandeau neckline` → FLUX rendered strapless bandeau, ignored halter
+✅ `halter-neck dress with neck strap tied behind neck, bare shoulders, open back`
+
+**Rule:** One neckline descriptor only. Make it physical and specific:
+- Halter: `neck strap tied behind neck, bare shoulders, open back`
+- Bandeau/strapless: `strapless straight neckline, no straps, bare shoulders`
+- Off-shoulder: `elasticated off-shoulder neckline sitting below collarbone`
+- V-neck: `deep V-neckline`
+
+**For standing slides with CN ≥ 0.70:** ControlNet pose lock at high strength can override neckline from shared_tail. Always repeat neckline descriptor explicitly in each standing slide prompt.
+
+---
+
 ## WHAT TO IGNORE (unverified claims stripped from prior rulebook)
 
 - "40% influence loss past 3rd clause" — fabricated specific number
