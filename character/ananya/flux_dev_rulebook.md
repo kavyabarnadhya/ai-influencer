@@ -284,6 +284,7 @@ authentic skin texture with visible pores, asymmetric features, candid snapshot
 
 ---
 
+
 ## WHAT TO IGNORE (unverified claims stripped from prior rulebook)
 
 - "40% influence loss past 3rd clause" — fabricated specific number

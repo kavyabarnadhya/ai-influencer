@@ -1,0 +1,39 @@
+# Validation anchor — Weekend Denim: jeans + tank + overshirt, cafe street, overcast
+# Per FLUX rulebook: layered = "unbuttoned overshirt worn open, sleeves rolled" + "fitted tank"
+anchor_seed: 472916583
+
+shared_tail: >
+  wearing high-waisted vintage cropped blue denim jeans accentuating waist,
+  fitted ribbed white tank top tucked at front,
+  unbuttoned cream linen overshirt worn OPEN with sleeves rolled to elbows,
+  collar lying flat asymmetrically, fabric visible drape,
+  dark hair straight middle-parted falling past shoulders,
+  small gold hoop earrings, small black leather crossbody bag worn across chest,
+  in upscale Bengaluru Indiranagar cafe terrace street, outdoor wooden chairs and potted plants,
+  exposed brick wall and modern shopfront signage visible behind, parked scooters soft in background,
+  overcast soft morning light, even cool tones, gentle shadow on one side of face,
+  shot on iPhone 14, IMG_3158.HEIC, slight grain, amateur snapshot quality,
+  visible skin pores and faint freckles, asymmetric facial features,
+  slightly off-center composition, candid moment not posed
+
+anchors:
+  standing:
+    prompt: >
+      23-year-old South Asian woman with M-size hourglass figure,
+      defined waist and full hips, soft natural curves not slim editorial,
+      not plus-size, average Indian build,
+      photorealistic full body candid street photograph,
+      asymmetric casual stance weight on left leg, right hand in jeans front pocket,
+      easy natural expression looking at camera with slight smile,
+      one side of face in soft shadow,
+      f/2.0 shallow depth of field, sharp focus on face,
+
+  closeup:
+    prompt: >
+      23-year-old South Asian woman with M-size hourglass figure,
+      defined waist, soft natural curves not slim editorial,
+      photorealistic Instagram candid portrait,
+      tight chest-up framing showing linen overshirt collar and tank top underneath,
+      relaxed expression, soft direct gaze, slight natural smile,
+      asymmetric facial features, one side of face in soft shadow,
+      f/1.4 very shallow depth of field, sharp focus on eyes,

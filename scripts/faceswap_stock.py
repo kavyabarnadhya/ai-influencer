@@ -25,7 +25,7 @@ import click
 from rich.console import Console
 
 sys.path.insert(0, str(Path(__file__).parent))
-from comfyui_api import ComfyUIClient, ComfyUIError, find_comfyui_port, load_workflow
+from comfyui_api import ComfyUIClient, ComfyUIError, find_comfyui_port, load_workflow, inject_workflow_values
 
 console = Console()
 ROOT = Path(__file__).parent.parent
@@ -40,17 +40,15 @@ WORKFLOW_NAME = "faceswap_reactor"
 
 
 def _inject_faceswap(wf: dict, face_ref_name: str, target_name: str) -> dict:
-    """Inject face ref + target into ReActor workflow nodes by sentinel title."""
-    for node in wf.values():
-        if not isinstance(node, dict):
-            continue
-        meta = node.get("_meta", {})
-        title = meta.get("title", "")
-        if title == "_claude_inject_source_image":
-            node["inputs"]["image"] = face_ref_name
-        elif title == "_claude_inject_target_image":
-            node["inputs"]["image"] = target_name
-    return wf
+    """
+    Inject face ref + target into ReActor workflow nodes by sentinel title.
+    Optimization: Uses inject_workflow_values for O(1) node lookup and optimized copying.
+    """
+    overrides = {
+        "_claude_inject_source_image": {"inputs.image": face_ref_name},
+        "_claude_inject_target_image": {"inputs.image": target_name}
+    }
+    return inject_workflow_values(wf, overrides)
 
 
 @click.command()
@@ -122,14 +120,17 @@ def main(face_ref: str, input_dir: str, workflow: str, dry_run: bool, limit: int
     console.print(f"Uploading face reference: {face_ref_path.name}...")
     uploaded_face = client.upload_image(str(face_ref_path))
 
+    # Optimization: Load workflow template once outside the loop.
+    # inject_workflow_values() returns a shallow copy, so the base template is safe.
+    wf_template = load_workflow(str(workflow_path))
+
     failed = []
     for i, stock_img in enumerate(stock_images, 1):
         console.print(f"\n[dim]{i}/{len(stock_images)} — {stock_img.name}[/dim]")
 
         try:
             uploaded_target = client.upload_image(str(stock_img))
-            wf = load_workflow(str(workflow_path))
-            _inject_faceswap(wf, face_ref_name=uploaded_face, target_name=uploaded_target)
+            wf = _inject_faceswap(wf_template, face_ref_name=uploaded_face, target_name=uploaded_target)
 
             prompt_id = client.submit_workflow(wf)
             image_refs = client.wait_for_completion(prompt_id, timeout=120)

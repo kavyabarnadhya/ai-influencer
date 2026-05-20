@@ -78,7 +78,13 @@
 
 **Action:** Implement `requests.Session()` for connection pooling and use `@functools.lru_cache` for expensive LLM-based transformations and disk-bound config loading in the MCP server.
 
-## 2026-05-16 - Date-Based Traversal for Output Discovery
+## 2026-05-16 - Refactoring Manual Injection Loops to Centralized API
+
+**Learning:** Manually iterating over ComfyUI workflow nodes ($O(N)$) in specialized generation scripts (like faceswap or relighting) is redundant when a centralized, optimized API (`inject_workflow_values`) exists. The centralized API provides $O(1)$ node lookups via internal metadata caching and utilizes optimized selective copying to reduce memory pressure.
+
+**Action:** Replace manual node-scanning loops in all generation scripts with `inject_workflow_values`. This ensures all scripts benefit from core performance improvements (like title caching and path-traversal unrolling) automatically.
+
+## 2026-05-17 - Date-Based Traversal for Output Discovery
 **Learning:** Using Path.rglob() to find recent images or carousels in a large, multi-day output directory is an O(N) operation that becomes increasingly slow as the dataset grows. In a structure like output/YYYY-MM-DD/character/, traversing directories by name in reverse order allows for an O(K) discovery (where K is the number of requested recent items), providing a ~10x speedup for typical batch sizes.
 **Action:** Replace global rglob or recursive scans in discovery tools (like MCP servers or gallery views) with reverse chronological directory traversal. Stop the scan as soon as the limit is reached.
 
