@@ -1,0 +1,35 @@
+# Red one-shoulder ruched midi — FLUX Kontext carousel, 6 slides
+# Anchor: single standing full-body (red_oneshoulder_ruched_balcony.yaml)
+# Outfit: coral red sleeveless one-shoulder ruched midi dress + white handbag + gold hoops
+# All slides via --kontext flag — outfit pixel-consistent across all poses/framings
+#
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/red_oneshoulder_ruched_kontext.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name red_oneshoulder_ruched_v1 \
+#     --anchor-config character/ananya/anchor_libraries/red_oneshoulder_ruched_balcony.yaml \
+#     --flux-dev --kontext
+
+# Kontext rules for this outfit:
+#   - Always say "same woman in same coral red one-shoulder ruched midi dress"
+#   - Always keep: "keeping exact same single left shoulder strap, bare right shoulder, ruched fabric, side slit hem, white handbag, gold hoop earrings"
+#   - Bare right shoulder is the hero detail — mention in every slide
+
+# slide_00: full body, hand on hip, direct gaze — scroll-stop hook
+anchor=standing | same woman in same coral red one-shoulder ruched midi dress on Mumbai balcony, right hand on hip, left hand holding white structured handbag relaxed at side, looking directly at camera with warm confident smile, beige wall panel and palm plant behind, residential towers visible, bright warm daylight, keeping exact same single left shoulder strap, bare right shoulder, ruched fabric, side slit hem, white handbag, and gold hoop earrings
+
+# slide_01: full body, leaning on railing, looking off camera
+anchor=standing | same woman in same coral red one-shoulder ruched midi dress leaning with right forearm on balcony iron railing, left hand holding white handbag, head turned slightly looking into distance with relaxed expression, palm plant and residential towers behind, warm afternoon light, keeping exact same single left shoulder strap, bare right shoulder, ruched fabric, side slit hem, white handbag, and gold hoop earrings
+
+# slide_02: chest-up closeup, direct gaze, soft smile — neckline detail slide
+anchor=standing | change to chest-up portrait framing showing face neck shoulders and neckline only, same woman in same coral red one-shoulder ruched midi dress, direct camera gaze with soft smile, bare right shoulder prominent in frame, beige wall panel soft bokeh behind, keeping exact same single left shoulder strap, bare right shoulder, ruched fabric, and gold hoop earrings
+
+# slide_03: full body, right hand in hair, three-quarter
+anchor=standing | same woman in same coral red one-shoulder ruched midi dress on balcony, right hand raised pushing wavy hair back off bare right shoulder, left hand holding white handbag, body angled three-quarter to camera, soft expression looking slightly off-camera, bright Indian daylight, palm plant beside her, keeping exact same single left shoulder strap, bare right shoulder, ruched fabric, side slit hem, white handbag, and gold hoop earrings
+
+# slide_04: full body, walking toward camera, slight motion in dress
+anchor=standing | same woman in same coral red one-shoulder ruched midi dress mid-stride walking toward camera on balcony, slight motion in wavy hair and dress hem showing side slit, confident half-smile looking at camera, residential towers behind, bright warm daylight, keeping exact same single left shoulder strap, bare right shoulder, ruched fabric, side slit hem, and gold hoop earrings
+
+# slide_05: chest-up closeup, chin down, smirk — closing slide
+anchor=standing | change to chest-up portrait framing, same woman in same coral red one-shoulder ruched midi dress, chin slightly lowered looking at camera with confident smirk, right hand lightly touching bare right shoulder, beige wall panel bokeh behind, keeping exact same single left shoulder strap, bare right shoulder, ruched fabric, and gold hoop earrings

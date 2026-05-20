@@ -28,6 +28,7 @@ Usage:
       --name smoke_08
 """
 
+import copy
 import random
 import sys
 from datetime import datetime
@@ -94,6 +95,7 @@ def _inject_flux_img2img(wf: dict, prompt: str, init_image_name: str,
 
 
 def _inject_flux_kontext(wf: dict, prompt: str, init_image_name: str, seed: int) -> dict:
+    prompt = f"{prompt}, same background, same scene, unchanged environment"
     for node in wf.values():
         if not isinstance(node, dict):
             continue
@@ -222,6 +224,11 @@ def load_anchor_config(path: Path) -> dict:
 
     if "anchor_seed" in cfg and not isinstance(cfg["anchor_seed"], int):
         raise ValueError(f"{path}: 'anchor_seed' must be an integer")
+
+    if "anchor_init_denoise" in cfg:
+        v = cfg["anchor_init_denoise"]
+        if not isinstance(v, (int, float)) or not (0.0 < float(v) < 1.0):
+            raise ValueError(f"{path}: 'anchor_init_denoise' must be float between 0 and 1")
 
     if cfg["mode"] == "multi":
         _validate_multi_anchor_consistency(cfg, path)
@@ -378,19 +385,42 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
 
     uploaded_face = client.upload_image(str(face_ref_path))
 
+    # Pre-load all workflow templates (needed by both anchor and slide stages)
+    t2i_template = load_workflow(str(ROOT / "workflows" / flux_wf["t2i"]))
+    i2i_templates = {
+        "i2i":     load_workflow(str(ROOT / "workflows" / flux_wf["i2i"])),
+        "i2i_cn":  load_workflow(str(ROOT / "workflows" / flux_wf["i2i_cn"])),
+        "kontext": load_workflow(str(ROOT / "workflows" / "flux_kontext.json")),
+    }
+
+    # Body LoRA strength for anchor t2i — controls _claude_inject_body_lora node in flux_dev.json
+    # YAML field anchor_body_lora_strength overrides default; 0.0 = disabled (no-op node)
+    _body_lora_strength = float(
+        anchor_cfg.get("anchor_body_lora_strength", 0.75)
+        if anchor_cfg else 0.75
+    )
+    if _body_lora_strength > 0.0:
+        console.print(f"  Body LoRA strength={_body_lora_strength}")
+
+    def _make_anchor_wf(prompt_text: str, seed: int) -> dict:
+        """Build anchor t2i workflow with body LoRA strength from anchor config."""
+        wf = copy.deepcopy(t2i_template)
+        overrides = {
+            "_claude_inject_prompt":    {"inputs.text": prompt_text},
+            "_claude_inject_seed":      {"inputs.seed": seed},
+            "_claude_inject_body_lora": {"inputs.strength_model": _body_lora_strength},
+        }
+        return inject_workflow_values(wf, overrides)
+
     # Stage 1: anchor body — single or multi based on config
     uploaded_anchors: dict[str, str] = {}  # group_name -> uploaded filename
-    t2i_template = load_workflow(str(ROOT / "workflows" / flux_wf["t2i"]))
 
     if anchor_cfg and anchor_cfg["mode"] == "single":
         console.print(f"\n[bold cyan]Stage 1 — Single anchor (accessory-locked)[/bold cyan]")
         anchor_prompt_text = anchor_cfg["anchor_prompt"].strip()
         console.print(f"  {anchor_prompt_text[:100]}...")
         anchor_path = inter / "anchor.png"
-        wf1 = _inject_flux_t2i(
-            t2i_template,
-            anchor_prompt_text, anchor_seed,
-        )
+        wf1 = _make_anchor_wf(anchor_prompt_text, anchor_seed)
         try:
             _run_and_save(client, wf1, anchor_path, timeout=flux_timeout)
             console.print(f"  [green]OK[/green] anchor.png")
@@ -408,10 +438,7 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
             anchor_prompt_text = (group_cfg["prompt"].strip() + " " + tail).strip()
             anchor_path = inter / f"anchor_{group_name}.png"
             console.print(f"  [{group_name}] {anchor_prompt_text[:80]}...")
-            wf1 = _inject_flux_t2i(
-                t2i_template,
-                anchor_prompt_text, anchor_seed,
-            )
+            wf1 = _make_anchor_wf(anchor_prompt_text, anchor_seed)
             try:
                 _run_and_save(client, wf1, anchor_path, timeout=flux_timeout)
                 uploaded_anchors[group_name] = client.upload_image(str(anchor_path))
@@ -421,10 +448,7 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                 raise SystemExit(1)
     else:
         anchor_path = inter / "anchor.png"
-        wf1 = _inject_flux_t2i(
-            t2i_template,
-            anchor_text, anchor_seed,
-        )
+        wf1 = _make_anchor_wf(anchor_text, anchor_seed)
         try:
             _run_and_save(client, wf1, anchor_path, timeout=flux_timeout)
             console.print(f"  Saved: {anchor_path.relative_to(ROOT)}")
@@ -433,12 +457,6 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
             raise SystemExit(1)
         uploaded_anchors["default"] = client.upload_image(str(anchor_path))
 
-    # Pre-load stage 2/3 templates
-    i2i_templates = {
-        "i2i":     load_workflow(str(ROOT / "workflows" / flux_wf["i2i"])),
-        "i2i_cn":  load_workflow(str(ROOT / "workflows" / flux_wf["i2i_cn"])),
-        "kontext": load_workflow(str(ROOT / "workflows" / "flux_kontext.json")),
-    }
     faceswap_template = load_workflow(str(ROOT / "workflows" / "faceswap_reactor.json"))
 
     failed = []
