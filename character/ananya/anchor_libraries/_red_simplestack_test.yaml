@@ -1,8 +1,4 @@
-# Red one-shoulder ruched midi dress — single-anchor OOTD
-# Outfit: coral red sleeveless one-shoulder ruched bodycon midi dress with side slit
-# Location: Mumbai apartment balcony, beige wall panel, palm plants, iron railing, towers
-# Used with: --kontext flag
-
+# TEST: simplified body stack — remove "defined waist and full hips"
 anchor_seed: 748291035
 anchor_body_lora_strength: 0.7
 

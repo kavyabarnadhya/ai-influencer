@@ -17,7 +17,7 @@ shared_tail: >
 anchors:
   standing:
     prompt: >
-      23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips,
+      23-year-old South Asian woman with M-size hourglass figure,
       soft natural curves not slim editorial, not plus-size, average Indian build,
       photorealistic full body editorial fashion photo
       of a 23-year-old standing in neutral three-quarter pose facing camera with weight
@@ -25,7 +25,7 @@ anchors:
 
   sitting:
     prompt: >
-      23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips,
+      23-year-old South Asian woman with M-size hourglass figure,
       soft natural curves not slim editorial, not plus-size, average Indian build,
       photorealistic full body editorial fashion photo
       of a 23-year-old seated relaxed on cafe outdoor bench in side angle with legs

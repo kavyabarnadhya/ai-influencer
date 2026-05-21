@@ -1,0 +1,25 @@
+# White bustier crop top + tiered midi skirt — garden/poolside, bright daylight
+# Outfit: white scalloped sweetheart bustier crop top + white tiered midi skirt
+# Location: lush green garden with palm trees, residential towers behind
+# Used with: --kontext flag
+
+anchor_seed: 582736491
+anchor_body_lora_strength: 0.7
+
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure,
+  soft natural curves not slim editorial, not plus-size, average Indian build,
+  wider hips than waist, rounded hip curve clearly visible, soft rounded belly at midriff,
+  full bust, waist visibly narrower than hips, realistic Indian body proportions,
+  wearing white ruched bustier crop top with scalloped sweetheart neckline and thin spaghetti straps,
+  gathered fabric at bust, midriff-baring cutout at waist with white ribbon tie bow at center front,
+  paired with white tiered midi skirt with flared ruffle hem falling at knee,
+  black chain-strap mule heels, gold heart drop earrings, gold chain bracelet on left wrist,
+  long dark brown wavy hair falling over right shoulder,
+  standing three-quarter to camera weight shifted on right hip, left hand relaxed at side,
+  in lush green garden with manicured hedges and palm trees,
+  residential apartment towers visible behind in soft bokeh,
+  bright overcast Mumbai daylight, soft even light no harsh shadows,
+  shot on Sony A7IV 50mm,
+  authentic skin texture with visible pores, natural skin imperfections, no plasticky skin,
+  asymmetric facial features, slightly off-center composition, candid moment not posed

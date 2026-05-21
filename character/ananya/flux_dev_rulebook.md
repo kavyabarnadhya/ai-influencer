@@ -77,9 +77,10 @@ Single token like "curvy" insufficient. Need 3-4 overlapping cues:
 
 ✅ Reliable stack:
 ```
-M-size hourglass figure, defined waist and full hips,
-soft natural curves not slim editorial, not plus-size, average Indian build
+M-size hourglass figure, soft natural curves not slim editorial, not plus-size, average Indian build
 ```
+
+Note: `defined waist and full hips` was removed 2026-05-21 after A/B test showed simplified stack produces better results with Body FIX LoRA 0.7 — more natural proportions, less over-engineered.
 
 ❌ Fails:
 - `curvy` alone → plus-size
@@ -209,7 +210,7 @@ Body silhouette comes from anchor — write anchor prompt carefully, slides inhe
 ## MASTER TEMPLATE (Ananya, img2img, denoise 0.80)
 
 ```
-23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips,
+23-year-old South Asian woman with M-size hourglass figure,
 soft natural curves not slim editorial, not plus-size, average Indian build,
 wearing [FITTED outfit + fabric + color + fit — use tailored/cinched/body-skimming],
 [asymmetric pose, weight on one hip, candid not catalog stance],
@@ -226,7 +227,7 @@ one side of face in soft shadow, candid moment not posed
 ## ETHNIC WEAR TEMPLATE (kurta, saree)
 
 ```
-23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips,
+23-year-old South Asian woman with M-size hourglass figure,
 soft natural curves not slim editorial, not plus-size,
 wearing FITTED [garment] TAILORED close to body with subtle cinch at waist,
 [fabric + color + embroidery placement],
@@ -242,7 +243,7 @@ authentic skin texture with visible pores, asymmetric features, off-center compo
 ## WESTERN FORM-FITTING TEMPLATE (slip dress, bodycon)
 
 ```
-23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips,
+23-year-old South Asian woman with M-size hourglass figure,
 soft natural curves not slim editorial, fabric shows soft midsection,
 not plus-size, average Indian build,
 wearing FITTED [garment] that follows natural body curves,
@@ -256,7 +257,7 @@ authentic skin texture with visible pores, asymmetric features, off-center compo
 ## LAYERED WESTERN TEMPLATE (overshirt, jacket)
 
 ```
-23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips,
+23-year-old South Asian woman with M-size hourglass figure,
 soft natural curves not slim editorial, not plus-size,
 wearing high-waisted [bottom] accentuating waist,
 fitted [inner top], unbuttoned [outer layer] worn OPEN with sleeves rolled,
