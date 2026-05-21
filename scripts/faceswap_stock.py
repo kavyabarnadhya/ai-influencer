@@ -39,7 +39,7 @@ SUPPORTED_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
 WORKFLOW_NAME = "faceswap_reactor"
 
 
-def _inject_faceswap(wf: dict, face_ref_name: str, target_name: str) -> dict:
+def _inject_faceswap(wf: dict, face_ref_name: str, target_name: str, propagate_cache: bool = True) -> dict:
     """
     Inject face ref + target into ReActor workflow nodes by sentinel title.
     Optimization: Uses inject_workflow_values for O(1) node lookup and optimized copying.
@@ -48,7 +48,7 @@ def _inject_faceswap(wf: dict, face_ref_name: str, target_name: str) -> dict:
         "_claude_inject_source_image": {"inputs.image": face_ref_name},
         "_claude_inject_target_image": {"inputs.image": target_name}
     }
-    return inject_workflow_values(wf, overrides)
+    return inject_workflow_values(wf, overrides, propagate_cache=propagate_cache)
 
 
 @click.command()
@@ -124,22 +124,34 @@ def main(face_ref: str, input_dir: str, workflow: str, dry_run: bool, limit: int
     # inject_workflow_values() returns a shallow copy, so the base template is safe.
     wf_template = load_workflow(str(workflow_path))
 
+    pending = []
     failed = []
-    for i, stock_img in enumerate(stock_images, 1):
-        console.print(f"\n[dim]{i}/{len(stock_images)} — {stock_img.name}[/dim]")
 
+    # Stage 1: Submit all jobs to the ComfyUI queue
+    for i, stock_img in enumerate(stock_images, 1):
+        console.print(f"\n[dim]Submitting {i}/{len(stock_images)} — {stock_img.name}[/dim]")
         try:
             uploaded_target = client.upload_image(str(stock_img))
-            wf = _inject_faceswap(wf_template, face_ref_name=uploaded_face, target_name=uploaded_target)
+            # Optimization: Skip cache propagation on final injection to avoid extra dict copy in submit_workflow
+            wf = _inject_faceswap(wf_template, face_ref_name=uploaded_face, target_name=uploaded_target, propagate_cache=False)
 
             prompt_id = client.submit_workflow(wf)
+            out_file = out_path / f"swap_{i:03d}_{stock_img.stem}.png"
+            pending.append((prompt_id, stock_img, out_file))
+        except ComfyUIError as e:
+            console.print(f"  [red]Submission failed: {e}[/red]")
+            failed.append(stock_img.name)
+
+    # Stage 2: Wait for completion and download results
+    for prompt_id, stock_img, out_file in pending:
+        console.print(f"\n[dim]Processing {stock_img.name} (prompt {prompt_id})...[/dim]")
+        try:
             image_refs = client.wait_for_completion(prompt_id, timeout=120)
             if not image_refs:
                 console.print(f"  [yellow]No output[/yellow]")
                 failed.append(stock_img.name)
                 continue
 
-            out_file = out_path / f"swap_{i:03d}_{stock_img.stem}.png"
             img_bytes = client.download_image(
                 image_refs[0]["filename"],
                 image_refs[0].get("subfolder", ""),
@@ -150,7 +162,7 @@ def main(face_ref: str, input_dir: str, workflow: str, dry_run: bool, limit: int
             console.print(f"  Saved: {out_file.name}")
 
         except ComfyUIError as e:
-            console.print(f"  [red]Error: {e}[/red]")
+            console.print(f"  [red]Generation failed: {e}[/red]")
             failed.append(stock_img.name)
 
     console.print(f"\n[bold green]Done.[/bold green] {len(stock_images) - len(failed)}/{len(stock_images)} swapped.")
