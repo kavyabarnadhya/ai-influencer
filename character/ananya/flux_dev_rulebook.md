@@ -80,7 +80,7 @@ Single token like "curvy" insufficient. Need 3-4 overlapping cues:
 M-size hourglass figure, soft natural curves not slim editorial, not plus-size, average Indian build
 ```
 
-Note: `defined waist and full hips` was removed 2026-05-21 after A/B test showed simplified stack produces better results with Body FIX LoRA 0.7 — more natural proportions, less over-engineered.
+Note: `defined waist and full hips` was removed 2026-05-21 after A/B test showed simplified stack produces better results with Body FIX LoRA at 0.5 (universal standard) — more natural proportions, less over-engineered.
 
 ❌ Fails:
 - `curvy` alone → plus-size

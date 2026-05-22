@@ -30,6 +30,7 @@ Usage:
 
 import copy
 import random
+import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -488,7 +489,6 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
 
     if anchor_only:
         anchor_out = out_dir / "anchor.png"
-        import shutil
         shutil.copy(inter / "anchor.png", anchor_out)
         console.print(f"\n[bold green]Anchor saved -> {anchor_out.relative_to(ROOT)}[/bold green]")
         console.print("Review body shape and outfit before running full carousel.")

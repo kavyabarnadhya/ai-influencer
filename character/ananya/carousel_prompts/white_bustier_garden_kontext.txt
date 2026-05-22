@@ -7,7 +7,6 @@
 # Run:
 #   python scripts/faceswap_carousel.py \
 #     --prompts character/ananya/carousel_prompts/white_bustier_garden_kontext.txt \
-#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
 #     --name white_bustier_garden_v1 \
 #     --anchor-config character/ananya/anchor_libraries/white_bustier_garden.yaml \
 #     --flux-dev --kontext
