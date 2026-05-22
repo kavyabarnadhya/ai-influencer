@@ -1,7 +1,8 @@
 # Off-shoulder crop top + knee-length skirt — Bandra cafe street dusk.
 # Western casual chic. Stress-tests body curves under fitted top + skirt combo.
 
-anchor_seed: 482917365
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
 
 shared_tail: >
   wearing fitted white off-shoulder cropped top with elasticated neckline showing

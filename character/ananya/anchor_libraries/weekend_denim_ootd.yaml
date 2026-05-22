@@ -1,6 +1,7 @@
 # Production anchor — Weekend Denim OOTD
 # Validated 2026-05-18 v2. Layered western template per flux_dev_rulebook.md
-anchor_seed: 472916583
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
 
 shared_tail: >
   wearing high-waisted vintage cropped blue denim jeans accentuating waist,

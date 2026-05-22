@@ -6,7 +6,8 @@
 # Reason: crop top exposes midriff, needs explicit hip curve tokens beyond standard recipe.
 # Do NOT use this body stack for ethnic wear or layered outfits — use canonical stack instead.
 
-anchor_seed: 482917365
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
 
 shared_tail: >
   wearing fitted white off-shoulder cropped top with elasticated neckline showing

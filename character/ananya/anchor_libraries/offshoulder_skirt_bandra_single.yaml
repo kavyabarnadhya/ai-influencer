@@ -11,7 +11,8 @@
 #     --name bandra_single_01 \
 #     --anchor-config character/ananya/anchor_libraries/offshoulder_skirt_bandra_single.yaml
 
-anchor_seed: 482917365
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
 
 # v2: stronger body tokens for form-fitting western outfit (crop top exposes midriff
 # so body reads smaller — need explicit midriff + hip curve tokens beyond base recipe)

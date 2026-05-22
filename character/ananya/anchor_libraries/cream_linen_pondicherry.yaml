@@ -2,7 +2,8 @@
 # Editorial soft pastel aesthetic — overcast / soft-diffused light, bougainvillea
 # colonial walls, cobblestone streets. Multi-anchor: standing / sitting / closeup.
 
-anchor_seed: 712489356
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
 
 shared_tail: >
   wearing fitted cream off-white sleeveless linen midi dress with thin spaghetti straps

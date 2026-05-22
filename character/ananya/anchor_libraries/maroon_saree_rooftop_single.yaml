@@ -9,6 +9,7 @@
 #     --anchor-config character/ananya/anchor_libraries/maroon_saree_rooftop_single.yaml \
 #     --flux-dev
 
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
 anchor_seed: 1018996843
 
 anchor_prompt: >

@@ -3,8 +3,9 @@
 # Location: Mumbai apartment balcony, residential towers behind
 # Used with: --kontext flag
 
-anchor_seed: 293847561
-anchor_body_lora_strength: 0.7
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
 
 
 anchor_prompt: >

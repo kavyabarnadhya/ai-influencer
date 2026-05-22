@@ -1,30 +1,29 @@
-# Black crinkle co-ord balcony — FLUX Kontext carousel, 6 slides
+# Black crinkle midi dress balcony — FLUX Kontext carousel, 6 slides
 # Anchor: single standing full-body (black_crinkle_coord_balcony.yaml)
-# Outfit: black crinkle bustier crop top + wide-leg palazzo pants + brown sunglasses
+# Outfit: black square-neck strapped crinkle midi dress
 # All slides via --kontext flag — outfit pixel-consistent across all poses/framings
 #
 # Run:
 #   python scripts/faceswap_carousel.py \
 #     --prompts character/ananya/carousel_prompts/black_crinkle_coord_kontext.txt \
-#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
-#     --name black_crinkle_coord_v1 \
+#     --name black_crinkle_midi_v3 \
 #     --anchor-config character/ananya/anchor_libraries/black_crinkle_coord_balcony.yaml \
 #     --flux-dev --kontext
 
 # slide_00: full body, hand on hip, direct gaze — scroll-stop hook
-anchor=standing | same woman in same black crinkle co-ord set on Mumbai apartment balcony, standing with right hand on hip, left hand relaxed at side, looking directly at camera with confident smile, residential towers and tropical plants behind, bright warm daylight, keeping exact same bustier crop top knot, bow straps, palazzo pants, sunglasses, and gold jewellery
+anchor=standing | same woman in same black square-neck crinkle midi dress on Mumbai apartment balcony, standing with right hand on hip, left hand relaxed at side, looking directly at camera with confident smile, residential towers and tropical plants behind, bright warm daylight, keeping exact same square neckline, thin spaghetti straps, crinkle fabric texture, midi length, and gold jewellery
 
 # slide_01: full body, leaning on balcony railing, looking off camera
-anchor=standing | same woman in same black crinkle co-ord set leaning with right forearm on balcony iron railing, left hand on hip, head turned slightly looking into distance with relaxed expression, Mumbai skyline and tropical plants behind, warm afternoon side light, keeping exact same bustier crop top knot, bow straps, palazzo pants, sunglasses, and gold jewellery
+anchor=standing | same woman in same black square-neck crinkle midi dress leaning with right forearm on balcony iron railing, left hand on hip, head turned slightly looking into distance with relaxed expression, Mumbai residential towers and tropical plants behind, warm afternoon side light, keeping exact same square neckline, thin straps, crinkle fabric, midi length, and gold jewellery
 
 # slide_02: chest-up closeup, direct gaze, soft smile — neckline detail slide
-anchor=standing | change to chest-up portrait framing showing face neck shoulders and neckline only, same woman in same black crinkle bustier crop top, direct camera gaze with soft smile, sunglasses on, city balcony soft bokeh behind, keeping exact same twisted front knot, bow tie straps, sunglasses, and gold chain necklace
+anchor=standing | change to chest-up portrait framing showing face neck shoulders and neckline only, same woman in same black crinkle midi dress, direct camera gaze with soft smile, city balcony soft bokeh behind, keeping exact same square neckline, thin spaghetti straps, crinkle texture, and gold jewellery
 
 # slide_03: full body, hand raised pushing hair back, three-quarter turn
-anchor=standing | same woman in same black crinkle co-ord set on balcony, right hand raised pushing dark hair off shoulder, body angled three-quarter to camera, looking slightly off-camera with relaxed expression, bright Indian daylight, tropical plants behind, keeping exact same bustier crop top knot, bow straps, palazzo pants, sunglasses, and gold jewellery
+anchor=standing | same woman in same black square-neck crinkle midi dress on balcony, right hand raised pushing dark hair off shoulder, body angled three-quarter to camera, looking slightly off-camera with relaxed expression, bright Indian daylight, tropical plants behind, keeping exact same square neckline, thin straps, crinkle fabric, midi length, and gold jewellery
 
-# slide_04: full body, walking toward camera, motion in palazzo hem
-anchor=standing | same woman in same black crinkle co-ord set mid-stride walking toward camera on balcony, slight motion in wide-leg palazzo hem, confident half-smile looking at camera, Mumbai residential towers behind, bright warm daylight, keeping exact same bustier crop top knot, bow straps, sunglasses, and gold jewellery
+# slide_04: full body, walking toward camera, motion in midi hem
+anchor=standing | same woman in same black square-neck crinkle midi dress mid-stride walking toward camera on balcony, slight motion in midi hem, confident half-smile looking at camera, Mumbai residential towers behind, bright warm daylight, keeping exact same square neckline, thin straps, crinkle fabric, and gold jewellery
 
 # slide_05: chest-up closeup, chin down, smirk — closing slide
-anchor=standing | change to chest-up portrait framing, same woman in same black crinkle bustier crop top, chin slightly lowered looking at camera with confident smirk, sunglasses pushed down nose slightly, left hand touching bow strap at shoulder, balcony bokeh behind, keeping exact same twisted front knot, bow tie straps, and gold chain necklace
+anchor=standing | change to chest-up portrait framing, same woman in same black crinkle midi dress, chin slightly lowered looking at camera with confident smirk, left hand touching thin strap at shoulder, balcony bokeh behind, keeping exact same square neckline, thin spaghetti straps, crinkle texture, and gold jewellery

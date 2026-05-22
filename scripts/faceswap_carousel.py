@@ -310,7 +310,8 @@ def _validate_multi_anchor_consistency(cfg: dict, path: Path) -> None:
 
 @click.command()
 @click.option("--prompts", "prompts_file", required=True, type=click.Path(exists=True))
-@click.option("--face-ref", required=True, type=click.Path(exists=True))
+@click.option("--face-ref", default=None, type=click.Path(exists=True),
+              help="Face reference image for ReActor swap. Can also be set via 'face_ref' in --anchor-config YAML.")
 @click.option("--name", required=True)
 @click.option("--candidates", default=1, show_default=True, type=int)
 @click.option("--anchor-seed", default=None, type=int)
@@ -331,7 +332,6 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
     """Carousel: FLUX img2img (person+BG together) → ReActor face swap."""
 
     prompts_path = Path(prompts_file)
-    face_ref_path = Path(face_ref)
 
     # Pick FLUX schnell or dev workflows. Dev is ~5x slower but better prompt adherence.
     flux_wf = {
@@ -346,6 +346,9 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
     anchor_cfg = None
     if anchor_config:
         anchor_cfg = load_anchor_config(Path(anchor_config))
+        # Resolve face_ref from YAML if not passed on CLI
+        if face_ref is None:
+            face_ref = anchor_cfg.get("face_ref")
         if anchor_seed is None:
             anchor_seed = anchor_cfg.get("anchor_seed", random.randint(1, 2**31 - 1))
         default_denoise = DEFAULT_DENOISE_OUTFIT_LOCK
@@ -364,6 +367,12 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
         anchor_text = anchor_prompt or DEFAULT_ANCHOR_PROMPT
         default_denoise = DEFAULT_DENOISE_VARIED
         mode_label = "varied-outfit"
+
+    if face_ref is None:
+        raise click.UsageError("--face-ref is required (or set 'face_ref' in --anchor-config YAML)")
+    face_ref_path = Path(face_ref)
+    if not face_ref_path.exists():
+        raise click.UsageError(f"face_ref not found: {face_ref_path}")
 
     slides = parse_prompts_file(prompts_path, default_denoise)
     if not slides:

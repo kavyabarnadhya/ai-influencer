@@ -1,21 +1,25 @@
-# Black crinkle co-ord balcony — single-anchor OOTD
-# Outfit: black crinkle sweetheart crop top + wide-leg palazzo pants
+# Black crinkle midi dress — balcony, single-anchor OOTD
+# Outfit: black square-neck strapped crinkle midi dress
 # Location: Mumbai apartment balcony, residential towers behind
 # Used with: --kontext flag
 
-anchor_seed: 837492016
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
 
 anchor_prompt: >
   23-year-old South Asian woman with M-size hourglass figure,
   soft natural curves not slim editorial, not plus-size, average Indian build,
-  wearing black crinkle-textured sweetheart bustier crop top with twisted fabric knot
-  at center front, tie straps knotted into bows at top of each shoulder, midriff exposed,
-  high-waist wide-leg black crinkle palazzo pants with smocked elasticated waistband,
-  floor-length ribbed crinkle fabric, oversized square brown tortoise sunglasses,
-  gold chain necklace, gold bracelet on right wrist,
-  standing three-quarter to camera weight shifted on right hip, left hand relaxed at side,
+  wider hips than waist, rounded hip curve clearly visible,
+  full bust, waist visibly narrower than hips, realistic Indian body proportions,
+  wearing black square-neck crinkle midi dress with thin spaghetti straps,
+  crinkle-textured fabric with fine horizontal wrinkle grain,
+  fitted through waist and hip, skirt falling to mid-calf,
+  gold hoop earrings, gold chain bracelet on left wrist,
+  long dark brown wavy hair falling over right shoulder,
+  standing three-quarter to camera weight shifted on right hip, right hand relaxed at side,
   on Mumbai apartment balcony with iron railing, tropical potted plants,
-  residential towers and city skyline behind, bright warm Indian daylight,
+  residential towers behind, bright warm Indian daylight,
   shot on Sony A7IV 50mm,
   authentic skin texture with visible pores, natural skin imperfections, no plasticky skin,
   asymmetric facial features, slightly off-center composition, candid moment not posed
