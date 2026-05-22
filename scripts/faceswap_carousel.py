@@ -63,7 +63,7 @@ DEFAULT_DENOISE_VARIED = 0.85
 DEFAULT_DENOISE_OUTFIT_LOCK = 0.40
 
 
-def _inject_flux_t2i(wf: dict, prompt: str, seed: int) -> dict:
+def _inject_flux_t2i(wf: dict, prompt: str, seed: int, propagate_cache: bool = True) -> dict:
     """
     Inject prompt and seed into FLUX T2I workflow.
     Optimization: Uses inject_workflow_values for O(1) node lookup and optimized copying.
@@ -72,13 +72,14 @@ def _inject_flux_t2i(wf: dict, prompt: str, seed: int) -> dict:
         "_claude_inject_prompt": {"inputs.text": prompt},
         "_claude_inject_seed": {"inputs.seed": seed}
     }
-    return inject_workflow_values(wf, overrides)
+    return inject_workflow_values(wf, overrides, propagate_cache=propagate_cache)
 
 
 def _inject_flux_img2img(wf: dict, prompt: str, init_image_name: str,
                         denoise: float, seed: int,
                         pose_image_name: str | None = None,
-                        cn_strength: float = 0.65) -> dict:
+                        cn_strength: float = 0.65,
+                        propagate_cache: bool = True) -> dict:
     """
     Inject prompt, init image, denoise, and seed into FLUX img2img workflow.
     Optimization: Uses inject_workflow_values for O(1) node lookup and optimized copying.
@@ -91,27 +92,26 @@ def _inject_flux_img2img(wf: dict, prompt: str, init_image_name: str,
     if pose_image_name:
         overrides["_claude_inject_pose_image"] = {"inputs.image": pose_image_name}
         overrides["_claude_inject_controlnet_apply"] = {"inputs.strength": cn_strength}
-    return inject_workflow_values(wf, overrides)
+    return inject_workflow_values(wf, overrides, propagate_cache=propagate_cache)
 
 
 def _inject_flux_kontext(wf: dict, prompt: str, init_image_name: str, seed: int,
-                         bg_lock: bool = True) -> dict:
+                         bg_lock: bool = True, propagate_cache: bool = True) -> dict:
+    """
+    Inject prompt, init image, and seed into FLUX Kontext workflow.
+    Optimization: Uses inject_workflow_values for O(1) node lookup and optimized copying.
+    """
     if bg_lock:
         prompt = f"{prompt}, same background, same scene, unchanged environment"
-    for node in wf.values():
-        if not isinstance(node, dict):
-            continue
-        title = node.get("_meta", {}).get("title", "")
-        if title == "_claude_inject_prompt":
-            node["inputs"]["text"] = prompt
-        elif title == "_claude_inject_init_image":
-            node["inputs"]["image"] = init_image_name
-        elif title == "_claude_inject_seed":
-            node["inputs"]["seed"] = seed
-    return wf
+    overrides = {
+        "_claude_inject_prompt": {"inputs.text": prompt},
+        "_claude_inject_init_image": {"inputs.image": init_image_name},
+        "_claude_inject_seed": {"inputs.seed": seed}
+    }
+    return inject_workflow_values(wf, overrides, propagate_cache=propagate_cache)
 
 
-def _inject_faceswap(wf: dict, face_ref_name: str, target_name: str) -> dict:
+def _inject_faceswap(wf: dict, face_ref_name: str, target_name: str, propagate_cache: bool = True) -> dict:
     """
     Inject face source and target into faceswap workflow.
     Optimization: Uses inject_workflow_values for O(1) node lookup and optimized copying.
@@ -120,7 +120,7 @@ def _inject_faceswap(wf: dict, face_ref_name: str, target_name: str) -> dict:
         "_claude_inject_source_image": {"inputs.image": face_ref_name},
         "_claude_inject_target_image": {"inputs.image": target_name}
     }
-    return inject_workflow_values(wf, overrides)
+    return inject_workflow_values(wf, overrides, propagate_cache=propagate_cache)
 
 
 def _run_and_save(client: ComfyUIClient, wf: dict, out_path: Path,
@@ -434,13 +434,12 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
 
     def _make_anchor_wf(prompt_text: str, seed: int) -> dict:
         """Build anchor t2i workflow with body LoRA strength from anchor config."""
-        wf = copy.deepcopy(t2i_template)
         overrides = {
             "_claude_inject_prompt":    {"inputs.text": prompt_text},
             "_claude_inject_seed":      {"inputs.seed": seed},
             "_claude_inject_body_lora": {"inputs.strength_model": _body_lora_strength},
         }
-        return inject_workflow_values(wf, overrides)
+        return inject_workflow_values(t2i_template, overrides)
 
     # Stage 1: anchor body — single or multi based on config
     uploaded_anchors: dict[str, str] = {}  # group_name -> uploaded filename
@@ -541,11 +540,12 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
 
             try:
                 # Stage 2: Kontext edit OR standard img2img off anchor
+                # Optimization: Skip cache propagation on final injection to avoid extra dict copy in submit_workflow
                 if kontext:
                     wf2 = _inject_flux_kontext(
                         i2i_templates["kontext"],
                         slide_prompt, uploaded_anchor, slide_seed,
-                        bg_lock=_bg_lock,
+                        bg_lock=_bg_lock, propagate_cache=False,
                     )
                 else:
                     template = i2i_templates["i2i_cn"] if use_cn else i2i_templates["i2i"]
@@ -553,14 +553,17 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                         template,
                         slide_prompt, uploaded_anchor, denoise, slide_seed,
                         pose_image_name=uploaded_pose, cn_strength=cn_strength,
+                        propagate_cache=False
                     )
                 _run_and_save(client, wf2, base_path, timeout=flux_timeout)
 
                 # Stage 3: ReActor face swap
                 uploaded_target = client.upload_image(str(base_path))
+                # Optimization: Skip cache propagation on final injection to avoid extra dict copy in submit_workflow
                 wf3 = _inject_faceswap(
                     faceswap_template,
                     uploaded_face, uploaded_target,
+                    propagate_cache=False
                 )
                 _run_and_save(client, wf3, final_path, timeout=180)
 
