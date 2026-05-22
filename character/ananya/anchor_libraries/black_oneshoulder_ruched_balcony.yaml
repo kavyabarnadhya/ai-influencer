@@ -3,12 +3,13 @@
 # Location: Mumbai apartment balcony, residential towers behind
 # Used with: --kontext flag
 
-anchor_seed: 293847561
-anchor_body_lora_strength: 0.7
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
 
 
 anchor_prompt: >
-  23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips,
+  23-year-old South Asian woman with M-size hourglass figure,
   soft natural curves not slim editorial, not plus-size, average Indian build,
   wearing black one-shoulder bodycon midi dress with left shoulder and arm fully covered
   by fitted long sleeve, right shoulder completely bare, diagonal asymmetric neckline

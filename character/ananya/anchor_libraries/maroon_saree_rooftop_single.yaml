@@ -9,10 +9,11 @@
 #     --anchor-config character/ananya/anchor_libraries/maroon_saree_rooftop_single.yaml \
 #     --flux-dev
 
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
 anchor_seed: 1018996843
 
 anchor_prompt: >
-  23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips,
+  23-year-old South Asian woman with M-size hourglass figure,
   soft natural curves not slim editorial, not plus-size, average Indian build,
   wearing fitted black short-sleeve blouse with v-neckline showing waist definition,
   photorealistic full body editorial fashion photograph

@@ -45,7 +45,7 @@
     "inputs": {
       "model": ["1", 0],
       "lora_name": "flux-xlabs-realism.safetensors",
-      "strength_model": 0.5
+      "strength_model": 0.3
     }
   },
   "17": {

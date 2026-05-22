@@ -1,0 +1,36 @@
+# White bustier crop top + tiered midi skirt — FLUX Kontext carousel, 6 slides
+# Anchor: single standing full-body (white_bustier_garden.yaml)
+# Outfit: white scalloped sweetheart bustier + white tiered midi skirt + black mule heels
+# Vibe: soft feminine summery, green garden, bright overcast daylight
+# All slides via --kontext flag — outfit pixel-consistent across all poses/framings
+#
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/white_bustier_garden_kontext.txt \
+#     --name white_bustier_garden_v1 \
+#     --anchor-config character/ananya/anchor_libraries/white_bustier_garden.yaml \
+#     --flux-dev --kontext
+#
+# Kontext rules for this outfit:
+#   - Always say "same woman in same white bustier crop top and tiered midi skirt"
+#   - Always keep: "keeping exact same scalloped sweetheart neckline, spaghetti straps,
+#     waist cutout with ribbon bow, tiered skirt hem, black mule heels, and gold heart earrings"
+#   - Waist cutout + ribbon bow = hero detail — mention in every slide
+
+# slide_00: full body, hand on hip, bright smile — scroll-stop hook
+anchor=standing | same woman in same white bustier crop top and tiered midi skirt in lush green garden, right hand on hip left hand relaxed at side, bright warm smile looking directly at camera, manicured hedges and palm trees behind, bright overcast daylight, keeping exact same scalloped sweetheart neckline, spaghetti straps, waist cutout with white ribbon bow, tiered skirt hem, black mule heels, and gold heart earrings
+
+# slide_01: full body, weight shifted, looking off camera with soft smile
+anchor=standing | same woman in same white bustier crop top and tiered midi skirt in green garden, weight shifted on right hip, left hand touching wavy hair falling over right shoulder, looking slightly off camera with relaxed soft smile, palm trees and apartment towers soft bokeh behind, bright even daylight, keeping exact same scalloped sweetheart neckline, spaghetti straps, waist cutout with white ribbon bow, tiered skirt hem, black mule heels, and gold heart earrings
+
+# slide_02: chest-up closeup, direct gaze, soft smile — neckline + earring detail
+anchor=standing | change to chest-up portrait framing showing face neck shoulders and neckline only, same woman in same white bustier crop top, direct camera gaze with soft closed-lip smile, lush green garden soft bokeh behind, bright soft daylight, keeping exact same scalloped sweetheart neckline, spaghetti straps, and gold heart drop earrings
+
+# slide_03: full body, arms loosely crossed, three-quarter turn
+anchor=standing | same woman in same white bustier crop top and tiered midi skirt in garden, arms loosely folded at waist height, body angled three-quarter to camera, head turned toward camera with calm confident expression, manicured hedges behind, bright overcast light, keeping exact same scalloped sweetheart neckline, spaghetti straps, waist cutout with white ribbon bow, tiered skirt hem, black mule heels, and gold heart earrings
+
+# slide_04: full body, back turned glancing over shoulder — shows open back + skirt flare
+anchor=standing | same woman in same white bustier crop top and tiered midi skirt turned fully away from camera, head turned back over right shoulder with playful smile looking at camera, showing back detail of crop top and full skirt flare, lush green garden behind, bright daylight, keeping exact same spaghetti straps on back, waist cutout, tiered skirt silhouette, and black mule heels
+
+# slide_05: chest-up closeup, chin down, smirk — closing slide
+anchor=standing | change to chest-up portrait framing, same woman in same white bustier crop top, chin slightly lowered looking up at camera with confident smirk, right hand lightly touching spaghetti strap at shoulder, lush green garden bokeh behind, soft bright daylight, keeping exact same scalloped sweetheart neckline, spaghetti straps, and gold heart drop earrings

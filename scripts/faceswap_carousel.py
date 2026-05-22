@@ -30,6 +30,7 @@ Usage:
 
 import copy
 import random
+import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -309,8 +310,9 @@ def _validate_multi_anchor_consistency(cfg: dict, path: Path) -> None:
 
 
 @click.command()
-@click.option("--prompts", "prompts_file", required=True, type=click.Path(exists=True))
-@click.option("--face-ref", required=True, type=click.Path(exists=True))
+@click.option("--prompts", "prompts_file", default=None, type=click.Path(exists=True))
+@click.option("--face-ref", default=None, type=click.Path(exists=True),
+              help="Face reference image for ReActor swap. Can also be set via 'face_ref' in --anchor-config YAML.")
 @click.option("--name", required=True)
 @click.option("--candidates", default=1, show_default=True, type=int)
 @click.option("--anchor-seed", default=None, type=int)
@@ -324,14 +326,19 @@ def _validate_multi_anchor_consistency(cfg: dict, path: Path) -> None:
 @click.option("--kontext", is_flag=True,
               help="Use FLUX Kontext Dev for Stage 2 (image editing). Replaces img2img. Requires flux1-kontext-dev-Q4_K_S.gguf.")
 @click.option("--character", default="ananya", show_default=True)
+@click.option("--anchor-only", is_flag=True,
+              help="Generate and save anchor image only — skip all slides. Use to validate body/outfit before a full run.")
 def main(prompts_file: str, face_ref: str, name: str, candidates: int,
          anchor_seed: int | None, outfit_lock: bool,
          anchor_outfit_prompt: str | None, anchor_prompt: str | None,
-         anchor_config: str | None, flux_dev: bool, kontext: bool, character: str):
+         anchor_config: str | None, flux_dev: bool, kontext: bool, character: str,
+         anchor_only: bool):
     """Carousel: FLUX img2img (person+BG together) → ReActor face swap."""
 
-    prompts_path = Path(prompts_file)
-    face_ref_path = Path(face_ref)
+    if not anchor_only and not prompts_file:
+        raise click.UsageError("--prompts is required unless --anchor-only is set")
+
+    prompts_path = Path(prompts_file) if prompts_file else None
 
     # Pick FLUX schnell or dev workflows. Dev is ~5x slower but better prompt adherence.
     flux_wf = {
@@ -346,6 +353,9 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
     anchor_cfg = None
     if anchor_config:
         anchor_cfg = load_anchor_config(Path(anchor_config))
+        # Resolve face_ref from YAML if not passed on CLI
+        if face_ref is None:
+            face_ref = anchor_cfg.get("face_ref")
         if anchor_seed is None:
             anchor_seed = anchor_cfg.get("anchor_seed", random.randint(1, 2**31 - 1))
         default_denoise = DEFAULT_DENOISE_OUTFIT_LOCK
@@ -365,16 +375,25 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
         default_denoise = DEFAULT_DENOISE_VARIED
         mode_label = "varied-outfit"
 
-    slides = parse_prompts_file(prompts_path, default_denoise)
-    if not slides:
-        console.print(f"[red]No slides parsed from {prompts_path}[/red]")
-        raise SystemExit(1)
+    if face_ref is None:
+        raise click.UsageError("--face-ref is required (or set 'face_ref' in --anchor-config YAML)")
+    face_ref_path = Path(face_ref)
+    if not face_ref_path.exists():
+        raise click.UsageError(f"face_ref not found: {face_ref_path}")
+
+    slides = []
+    if not anchor_only:
+        slides = parse_prompts_file(prompts_path, default_denoise)
+        if not slides:
+            console.print(f"[red]No slides parsed from {prompts_path}[/red]")
+            raise SystemExit(1)
 
     if anchor_seed is None:
         anchor_seed = random.randint(1, 2**31 - 1)
 
     console.print(f"[bold]Faceswap Carousel — {name}[/bold]")
-    console.print(f"Mode: {mode_label} | Slides: {len(slides)} | Cands: {candidates}")
+    slide_info = "anchor-only" if anchor_only else str(len(slides))
+    console.print(f"Mode: {mode_label} | Slides: {slide_info} | Cands: {candidates}")
     console.print(f"Face ref: {face_ref_path.name} | Anchor seed: {anchor_seed}")
     console.print(f"Default denoise: {default_denoise}")
 
@@ -416,8 +435,6 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
 
     def _make_anchor_wf(prompt_text: str, seed: int) -> dict:
         """Build anchor t2i workflow with body LoRA strength from anchor config."""
-        # Optimization: inject_workflow_values already performs selective copying,
-        # so we don't need copy.deepcopy(t2i_template) here.
         overrides = {
             "_claude_inject_prompt":    {"inputs.text": prompt_text},
             "_claude_inject_seed":      {"inputs.seed": seed},
@@ -470,6 +487,13 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
             raise SystemExit(1)
         uploaded_anchors["default"] = client.upload_image(str(anchor_path))
 
+    if anchor_only:
+        anchor_out = out_dir / "anchor.png"
+        shutil.copy(inter / "anchor.png", anchor_out)
+        console.print(f"\n[bold green]Anchor saved -> {anchor_out.relative_to(ROOT)}[/bold green]")
+        console.print("Review body shape and outfit before running full carousel.")
+        return
+
     faceswap_template = load_workflow(str(ROOT / "workflows" / "faceswap_reactor.json"))
 
     failed = []
@@ -521,7 +545,7 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                     wf2 = _inject_flux_kontext(
                         i2i_templates["kontext"],
                         slide_prompt, uploaded_anchor, slide_seed,
-                        bg_lock=_bg_lock, propagate_cache=False
+                        bg_lock=_bg_lock, propagate_cache=False,
                     )
                 else:
                     template = i2i_templates["i2i_cn"] if use_cn else i2i_templates["i2i"]

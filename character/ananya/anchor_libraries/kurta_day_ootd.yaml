@@ -1,6 +1,8 @@
 # Production anchor — Kurta Day OOTD
 # Validated 2026-05-18 v5. Ethnic wear template per flux_dev_rulebook.md
-anchor_seed: 947218365
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
 
 shared_tail: >
   wearing fitted mustard yellow chikankari kurta tailored close to body with subtle cinch at waist,
@@ -18,7 +20,7 @@ shared_tail: >
 anchors:
   standing:
     prompt: >
-      23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips,
+      23-year-old South Asian woman with M-size hourglass figure,
       soft natural curves not slim editorial, not plus-size, average Indian build,
       photorealistic full body candid street photograph,
       asymmetric pose weight shifted on right hip, arms relaxed at sides,

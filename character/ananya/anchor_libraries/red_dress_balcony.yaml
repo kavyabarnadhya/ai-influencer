@@ -2,10 +2,12 @@
 # Single anchor = all slides img2img off same image → outfit physically locked.
 # Use single-anchor for ALL OOTD carousels. Multi-anchor only when outfits differ per group.
 
-anchor_seed: 739264801
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
 
 anchor_prompt: >
-  23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips,
+  23-year-old South Asian woman with M-size hourglass figure,
   soft natural curves not slim editorial, fabric shows soft midsection, not plus-size, average Indian build,
   wearing floor-length fitted red satin halter-neck dress with neck strap tied behind neck,
   bare shoulders, open back, fabric following natural body curves to hem,

@@ -10,6 +10,7 @@
 #     --name maroon_saree_multi_01 \
 #     --anchor-config character/ananya/anchor_libraries/maroon_saree_rooftop.yaml
 
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
 anchor_seed: 1018996843  # shared seed across all anchors for BG consistency
 
 # Shared outfit + scene tail appended to each anchor prompt

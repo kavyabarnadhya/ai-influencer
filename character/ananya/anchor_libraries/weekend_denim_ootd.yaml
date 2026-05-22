@@ -1,6 +1,8 @@
 # Production anchor — Weekend Denim OOTD
 # Validated 2026-05-18 v2. Layered western template per flux_dev_rulebook.md
-anchor_seed: 472916583
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
 
 shared_tail: >
   wearing high-waisted vintage cropped blue denim jeans accentuating waist,
@@ -16,7 +18,7 @@ shared_tail: >
 anchors:
   standing:
     prompt: >
-      23-year-old South Asian woman with M-size hourglass figure, defined waist and full hips,
+      23-year-old South Asian woman with M-size hourglass figure,
       soft natural curves not slim editorial, not plus-size, average Indian build,
       photorealistic full body candid street photograph,
       asymmetric casual stance weight on left leg, right hand in jeans front pocket,
