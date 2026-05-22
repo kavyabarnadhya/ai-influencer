@@ -102,7 +102,12 @@ HAND_POSITION_TAGS = (
 )
 
 
+@functools.lru_cache(maxsize=1)
 def load_config() -> dict:
+    """
+    Load the global config.yaml.
+    Optimization: Cached via LRU to avoid redundant disk I/O and YAML parsing.
+    """
     with open(ROOT / "config.yaml", "r") as f:
         return yaml.safe_load(f)
 
