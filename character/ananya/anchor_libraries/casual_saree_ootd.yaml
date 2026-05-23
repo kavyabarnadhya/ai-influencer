@@ -2,6 +2,7 @@
 # Validated 2026-05-18 v2. Ethnic wear template per flux_dev_rulebook.md
 face_ref: character/ananya/seeds_v2/face_ref_v2.png
 anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
 
 shared_tail: >
   wearing fitted white cotton short-sleeve blouse showing waist definition,

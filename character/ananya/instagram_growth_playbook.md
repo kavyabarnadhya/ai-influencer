@@ -203,7 +203,8 @@ No follower minimum. Up to 5 collaborators (6 total profiles). Appears in all co
 | Saree | `#sareelovers` `#chanderi` `#sareestyle` `#everydaysaree` |
 | Western casual | `#casualootd` `#streetstyle` `#linenshirt` `#denimootd` |
 | GRWM | `#grwm` `#brunchoutfit` `#slipdress` `#saturdaymorning` |
-| Location | `#delhidiaries` `#mumbaidiaries` `#bangalorediaries` |
+| Location (city) | `#delhidiaries` `#mumbaidiaries` `#bangalorediaries` |
+| Location (neighborhood) | `#defencecolony` `#hauzkhaz` `#vasantvihar` `#greaterKailash` `#lodhinagar` — prefer over city tags for small accounts |
 | Community | `#indianblogger` `#indianfashion` `#desifashion` `#indianstyle` |
 | Broad anchors | `#ootd` `#fashionblogger` |
 
