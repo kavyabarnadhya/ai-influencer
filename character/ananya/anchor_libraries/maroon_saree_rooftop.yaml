@@ -1,21 +1,39 @@
-# Anchor: maroon Banarasi saree, Mumbai rooftop golden hour.
-# Exception: anchor_seed 1018996843 kept for BG consistency (validated batch).
-# Converted to single anchor_prompt (2026-05-23) — Kontext handles all slide framing.
+# Anchor library for maroon Banarasi saree on Mumbai rooftop golden hour.
+# Generates one anchor per pose group at carousel start. Slides route to matching anchor.
+# All anchors share same outfit + scene + lighting; only the pose framing differs.
+# Same anchor_seed across all groups → similar background bokeh per group.
+#
+# Usage:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/maroon_saree_rooftop_multi.txt \
+#     --face-ref character/ananya/seeds_v2/face_ref_v2.png \
+#     --name maroon_saree_multi_01 \
+#     --anchor-config character/ananya/anchor_libraries/maroon_saree_rooftop.yaml
 
 face_ref: character/ananya/seeds_v2/face_ref_v2.png
-anchor_seed: 1018996843
+anchor_seed: 1018996843  # shared seed across all anchors for BG consistency
 anchor_body_lora_strength: 0.5
 
-anchor_prompt: >
-  23-year-old South Asian woman with M-size hourglass figure,
-  soft natural curves not slim editorial, not plus-size, average Indian build,
+# Shared outfit + scene tail appended to each anchor prompt
+shared_tail: >
   wearing deep maroon silk Banarasi saree with intricate gold zari border draped pleated
-  over left shoulder and fitted black short-sleeve blouse,
-  gold jhumka earrings, dark hair loose beachy waves,
-  photorealistic full body editorial photo,
-  standing in neutral three-quarter pose facing camera weight shifted on right leg
-  and arms relaxed at sides,
-  Mumbai high-rise rooftop at golden hour with hazy city skyline behind,
-  warm orange backlight, shot on Sony A7IV 50mm,
-  natural skin texture with visible pores, light film grain, no plastic AI smoothing,
-  asymmetric facial features, candid moment not posed
+  over left shoulder and fitted black short-sleeve blouse, gold jhumka earrings,
+  dark hair loose beachy waves, Mumbai high-rise rooftop at golden hour with hazy city
+  skyline behind, warm orange backlight, photorealistic 50mm, natural skin texture,
+  light film grain, no plastic AI smoothing
+
+anchors:
+  standing:
+    prompt: >
+      photorealistic full body editorial photo of a 23-year-old South Asian woman
+      standing in neutral three-quarter pose facing camera weight shifted on right leg,
+
+  sitting:
+    prompt: >
+      photorealistic full body editorial photo of a 23-year-old South Asian woman
+      seated comfortably on rooftop ledge cross-legged side angle,
+
+  closeup:
+    prompt: >
+      photorealistic Instagram editorial waist-up portrait of a 23-year-old South Asian woman
+      facing camera with slight smile,
