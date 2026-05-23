@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Carousel Generation Workflow</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; padding: 32px; }
+  h1 { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+  .subtitle { font-size: 12px; color: #666; margin-bottom: 32px; }
+
+  .pipeline { display: flex; flex-direction: column; gap: 0; max-width: 860px; }
+
+  /* INPUT ROW */
+  .inputs { display: flex; gap: 12px; margin-bottom: 16px; }
+  .input-box { flex: 1; background: #1a1a24; border: 1px solid #2a2a3a; border-radius: 8px; padding: 14px 16px; }
+  .input-box .label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #666; margin-bottom: 6px; }
+  .input-box .title { font-size: 13px; font-weight: 600; color: #a78bfa; }
+  .input-box .detail { font-size: 11px; color: #888; margin-top: 4px; line-height: 1.5; }
+  .input-box code { font-family: 'Consolas', monospace; font-size: 10px; background: #0f0f18; padding: 1px 4px; border-radius: 3px; color: #7dd3fc; }
+
+  /* STAGE BLOCK */
+  .stage { position: relative; background: #1a1a24; border-radius: 10px; padding: 18px 20px 16px; border: 1px solid #2a2a3a; }
+  .stage.stage1 { border-color: #3730a3; }
+  .stage.stage2 { border-color: #1e4d7a; }
+  .stage.stage3 { border-color: #14532d; }
+  .stage.decision { border-color: #78350f; background: #1c1610; }
+
+  .stage-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .stage-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 12px; text-transform: uppercase; letter-spacing: .06em; }
+  .s1 { background: #3730a3; color: #c7d2fe; }
+  .s2 { background: #1e4d7a; color: #bae6fd; }
+  .s3 { background: #14532d; color: #bbf7d0; }
+  .sd { background: #78350f; color: #fed7aa; }
+  .stage-title { font-size: 14px; font-weight: 700; color: #fff; }
+  .stage-sub { font-size: 11px; color: #888; margin-left: auto; }
+
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .cell { flex: 1; min-width: 160px; background: #13131c; border-radius: 6px; padding: 10px 12px; border: 1px solid #222230; }
+  .cell .clabel { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+  .cell .cval { font-size: 12px; color: #d1d5db; line-height: 1.5; }
+  .cell .cval code { font-family: 'Consolas', monospace; font-size: 10px; background: #0a0a12; padding: 1px 4px; border-radius: 3px; color: #7dd3fc; }
+  .cell .cval .hi { color: #a78bfa; font-weight: 600; }
+  .cell .cval .warn { color: #fbbf24; }
+  .cell .cval .ok { color: #4ade80; }
+  .cell .cval .no { color: #f87171; }
+
+  .arrow { display: flex; align-items: center; justify-content: center; height: 28px; color: #444; font-size: 18px; }
+  .arrow.branch { flex-direction: row; gap: 8px; color: #555; font-size: 12px; }
+
+  .decision-row { display: flex; gap: 12px; align-items: flex-start; }
+  .decision-opt { flex: 1; background: #13131c; border-radius: 6px; padding: 10px 12px; border: 1px dashed #333; }
+  .decision-opt .opt-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  .decision-opt.yes .opt-label { color: #4ade80; }
+  .decision-opt.no .opt-label { color: #f87171; }
+  .decision-opt .opt-body { font-size: 11px; color: #888; line-height: 1.6; }
+  .decision-opt .opt-body code { font-family: 'Consolas', monospace; font-size: 10px; background: #0a0a12; padding: 1px 4px; border-radius: 3px; color: #7dd3fc; }
+
+  .lora-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 4px; }
+  .lora-table th { text-align: left; color: #555; font-weight: 600; font-size: 10px; text-transform: uppercase; padding: 3px 6px; }
+  .lora-table td { padding: 4px 6px; color: #aaa; border-top: 1px solid #1e1e2a; }
+  .lora-table td:first-child { color: #7dd3fc; font-family: 'Consolas', monospace; font-size: 10px; }
+
+  .output-box { background: #0d1f0d; border: 1px solid #14532d; border-radius: 8px; padding: 14px 16px; }
+  .output-box .label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #4ade80; margin-bottom: 6px; }
+  .output-box .path { font-family: 'Consolas', monospace; font-size: 11px; color: #86efac; }
+  .output-box .dims { font-size: 11px; color: #555; margin-top: 4px; }
+
+  .rule-block { background: #1a0a0a; border: 1px solid #7f1d1d; border-radius: 6px; padding: 10px 12px; font-size: 11px; color: #fca5a5; line-height: 1.7; margin-top: 10px; }
+  .rule-block strong { color: #f87171; }
+
+  .yaml-block { background: #0a0f1a; border-radius: 6px; padding: 10px 12px; font-family: 'Consolas', monospace; font-size: 10px; color: #7dd3fc; line-height: 1.7; margin-top: 8px; }
+  .yaml-block .key { color: #a78bfa; }
+  .yaml-block .val { color: #4ade80; }
+  .yaml-block .comment { color: #444; }
+
+  .slide-line { background: #0a0f1a; border-radius: 6px; padding: 8px 12px; font-family: 'Consolas', monospace; font-size: 10px; color: #7dd3fc; margin-top: 8px; line-height: 1.6; }
+  .slide-line .anchor-tag { color: #fbbf24; }
+  .slide-line .pipe { color: #555; }
+  .slide-line .prompt { color: #d1d5db; }
+
+  .divider { height: 1px; background: #1e1e2a; margin: 8px 0; }
+
+  .footer { margin-top: 24px; font-size: 11px; color: #444; }
+</style>
+</head>
+<body>
+
+<h1>Carousel Generation Workflow</h1>
+<p class="subtitle">Source: scripts/faceswap_carousel.py · character/ananya/flux_dev_rulebook.md · anchor YAMLs</p>
+
+<div class="pipeline">
+
+  <!-- INPUTS -->
+  <div class="inputs">
+    <div class="input-box">
+      <div class="label">Input 1</div>
+      <div class="title">Anchor YAML</div>
+      <div class="detail">
+        <code>--anchor-config</code> path<br>
+        Contains: <code>face_ref</code>, <code>anchor_seed</code>,<br>
+        <code>anchor_body_lora_strength</code>, <code>anchor_prompt</code>
+      </div>
+    </div>
+    <div class="input-box">
+      <div class="label">Input 2</div>
+      <div class="title">Prompt File</div>
+      <div class="detail">
+        <code>--prompts</code> path<br>
+        One slide per line:<br>
+        <code>anchor=default | [prompt text]</code>
+      </div>
+    </div>
+    <div class="input-box">
+      <div class="label">Input 3</div>
+      <div class="title">Flags</div>
+      <div class="detail">
+        <code>--flux-dev</code> — dev model (slow)<br>
+        <code>--kontext</code> — Kontext edit mode<br>
+        <code>--anchor-only</code> — stop after Stage 1<br>
+        <code>--name</code> — output folder name
+      </div>
+    </div>
+  </div>
+
+  <!-- YAML STRUCTURE -->
+  <div class="stage stage1">
+    <div class="stage-header">
+      <span class="stage-badge s1">YAML</span>
+      <span class="stage-title">Anchor YAML Structure</span>
+      <span class="stage-sub">Always single anchor_prompt — never anchors: dict</span>
+    </div>
+    <div class="row">
+      <div class="cell" style="flex:1.2">
+        <div class="clabel">Required fields</div>
+        <div class="yaml-block">
+<span class="key">face_ref:</span> <span class="val">character/ananya/seeds_v2/face_ref_v2.png</span><br>
+<span class="key">anchor_seed:</span> <span class="val">334521876</span>  <span class="comment"># validated M-size hourglass</span><br>
+<span class="key">anchor_body_lora_strength:</span> <span class="val">0.5</span>  <span class="comment"># 0.0 for flowy/ethnic</span><br>
+<span class="key">anchor_prompt:</span> <span class="val">&gt;</span><br>
+  <span class="val">[body stack] [outfit] [pose] [scene] [lighting] [camera] [skin tail]</span>
+        </div>
+      </div>
+      <div class="cell" style="flex:0.8">
+        <div class="clabel">Body LoRA strength by outfit type</div>
+        <table class="lora-table">
+          <tr><th>Outfit</th><th>Strength</th></tr>
+          <tr><td>All outfits (universal)</td><td><span class="ok">0.5 ← standard</span></td></tr>
+          <tr><td>Headshot (no body in frame)</td><td><span class="warn">0.0</span></td></tr>
+          <tr><td>Flowy / loose / unstructured</td><td><span class="warn">0.0</span></td></tr>
+        </table>
+        <div class="rule-block" style="margin-top:8px">
+          <strong>NEVER</strong> use <code>anchors:</code> dict — causes outfit drift between slides (multiple t2i generations)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">↓</div>
+
+  <!-- STAGE 1 -->
+  <div class="stage stage1">
+    <div class="stage-header">
+      <span class="stage-badge s1">Stage 1</span>
+      <span class="stage-title">Anchor Generation (text-to-image)</span>
+      <span class="stage-sub">flux_dev.json · seed 334521876</span>
+    </div>
+    <div class="row">
+      <div class="cell">
+        <div class="clabel">Workflow</div>
+        <div class="cval"><code>flux_dev.json</code><br>Model: <code>flux1-dev-Q4_K_S.gguf</code></div>
+      </div>
+      <div class="cell">
+        <div class="clabel">LoRA nodes in flux_dev.json</div>
+        <table class="lora-table">
+          <tr><th>Node</th><th>File</th><th>Strength</th></tr>
+          <tr><td>15 realism</td><td>flux-xlabs-realism</td><td><span class="ok">0.3</span></td></tr>
+          <tr><td>17 body</td><td>Body FIX FLUX</td><td><span class="warn">YAML field</span></td></tr>
+        </table>
+      </div>
+      <div class="cell">
+        <div class="clabel">Output</div>
+        <div class="cval"><code>_intermediate/anchor.png</code><br><span class="ok">Locks outfit, body, background</span><br>Uploaded to ComfyUI server</div>
+      </div>
+    </div>
+
+    <!-- anchor-only branch -->
+    <div class="divider"></div>
+    <div class="stage decision" style="margin-top:4px; border-radius:6px; padding:12px 14px;">
+      <div class="stage-header" style="margin-bottom:8px">
+        <span class="stage-badge sd">Decision</span>
+        <span class="stage-title" style="font-size:12px">--anchor-only flag set?</span>
+      </div>
+      <div class="decision-row">
+        <div class="decision-opt yes">
+          <div class="opt-label">YES → stop here</div>
+          <div class="opt-body">Copy <code>anchor.png</code> to output folder.<br>User reviews body shape + outfit.<br>Re-run without flag for full carousel.</div>
+        </div>
+        <div class="decision-opt no">
+          <div class="opt-label">NO → continue to Stage 2</div>
+          <div class="opt-body">Parse prompt file.<br>Each line → one slide.<br>Proceed through all slides.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">↓ (for each slide)</div>
+
+  <!-- SLIDE FORMAT -->
+  <div class="stage stage2" style="border-radius:10px; padding:14px 18px;">
+    <div class="stage-header">
+      <span class="stage-badge s2">FORMAT</span>
+      <span class="stage-title">Prompt File — One Line Per Slide</span>
+    </div>
+    <div class="slide-line">
+<span class="comment"># slide_00: description (comment line — skipped by parser)</span><br>
+<span class="anchor-tag">anchor=default</span> <span class="pipe">|</span> <span class="prompt">same woman in same [outfit name], [new pose/framing], keeping exact same [neckline], [shoulder detail], [fabric], and [accessories]</span>
+    </div>
+    <div class="rule-block">
+      <strong>Parser rule:</strong> every non-comment, non-empty line = one slide. Multi-line blocks with <code>---</code> separators or <code>slide_01:</code> labels each become separate slides → wrong count. Keep each slide on ONE line.
+    </div>
+  </div>
+
+  <div class="arrow">↓</div>
+
+  <!-- STAGE 2 -->
+  <div class="stage stage2">
+    <div class="stage-header">
+      <span class="stage-badge s2">Stage 2</span>
+      <span class="stage-title">Slide Generation (image editing)</span>
+      <span class="stage-sub">flux_kontext.json · denoise=1.0 (edit model, not img2img)</span>
+    </div>
+    <div class="row">
+      <div class="cell">
+        <div class="clabel">Workflow (--kontext flag)</div>
+        <div class="cval"><code>flux_kontext.json</code><br>Input: <span class="hi">anchor.png pixels</span><br>Not text-to-image — edits from anchor</div>
+      </div>
+      <div class="cell">
+        <div class="clabel">BG lock (auto)</div>
+        <div class="cval">Code appends to every slide:<br><code>, same background, same scene, unchanged environment</code><br><span class="ok">No per-file edits needed</span></div>
+      </div>
+      <div class="cell">
+        <div class="clabel">What Kontext can do</div>
+        <div class="cval">
+          <span class="ok">✓</span> Pose micro-variants (hands, lean, walk)<br>
+          <span class="ok">✓</span> Chest-up framing closeup<br>
+          <span class="ok">✓</span> Expression + gaze change<br>
+          <span class="no">✗</span> Standing → sitting (structural)<br>
+          <span class="no">✗</span> Waist-up framing (stays full-body)
+        </div>
+      </div>
+      <div class="cell">
+        <div class="clabel">Output</div>
+        <div class="cval"><code>_intermediate/slide_NN_cand_0_base.png</code><br>Random seed per slide<br>Uploaded to ComfyUI</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">↓</div>
+
+  <!-- STAGE 3 -->
+  <div class="stage stage3">
+    <div class="stage-header">
+      <span class="stage-badge s3">Stage 3</span>
+      <span class="stage-title">Face Swap (ReActor)</span>
+      <span class="stage-sub">faceswap_reactor.json · CodeFormer 0.75</span>
+    </div>
+    <div class="row">
+      <div class="cell">
+        <div class="clabel">Workflow</div>
+        <div class="cval"><code>faceswap_reactor.json</code><br>Source: <code>face_ref_v2.png</code><br>Target: slide base image</div>
+      </div>
+      <div class="cell">
+        <div class="clabel">Face restore model</div>
+        <div class="cval">
+          <span class="ok">CodeFormer</span> weight <code>0.75</code>, visibility <code>1.0</code><br>
+          <span class="no">NOT GFPGAN</span> — over-smooths, loses identity<br>
+          File must be ~359 MB (corrupted = 316 MB)
+        </div>
+      </div>
+      <div class="cell">
+        <div class="clabel">Post-process</div>
+        <div class="cval">PIL resize: <span class="hi">1080×1920</span><br>LANCZOS interpolation<br>Instagram 9:16 native res<br>Overwrites slide file</div>
+      </div>
+      <div class="cell">
+        <div class="clabel">Timeout</div>
+        <div class="cval">Faceswap: <code>180s</code><br>Kontext slide: <code>3600s</code> (dev)<br>Schnell slide: <code>300s</code></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">↓</div>
+
+  <!-- OUTPUT -->
+  <div class="output-box">
+    <div class="label">Output</div>
+    <div class="path">output/YYYY-MM-DD/ananya/carousel_{name}/slide_NN_cand_0.png</div>
+    <div class="dims">1080×1920 px · 9:16 · Instagram carousel ready</div>
+  </div>
+
+  <!-- RULES SUMMARY -->
+  <div style="margin-top: 24px; display:flex; gap:12px;">
+    <div class="input-box" style="flex:1; border-color:#3730a3;">
+      <div class="label" style="color:#a78bfa">Anchor seed rule</div>
+      <div class="detail">
+        Default: <code>334521876</code> — validated M-size hourglass body<br>
+        Exception: maroon_saree keeps <code>1018996843</code> (BG consistency)<br>
+        Bad seeds: <code>837492016</code>, <code>112847593</code> — wrong body render
+      </div>
+    </div>
+    <div class="input-box" style="flex:1; border-color:#1e4d7a;">
+      <div class="label" style="color:#7dd3fc">BG consistency rule</div>
+      <div class="detail">
+        Slide prompts must describe the same scene as anchor.<br>
+        New scene tokens in slides = BG drift.<br>
+        Universal lock token auto-appended in code — no manual edits needed.
+      </div>
+    </div>
+    <div class="input-box" style="flex:1; border-color:#14532d;">
+      <div class="label" style="color:#4ade80">Caption rule</div>
+      <div class="detail">
+        Lowercase, 1–2 sentences, minimal tone<br>
+        Max 5 hashtags: 1 broad + 2 niche + 1 location + 1 community<br>
+        Location: neighborhood-level (Delhi NCR pool), never landmark
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">Source files: scripts/faceswap_carousel.py · character/ananya/flux_dev_rulebook.md · anchor_libraries/*.yaml</div>
+
+</body>
+</html>
