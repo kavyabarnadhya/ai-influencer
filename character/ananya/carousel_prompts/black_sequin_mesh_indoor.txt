@@ -1,0 +1,29 @@
+# Black sequin mesh long-sleeve mini dress — FLUX Kontext carousel, 4 slides
+# Anchor: single standing full-body (black_sequin_mesh_indoor.yaml)
+# Outfit: black sequin bodycon mini with built-in sheer mesh long sleeves + gold hoops
+# Two-tone wall: cream left, chartreuse yellow-green right. Flat indoor light.
+# Hair: long straight middle part (NOT waves)
+#
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/black_sequin_mesh_indoor.txt \
+#     --name black_sequin_mesh_v1 \
+#     --anchor-config character/ananya/anchor_libraries/black_sequin_mesh_indoor.yaml \
+#     --flux-dev --kontext
+
+# Kontext rules for this outfit:
+#   - Always say "same woman in same black sequin mesh long-sleeve mini dress"
+#   - Always keep: "keeping exact same scoop neckline, sheer mesh sleeves, sequin fabric, mini hemline"
+#   - Two-tone wall must stay in every slide
+
+# slide_00: full body facing camera, arms relaxed — scroll-stop hook
+anchor=default | same woman in same black sequin mesh long-sleeve mini dress, full body facing camera with weight shifted on right leg and arms relaxed at sides, confident direct gaze, flat indoor light, two-tone cream and chartreuse wall behind, keeping exact same scoop neckline, sheer mesh sleeves from shoulder to wrist, sequin fabric shimmer, and mini hemline at mid-thigh
+
+# slide_01: full body, slight weight shift, right hand at hip
+anchor=default | same woman in same black sequin mesh long-sleeve mini dress, full body with slight weight shift to left leg and right hand loosely at hip, three-quarter angled pose eyes toward camera, relaxed confident expression, same two-tone cream and chartreuse wall behind, keeping exact same scoop neckline, sheer mesh sleeves, sequin fabric, and mini hemline with side slit visible
+
+# slide_02: full body side profile, glancing back over shoulder
+anchor=default | same woman in same black sequin mesh long-sleeve mini dress, full body turned to right side profile, chin tilted glancing back toward camera over left shoulder, back silhouette of dress visible, same two-tone cream and chartreuse wall background, keeping exact same sheer mesh sleeves, sequin mini dress back, and side slit
+
+# slide_03: chest-up closeup, direct gaze — neckline detail slide
+anchor=default | change to chest-up portrait framing showing face neck shoulders and neckline only, same woman in same black sequin mesh long-sleeve mini dress, direct confident gaze, soft natural expression, small gold hoop earrings visible, long straight black hair loose, two-tone wall soft in background, keeping exact same scoop neckline and sheer mesh sleeves at shoulders

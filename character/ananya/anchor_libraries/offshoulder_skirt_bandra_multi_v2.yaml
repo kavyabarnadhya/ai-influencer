@@ -1,44 +1,29 @@
-# Multi-anchor OOTD v2 — off-shoulder crop top + denim mini skirt, Bandra cafe dusk.
-# Two anchor groups: standing (full-body) + closeup (waist-up).
-# Slides use anchor=standing or anchor=closeup at low denoise — outfit stays locked per group.
+# Anchor: off-shoulder crop top + denim mini skirt, Bandra cafe dusk.
 # v2: stronger body tokens front-loaded; corrected outfit (mini skirt not A-line).
-# Body stack: Bandra-specific (curvy hourglass + hip flare) — differs from canonical M-size stack.
-# Reason: crop top exposes midriff, needs explicit hip curve tokens beyond standard recipe.
+# Body stack: Bandra-specific (curvy hourglass + hip flare) — crop top exposes midriff,
+# needs explicit hip curve tokens beyond standard recipe.
 # Do NOT use this body stack for ethnic wear or layered outfits — use canonical stack instead.
+# Converted to single anchor_prompt (2026-05-23) — Kontext handles all slide framing.
 
 face_ref: character/ananya/seeds_v2/face_ref_v2.png
 anchor_seed: 334521876
 anchor_body_lora_strength: 0.5
 
-shared_tail: >
+anchor_prompt: >
+  curvy hourglass body, wide hips, visible hip flare, full rounded hips,
+  size M hourglass figure woman with fuller bust, slim defined small waist,
+  balanced curvy hips, visible waist-to-hip curve, soft rounded midriff,
+  medium build curvy not skinny, South Asian 23 year old,
   wearing fitted white off-shoulder cropped top with elasticated neckline showing
   shoulders and collarbones, paired with blue denim mini skirt with hemline at mid-thigh,
   bare legs below skirt hem, dark hair in loose beachy waves over right shoulder,
   small gold hoop earrings, single delicate gold chain necklace on collarbone,
   brown leather small crossbody bag worn diagonally across chest,
+  photorealistic full body editorial fashion photograph,
+  three-quarter pose standing facing camera with weight shifted on right leg
+  and arms relaxed at sides,
   Bandra Mumbai cafe street at dusk with warm string lights and orange shopfront glow
   and parked scooters behind, mixed warm ambient evening light with neon shopfront accents,
-  photorealistic 50mm Sony A7IV, shot on Kodak Portra 400 film, visible skin pores and
-  faint peach fuzz, 35mm film grain, candid unretouched amateur photography style,
-  raw unedited look, no retouching
-
-anchors:
-  standing:
-    prompt: >
-      curvy hourglass body, wide hips, visible hip flare, full rounded hips,
-      size M hourglass figure woman with fuller bust, slim defined small waist,
-      balanced curvy hips, visible waist-to-hip curve, soft rounded midriff,
-      medium build curvy not skinny, South Asian 23 year old,
-      photorealistic full body editorial fashion photograph,
-      three-quarter pose standing facing camera with weight shifted on right leg
-      and arms relaxed at sides, f/2.0 shallow depth of field, sharp focus on face,
-
-  closeup:
-    prompt: >
-      curvy hourglass body, full bust, visible collarbone and shoulders,
-      size M hourglass figure woman with fuller bust, slim defined small waist,
-      medium build curvy not skinny, South Asian 23 year old,
-      photorealistic Instagram editorial waist-up portrait,
-      tight chest-up framing showing shoulders and collarbones and top of outfit,
-      slight playful smile, confident relaxed posture,
-      f/1.4 very shallow depth of field, sharp focus on eyes,
+  photorealistic 50mm Sony A7IV, shot on Kodak Portra 400 film,
+  visible skin pores and faint peach fuzz, 35mm film grain,
+  candid unretouched amateur photography style, raw unedited look, no retouching

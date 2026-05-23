@@ -300,6 +300,23 @@ authentic skin texture with visible pores, asymmetric features, candid snapshot
   `, same background, same scene, unchanged environment`
   — no per-file changes needed, applies universally
 
+### Anchor YAML rule — ALWAYS single anchor
+**NEVER use `anchors:` dict (multi-anchor mode).** Multi-anchor = multiple t2i generations = outfit drift between standing/closeup images.
+Always use single `anchor_prompt:` field. Kontext derives all slides (including closeup framing) from the one anchor image.
+
+```yaml
+# CORRECT
+anchor_prompt: >
+  [full prompt]
+
+# WRONG — causes outfit inconsistency across slides
+anchors:
+  standing:
+    prompt: ...
+  closeup:
+    prompt: ...
+```
+
 ### Anchor prompt structure
 ```
 [body descriptor 4-token stack]

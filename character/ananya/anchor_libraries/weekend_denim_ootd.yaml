@@ -1,40 +1,27 @@
 # Production anchor — Weekend Denim OOTD
 # Validated 2026-05-18 v2. Layered western template per flux_dev_rulebook.md
+# Converted to single anchor_prompt (2026-05-23) — Kontext handles all slide framing.
+
 face_ref: character/ananya/seeds_v2/face_ref_v2.png
 anchor_seed: 334521876
 anchor_body_lora_strength: 0.5
 
-shared_tail: >
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure,
+  soft natural curves not slim editorial, not plus-size, average Indian build,
   wearing high-waisted vintage cropped blue denim jeans accentuating waist,
   fitted ribbed white tank top tucked at front,
   unbuttoned cream linen overshirt worn OPEN with sleeves rolled to elbows,
   collar lying flat asymmetrically, fabric visible drape,
   dark hair straight middle-parted falling past shoulders,
   small gold hoop earrings, small black leather crossbody bag worn across chest,
+  photorealistic full body candid street photograph,
+  asymmetric casual stance weight on left leg, right hand in jeans front pocket,
+  easy natural expression looking at camera with slight smile,
   in upscale Bengaluru Indiranagar cafe terrace street, outdoor wooden chairs and potted plants,
   exposed brick wall and modern shopfront signage visible behind, parked scooters soft in background,
-  overcast soft morning light, even cool tones, gentle shadow on one side of face
-
-anchors:
-  standing:
-    prompt: >
-      23-year-old South Asian woman with M-size hourglass figure,
-      soft natural curves not slim editorial, not plus-size, average Indian build,
-      photorealistic full body candid street photograph,
-      asymmetric casual stance weight on left leg, right hand in jeans front pocket,
-      easy natural expression looking at camera with slight smile,
-      shot on Sony A7IV 50mm f/2.0 shallow depth of field sharp focus on face,
-      authentic skin texture with visible pores, natural skin imperfections,
-      no plasticky skin, asymmetric facial features, slightly off-center composition,
-      one side of face in soft shadow, candid moment not posed
-
-  closeup:
-    prompt: >
-      23-year-old South Asian woman with M-size hourglass figure, defined waist,
-      soft natural curves not slim editorial,
-      photorealistic Instagram candid portrait,
-      tight chest-up framing showing linen overshirt collar and tank top underneath,
-      relaxed expression, soft direct gaze, slight natural smile,
-      shot on Sony A7IV 50mm f/1.4 very shallow depth of field sharp focus on eyes,
-      authentic skin texture with visible pores, asymmetric facial features,
-      one side of face in soft shadow, candid not posed
+  overcast soft morning light, even cool tones, gentle shadow on one side of face,
+  shot on Sony A7IV 50mm f/2.0 shallow depth of field sharp focus on face,
+  authentic skin texture with visible pores, natural skin imperfections,
+  no plasticky skin, asymmetric facial features, slightly off-center composition,
+  candid moment not posed
