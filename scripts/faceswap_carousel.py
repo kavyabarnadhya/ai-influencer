@@ -488,11 +488,9 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
         uploaded_anchors["default"] = client.upload_image(str(anchor_path))
 
     if anchor_only:
-        anchor_files = list(inter.glob("anchor*.png"))
-        for src in anchor_files:
-            dst = out_dir / src.name
-            shutil.copy(src, dst)
-            console.print(f"\n[bold green]Anchor saved -> {dst.relative_to(ROOT)}[/bold green]")
+        anchor_out = out_dir / "anchor.png"
+        shutil.copy(inter / "anchor.png", anchor_out)
+        console.print(f"\n[bold green]Anchor saved -> {anchor_out.relative_to(ROOT)}[/bold green]")
         console.print("Review body shape and outfit before running full carousel.")
         return
 
