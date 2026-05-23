@@ -255,33 +255,26 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any], propagate_
     for title, patches in overrides.items():
         if title in title_to_ids:
             # Pre-split all paths for this title once
-            # Optimization: Use a list of items to avoid redundant dict creation during filtering
             split_patches_items = [(_split_path(p), v) for p, v in patches.items()]
 
             for node_id in title_to_ids[title]:
                 node = workflow[node_id]
-                filtered = {
-                    parts: val for parts, val in split_patches_items
-                    if not _is_patch_redundant(node, parts, val)
-                }
-                if filtered:
-                    node_to_patches.setdefault(node_id, {}).update(filtered)
+                for parts, val in split_patches_items:
+                    if not _is_patch_redundant(node, parts, val):
+                        if node_id not in node_to_patches:
+                            node_to_patches[node_id] = {}
+                        node_to_patches[node_id][parts] = val
 
-    # Optimization: Postpone workflow.copy() until we are sure we have work to do.
-    # If no patches are applied, we still return a copy for immutability.
-    if not node_to_patches:
-        workflow = workflow.copy()
-        if propagate_cache:
-            workflow["_claude_title_cache"] = title_to_ids
-        elif "_claude_title_cache" in workflow:
-            del workflow["_claude_title_cache"]
-        return workflow
-
+    # Always return a new dictionary object to ensure original workflow remains immutable.
+    # Performance Optimization: Postpone workflow.copy() until we are sure we have work to do.
     workflow = workflow.copy()
     if propagate_cache:
         workflow["_claude_title_cache"] = title_to_ids
     elif "_claude_title_cache" in workflow:
         del workflow["_claude_title_cache"]
+
+    if not node_to_patches:
+        return workflow
 
     for node_id, patches in node_to_patches.items():
         node = workflow[node_id] = workflow[node_id].copy()
