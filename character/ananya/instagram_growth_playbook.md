@@ -137,6 +137,36 @@ No follower minimum. Up to 5 collaborators (6 total profiles). Appears in all co
 - No emojis in the first line
 - CTAs do drive more comments — the "70%" figure circulates widely but has no documented original study
 
+**Ananya caption format (confirmed):**
+- Lowercase, 1–2 sentences, minimal/elegant tone (Masoom Minawala / Aashna Shroff register)
+- Max 5 hashtags at end — mix: 1 broad (#ootd) + 2 niche + 1 location + 1 community (#indianblogger)
+- No AI disclosure in caption text (handled separately per platform policy)
+
+---
+
+## Location Tagging Strategy
+**[VERIFIED — posts with location tags get ~79% higher engagement vs untagged]**
+
+- **Always tag a location** — no tag = significant engagement drop
+- **Neighborhood-level beats city-level** for small/growing accounts — ranks in local Explore feeds
+- **Never use landmark-specific tags for AI content** — identifiable landmarks (Lodhi Garden, Hanging Gardens) can be visually called out as fake
+- **Rotate neighborhoods across posts** — same tag repeated signals duplicate content to algorithm
+
+**Tag hierarchy:**
+| Level | Example | Use |
+|---|---|---|
+| Neighborhood ✅ | `Defence Colony, New Delhi` | Best reach + safe for AI content |
+| City ⚠️ | `New Delhi, India` | Safe but weakest local signal |
+| Landmark ❌ | `Lodhi Garden` | Avoid for AI — visually verifiable |
+| No tag ❌ | — | ~79% engagement drop |
+
+**Delhi/NCR neighborhood pool for Ananya:**
+- Balcony / high-rise scenes: `Defence Colony`, `Vasant Vihar`, `Golf Course Road Gurugram`, `Greater Kailash`
+- Garden / outdoor scenes: `Greater Kailash`, `Hauz Khas`, `Vasant Kunj`
+- Street / cafe scenes: `Lodi Colony`, `Khan Market`, `Hauz Khas Village`
+
+**Posting spread:** 1 post per 2 days minimum. Alternate dark → light → dark to vary feed aesthetic.
+
 ---
 
 ## Indian Fashion Niche — What's Working 2026
@@ -173,7 +203,8 @@ No follower minimum. Up to 5 collaborators (6 total profiles). Appears in all co
 | Saree | `#sareelovers` `#chanderi` `#sareestyle` `#everydaysaree` |
 | Western casual | `#casualootd` `#streetstyle` `#linenshirt` `#denimootd` |
 | GRWM | `#grwm` `#brunchoutfit` `#slipdress` `#saturdaymorning` |
-| Location | `#delhidiaries` `#mumbaidiaries` `#bangalorediaries` |
+| Location (city) | `#delhidiaries` `#mumbaidiaries` `#bangalorediaries` |
+| Location (neighborhood) | `#defencecolony` `#hauzkhaz` `#vasantvihar` `#greaterKailash` `#lodhinagar` — prefer over city tags for small accounts |
 | Community | `#indianblogger` `#indianfashion` `#desifashion` `#indianstyle` |
 | Broad anchors | `#ootd` `#fashionblogger` |
 
