@@ -1,40 +1,27 @@
 # Production anchor — GRWM Brunch
 # Validated 2026-05-18 v2. Form-fitting western template per flux_dev_rulebook.md
+# Converted to single anchor_prompt (2026-05-23) — Kontext handles all slide framing.
+
 face_ref: character/ananya/seeds_v2/face_ref_v2.png
 anchor_seed: 334521876
 anchor_body_lora_strength: 0.5
 
-shared_tail: >
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure,
+  soft natural curves not slim editorial, not plus-size, average Indian build,
   wearing fitted black satin slip midi dress with cowl neckline and thin adjustable straps,
+  fabric shows soft midsection,
   dress follows natural body curves with fabric showing soft midsection and full hips,
   smooth satin fabric with subtle sheen falling to mid-calf,
   dark hair loosely down with soft natural waves over right shoulder,
   delicate gold pendant necklace visible at collarbone, small gold stud earrings,
+  photorealistic full body editorial fashion photograph,
+  asymmetric three-quarter pose weight on right hip, left hand resting at side,
+  confident serene expression looking directly at camera,
   in upscale Delhi rooftop cafe terrace with rattan furniture and string lights,
   potted plants and urban skyline soft in background,
-  overcast bright diffused daylight, warm ambient cafe light, gentle shadow on one side of face
-
-anchors:
-  standing:
-    prompt: >
-      23-year-old South Asian woman with M-size hourglass figure,
-      soft natural curves not slim editorial, not plus-size, average Indian build,
-      fabric shows soft midsection,
-      photorealistic full body editorial fashion photograph,
-      asymmetric three-quarter pose weight on right hip, left hand resting at side,
-      confident serene expression looking directly at camera,
-      shot on Sony A7IV 50mm f/2.0 shallow depth of field sharp focus on face,
-      authentic skin texture with visible pores, natural skin imperfections,
-      no plasticky skin, asymmetric facial features, slightly off-center composition,
-      one side of face in soft shadow, candid moment not posed
-
-  closeup:
-    prompt: >
-      23-year-old South Asian woman with M-size hourglass figure, defined waist,
-      soft natural curves not slim editorial,
-      photorealistic Instagram editorial portrait,
-      tight chest-up framing showing cowl neckline and pendant necklace,
-      confident serene expression, direct gaze, soft closed-lip smile,
-      shot on Sony A7IV 50mm f/1.4 very shallow depth of field sharp focus on eyes,
-      authentic skin texture with visible pores, asymmetric facial features,
-      one side of face in soft shadow, candid not posed
+  overcast bright diffused daylight, warm ambient cafe light, gentle shadow on one side of face,
+  shot on Sony A7IV 50mm f/2.0 shallow depth of field sharp focus on face,
+  authentic skin texture with visible pores, natural skin imperfections,
+  no plasticky skin, asymmetric facial features, slightly off-center composition,
+  candid moment not posed

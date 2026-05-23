@@ -1,10 +1,14 @@
 # Production anchor — Kurta Day OOTD
 # Validated 2026-05-18 v5. Ethnic wear template per flux_dev_rulebook.md
+# Converted to single anchor_prompt (2026-05-23) — Kontext handles all slide framing.
+
 face_ref: character/ananya/seeds_v2/face_ref_v2.png
 anchor_seed: 334521876
 anchor_body_lora_strength: 0.5
 
-shared_tail: >
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure,
+  soft natural curves not slim editorial, not plus-size, average Indian build,
   wearing fitted mustard yellow chikankari kurta tailored close to body with subtle cinch at waist,
   white floral chikankari embroidery dense at neckline and yoke, scattered on sleeves,
   semi-sheer cotton fabric, kurta untucked straight hemline at mid-hip,
@@ -13,30 +17,13 @@ shared_tail: >
   loose end falling to right hip with visible fold lines and natural drape weight,
   dark hair in low loose bun with face-framing strands,
   small silver oxidized hoop earrings, thin silver bangles on left wrist,
+  photorealistic full body candid street photograph,
+  asymmetric pose weight shifted on right hip, arms relaxed at sides,
+  soft direct gaze and slight natural smile,
   in upscale South Delhi neighborhood, manicured trees lining wide clean pavement,
   restored colonial bungalow facades, freshly painted walls, Lodhi Colony aesthetic,
-  overcast diffused afternoon light, gentle shadow on one side of face
-
-anchors:
-  standing:
-    prompt: >
-      23-year-old South Asian woman with M-size hourglass figure,
-      soft natural curves not slim editorial, not plus-size, average Indian build,
-      photorealistic full body candid street photograph,
-      asymmetric pose weight shifted on right hip, arms relaxed at sides,
-      soft direct gaze and slight natural smile,
-      shot on Sony A7IV 50mm f/2.0 shallow depth of field sharp focus on face,
-      authentic skin texture with visible pores, natural skin imperfections,
-      no plasticky skin, asymmetric facial features, slightly off-center composition,
-      one side of face in soft shadow, candid moment not posed
-
-  closeup:
-    prompt: >
-      23-year-old South Asian woman with M-size hourglass figure, defined waist,
-      soft natural curves not slim editorial,
-      photorealistic Instagram candid portrait,
-      tight chest-up framing showing kurta neckline embroidery and dupatta on left shoulder,
-      soft direct gaze, slight natural smile, relaxed posture,
-      shot on Sony A7IV 50mm f/1.4 very shallow depth of field sharp focus on eyes,
-      authentic skin texture with visible pores, asymmetric facial features,
-      one side of face in soft shadow, candid not posed
+  overcast diffused afternoon light, gentle shadow on one side of face,
+  shot on Sony A7IV 50mm f/2.0 shallow depth of field sharp focus on face,
+  authentic skin texture with visible pores, natural skin imperfections,
+  no plasticky skin, asymmetric facial features, slightly off-center composition,
+  candid moment not posed

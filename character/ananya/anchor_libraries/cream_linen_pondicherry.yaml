@@ -1,43 +1,25 @@
-# Anchor library: cream linen midi dress, Pondicherry French quarter.
-# Editorial soft pastel aesthetic — overcast / soft-diffused light, bougainvillea
-# colonial walls, cobblestone streets. Multi-anchor: standing / sitting / closeup.
+# Anchor: cream linen midi dress, Pondicherry French quarter.
+# Editorial soft pastel aesthetic — overcast / soft-diffused light, bougainvillea colonial walls.
+# Converted to single anchor_prompt (2026-05-23) — Kontext handles all slide framing.
 
 face_ref: character/ananya/seeds_v2/face_ref_v2.png
 anchor_seed: 334521876
-anchor_body_lora_strength: 0.5
+anchor_body_lora_strength: 0.0
 
-shared_tail: >
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure,
+  soft natural curves not slim editorial, not plus-size, average Indian build,
   wearing fitted cream off-white sleeveless linen midi dress with thin spaghetti straps
-  and subtle ruched bodice and flowing midi skirt, dark hair in loose beachy waves over
-  right shoulder, tortoiseshell aviator sunglasses pushed up on head, simple gold thin
-  chain necklace, on Pondicherry French quarter sidewalk with weathered mustard-yellow
-  colonial walls covered in bougainvillea pink flowers and old cobblestones, soft diffused
-  overcast daylight cool tones with warm bougainvillea accent, photorealistic 50mm,
-  shot on Kodak Portra 400 film, visible skin pores and faint peach fuzz, subtle skin
-  imperfections, slight natural oil shine on T-zone, 35mm film grain, photographic
-  grain noise, candid unretouched amateur photography style, raw unedited look,
+  and subtle ruched bodice and flowing midi skirt,
+  dark hair in loose beachy waves over right shoulder,
+  tortoiseshell aviator sunglasses pushed up on head, simple gold thin chain necklace,
+  photorealistic full body editorial fashion photo,
+  standing in neutral three-quarter pose facing camera with weight shifted on right leg
+  and arms relaxed at sides,
+  on Pondicherry French quarter sidewalk with weathered mustard-yellow colonial walls
+  covered in bougainvillea pink flowers and old cobblestones,
+  soft diffused overcast daylight cool tones with warm bougainvillea accent,
+  shot on Kodak Portra 400 50mm, visible skin pores and faint peach fuzz,
+  subtle skin imperfections, slight natural oil shine on T-zone,
+  35mm film grain, candid unretouched amateur photography style, raw unedited look,
   no retouching
-
-anchors:
-  standing:
-    prompt: >
-      23-year-old South Asian woman with M-size hourglass figure,
-      soft natural curves not slim editorial, not plus-size, average Indian build,
-      photorealistic full body editorial fashion photo
-      of a 23-year-old standing in neutral three-quarter pose facing camera with weight
-      shifted on right leg and arms relaxed at sides,
-
-  sitting:
-    prompt: >
-      23-year-old South Asian woman with M-size hourglass figure,
-      soft natural curves not slim editorial, not plus-size, average Indian build,
-      photorealistic full body editorial fashion photo
-      of a 23-year-old seated relaxed on weathered stone step in side angle with one
-      hand resting on knee and other hand on step,
-
-  closeup:
-    prompt: >
-      23-year-old South Asian woman with M-size hourglass figure, defined waist,
-      soft natural curves not slim editorial,
-      photorealistic Instagram editorial waist-up portrait facing
-      camera with slight serene smile and natural relaxed posture,

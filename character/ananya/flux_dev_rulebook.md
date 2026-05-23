@@ -293,12 +293,29 @@ authentic skin texture with visible pores, asymmetric features, candid snapshot
 ### Workflow config
 - Model: `flux1-dev-Q4_K_S.gguf`
 - Realism LoRA: `flux-xlabs-realism.safetensors` strength **0.5** (node 15)
-- Body LoRA: `Body FIX FLUX.safetensors` strength **0.7** for bodycon/fitted dresses (node 17)
-  - Set via YAML `anchor_body_lora_strength: 0.7`
-  - Use `0.0` (disabled) if dress is loose/flowy — LoRA amplifies fabric volume
+- Body LoRA: `Body FIX FLUX.safetensors` strength **0.5 universal** (node 17)
+  - Set via YAML `anchor_body_lora_strength: 0.5` — standard for all outfits
+  - Exception `0.0`: headshots (no body in frame) and flowy/linen dresses (LoRA amplifies fabric volume)
 - BG lock: **automatically appended** to every Kontext slide via `_inject_flux_kontext()`:
   `, same background, same scene, unchanged environment`
   — no per-file changes needed, applies universally
+
+### Anchor YAML rule — ALWAYS single anchor
+**NEVER use `anchors:` dict (multi-anchor mode).** Multi-anchor = multiple t2i generations = outfit drift between standing/closeup images.
+Always use single `anchor_prompt:` field. Kontext derives all slides (including closeup framing) from the one anchor image.
+
+```yaml
+# CORRECT
+anchor_prompt: >
+  [full prompt]
+
+# WRONG — causes outfit inconsistency across slides
+anchors:
+  standing:
+    prompt: ...
+  closeup:
+    prompt: ...
+```
 
 ### Anchor prompt structure
 ```
@@ -324,11 +341,13 @@ Bodyfix_test failed because slides said "rooftop + golden hour" while anchor was
 v1 and red dress carousel passed because slides matched anchor scene tokens.
 
 ### Per-outfit body LoRA strength
+**Universal standard: `0.5` for all outfits.**
+Exceptions:
 | Outfit type | `anchor_body_lora_strength` |
 |---|---|
-| Bodycon midi / fitted dress | `0.7` |
-| Midriff / crop top | `0.4` |
-| Loose / flowy / ethnic | `0.0` |
+| All western / ethnic / fitted | `0.5` ← standard |
+| Headshot (no body in frame) | `0.0` |
+| Flowy / loose linen / unstructured | `0.0` |
 
 ### Validated results
 - `carousel_black_oneshoulder_ruched_v1` — no body LoRA (pre-recipe), BG consistent, natural slim

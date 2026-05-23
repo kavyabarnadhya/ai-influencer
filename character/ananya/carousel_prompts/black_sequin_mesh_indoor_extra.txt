@@ -1,0 +1,13 @@
+# Black sequin mesh — 2 extra slides from same anchor
+# Run:
+#   python scripts/faceswap_carousel.py \
+#     --prompts character/ananya/carousel_prompts/black_sequin_mesh_indoor_extra.txt \
+#     --name black_sequin_mesh_v1_extra \
+#     --anchor-config character/ananya/anchor_libraries/black_sequin_mesh_indoor.yaml \
+#     --flux-dev --kontext
+
+# slide_04: hands on both hips, confident fashion stance
+anchor=default | same woman in same black sequin mesh long-sleeve mini dress, full body with both hands on hips in confident fashion stance, weight evenly distributed, direct gaze toward camera with slight smirk, two-tone cream and chartreuse wall behind, keeping exact same scoop neckline, sheer mesh sleeves, sequin fabric shimmer, and mini hemline
+
+# slide_05: right hand pushing straight hair off shoulder, slight look away
+anchor=default | same woman in same black sequin mesh long-sleeve mini dress, full body three-quarter pose with right hand raised pushing straight black hair off left shoulder, gaze directed slightly off camera with relaxed expression, same two-tone cream and chartreuse wall background, keeping exact same scoop neckline, sheer mesh sleeves, sequin fabric, and mini hemline

@@ -1,0 +1,25 @@
+# Anchor: black sequin mesh long-sleeve mini dress, two-tone indoor wall.
+# One-piece: sequin bodycon mini with built-in sheer mesh long sleeves.
+# Setting: cream/white left half + chartreuse yellow-green right half of wall.
+# Hair: long straight middle part — NOT waves.
+# Light: flat soft indoor ambient, no directional shadows.
+# Single anchor — Kontext derives all slides from this image.
+
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
+
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure,
+  soft natural curves not slim editorial, not plus-size, average Indian build,
+  wearing black sequin sparkle bodycon mini dress with built-in sheer mesh long sleeves,
+  scoop neckline, form-fitting sequin bodice and skirt with hemline at mid-thigh and small
+  side slit on right leg, sheer black mesh arms from shoulder to wrist,
+  long straight black hair loose with middle part falling past shoulders,
+  small gold hoop earrings,
+  standing facing camera with weight shifted on right leg and arms relaxed at sides,
+  against two-tone indoor wall with cream white section on left and bright chartreuse
+  yellow-green section on right, flat soft indoor ambient light evenly lit no shadows,
+  shot on Sony A7IV 50mm,
+  authentic skin texture with visible pores, natural skin imperfections, no plasticky skin,
+  asymmetric facial features, slightly off-center composition, candid moment not posed
