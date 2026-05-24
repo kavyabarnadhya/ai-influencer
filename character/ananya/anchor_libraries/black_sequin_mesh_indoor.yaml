@@ -1,6 +1,7 @@
 # Anchor: black sequin mesh long-sleeve mini dress, two-tone indoor wall.
 # One-piece: sequin bodycon mini with built-in sheer mesh long sleeves.
 # Setting: cream/white left half + chartreuse yellow-green right half of wall.
+# Used with: --flux-dev --kontext flags (MANDATORY)
 # Hair: long straight middle part — NOT waves.
 # Light: flat soft indoor ambient, no directional shadows.
 # Single anchor — Kontext derives all slides from this image.

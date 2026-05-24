@@ -359,6 +359,39 @@ Exceptions:
 - `carousel_black_oneshoulder_ruched_v1` — no body LoRA (pre-recipe), BG consistent, natural slim
 - `carousel_black_oneshoulder_bglock_test` — Body FIX 0.7 + BG lock, curvy + consistent ✓
 - `carousel_red_oneshoulder_ruched_v1` — full 6-slide validation, all 3 targets met ✓ **(gold standard)**
+- `carousel_pink_corset_cafe_v3` — skin lock + Kontext + 6 distinct poses validated ✓ (2026-05-24)
+
+---
+
+## RULE 16: Kontext Carousel — Slide Prompt Rules & Partial Rerun Procedure
+
+### Standard 6-slide order
+```
+slide_00: full body, strong pose (hand on hip / walking) — scroll-stop hook
+slide_01: chest-up portrait closeup — neckline/face detail
+slide_02: full body, dynamic variant (walking, leaning, hair push)
+slide_03: full body, different angle (three-quarter TOWARD camera)
+slide_04: full body, relaxed candid (looking off-camera, arms loose)
+slide_05: chest-up portrait closeup — closing slide (different expression from slide_01)
+```
+
+### FORBIDDEN slide prompt patterns
+| Pattern | Why | Use instead |
+|---------|-----|-------------|
+| `body turned away from camera` / `back to camera` | Full 180° flip → Kontext invents new BG | Three-quarter toward camera, head slightly turned |
+| `hand touching [tie/lace/button/zipper/strings]` | Kontext reads as opening/untying garment | `hand to cheek`, `fingertips at collarbone`, `hand raised near shoulder` |
+| `sitting` in a standing carousel | Structural pose change — BG and outfit drift | Separate carousel entirely |
+| `change to waist-up portrait framing` | Kontext stays full-body | `change to chest-up portrait framing showing face neck shoulders and neckline only` |
+
+### Partial rerun procedure (replacing specific slides)
+1. Create `_[name]_fix.txt` with only the slides to regenerate
+2. Run with `--name [carousel_name]_fix --flux-dev --kontext`
+3. Output will be named `slide_00`, `slide_01`... regardless of which slides they replace
+4. **Map explicitly:** identify target slide number in v3 folder BEFORE copying
+   - fix/slide_00 → v3/slide_NN (NN = the slide you want to replace)
+   - fix/slide_01 → v3/slide_MM
+5. Copy with explicit target filename: `Copy-Item fix/slide_00 v3/slide_03_cand_0.png`
+6. Verify by reading the destination file after copy
 
 ---
 

@@ -1,6 +1,5 @@
 # SINGLE-ANCHOR OOTD — off-shoulder crop top + denim midi skirt, Bandra cafe dusk.
-# All 6 slides img2img off this ONE anchor. Accessories rendered once → consistent.
-#
+# Used with: --flux-dev --kontext flags (MANDATORY)
 # Schema: single anchor_prompt with everything baked in (body + outfit + accessories
 # + scene + lighting + style). Slide prompts only describe pose + framing variations.
 #
