@@ -125,6 +125,17 @@ def _inject_faceswap(wf: dict, face_ref_name: str, target_name: str, propagate_c
     return inject_workflow_values(wf, overrides, propagate_cache=propagate_cache)
 
 
+def _inject_hand_detail(wf: dict, input_image_name: str, seed: int, propagate_cache: bool = True) -> dict:
+    """
+    Inject input image + seed into FLUX hand detailer workflow (SDXL inpaint on hand bbox).
+    """
+    overrides = {
+        "_claude_inject_input_image": {"inputs.image": input_image_name},
+        "_claude_inject_seed": {"inputs.seed": seed}
+    }
+    return inject_workflow_values(wf, overrides, propagate_cache=propagate_cache)
+
+
 def _run_and_save(client: ComfyUIClient, wf: dict, out_path: Path,
                   timeout: int = 300) -> Path:
     prompt_id = client.submit_workflow(wf)
@@ -496,6 +507,7 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
         return
 
     faceswap_template = load_workflow(str(ROOT / "workflows" / "faceswap_reactor.json"))
+    hand_detail_template = load_workflow(str(ROOT / "workflows" / "flux_hand_detail.json"))
 
     failed = []
     for idx, slide in enumerate(slides):
@@ -567,6 +579,21 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                     propagate_cache=False
                 )
                 _run_and_save(client, wf3, final_path, timeout=180)
+
+                # Stage 3.5: Hand realism — SDXL inpaint on YOLO-detected hand bboxes.
+                # Fixes FLUX 6-finger / deformed-hand artefacts. Failures degrade gracefully
+                # (ship slide with original FLUX hands rather than abort).
+                try:
+                    uploaded_for_hands = client.upload_image(str(final_path))
+                    wf_hands = _inject_hand_detail(
+                        hand_detail_template,
+                        uploaded_for_hands,
+                        seed=slide_seed,
+                        propagate_cache=False,
+                    )
+                    _run_and_save(client, wf_hands, final_path, timeout=180)
+                except Exception as e:
+                    console.print(f"  [yellow]hand_detail failed: {e} — shipping uncorrected hands[/yellow]")
 
                 # Skin tone lock: shift body skin to face_ref target (face region untouched).
                 # If it fails (missing model, segmentation error, etc.), ship the uncorrected

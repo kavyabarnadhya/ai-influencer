@@ -1,0 +1,89 @@
+{
+  "1": {
+    "_meta": {"title": "_claude_inject_checkpoint"},
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
+    }
+  },
+  "2": {
+    "_meta": {"title": "_claude_inject_input_image"},
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "input.png",
+      "upload": "image"
+    }
+  },
+  "3": {
+    "_meta": {"title": "Hand positive prompt"},
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "natural realistic human hand, five fingers, anatomically correct fingers, detailed skin texture on hand, soft natural lighting",
+      "clip": ["1", 1]
+    }
+  },
+  "4": {
+    "_meta": {"title": "Hand negative prompt"},
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "extra fingers, six fingers, seven fingers, missing fingers, deformed hand, mutated hand, fused fingers, extra digits, malformed limbs, bad anatomy",
+      "clip": ["1", 1]
+    }
+  },
+  "5": {
+    "_meta": {"title": "Hand bbox detector"},
+    "class_type": "UltralyticsDetectorProvider",
+    "inputs": {
+      "model_name": "bbox/hand_yolov8s.pt"
+    }
+  },
+  "6": {
+    "_meta": {"title": "_claude_inject_seed"},
+    "class_type": "FaceDetailer",
+    "inputs": {
+      "image": ["2", 0],
+      "model": ["1", 0],
+      "clip": ["1", 1],
+      "vae": ["1", 2],
+      "positive": ["3", 0],
+      "negative": ["4", 0],
+      "bbox_detector": ["5", 0],
+      "guide_size": 384,
+      "guide_size_for": true,
+      "max_size": 1024,
+      "seed": 0,
+      "steps": 20,
+      "cfg": 7.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 0.55,
+      "feather": 5,
+      "noise_mask": true,
+      "force_inpaint": true,
+      "bbox_threshold": 0.5,
+      "bbox_dilation": 10,
+      "bbox_crop_factor": 3.0,
+      "sam_detection_hint": "center-1",
+      "sam_dilation": 0,
+      "sam_threshold": 0.93,
+      "sam_bbox_expansion": 0,
+      "sam_mask_hint_threshold": 0.7,
+      "sam_mask_hint_use_negative": "False",
+      "drop_size": 10,
+      "wildcard": "",
+      "cycle": 1,
+      "inpaint_model": false,
+      "noise_mask_feather": 20,
+      "tiled_encode": false,
+      "tiled_decode": false
+    }
+  },
+  "7": {
+    "_meta": {"title": "Save Image"},
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["6", 0],
+      "filename_prefix": "hand_detail"
+    }
+  }
+}

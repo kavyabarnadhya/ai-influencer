@@ -1,6 +1,6 @@
 # Ananya Carousel Workflow — Canonical Reference
 
-**Last updated: 2026-05-24 — initial canonical doc consolidating cookbook + rulebook procedural rules**
+**Last updated: 2026-05-24 — added hand realism Stage 3.5 (flux_hand_detail.json) + "walking from static anchor" + "hair-push while holding object" to forbidden patterns (grey tank indoor stress test)**
 
 This is the **single source of truth** for generating any Ananya OOTD/lifestyle carousel. Read this end-to-end before starting a new carousel. CLAUDE.md contains the short pre-flight gate; this doc contains the full reference and worked examples.
 
@@ -34,7 +34,8 @@ These never change across any Ananya carousel. They are the foundation of cross-
 | Body seed | `334521876` | `anchor_seed:` in anchor YAML | Validated M-size hourglass. Derives skin tone naturally with `South Asian woman` token. |
 | Body LoRA strength | `0.5` universal | `anchor_body_lora_strength:` in anchor YAML | Exceptions: `0.0` for headshot (no body) or flowy/loose linen (LoRA amplifies fabric volume). |
 | Realism LoRA | `0.5` baked into workflow node 15 | `workflows/flux_dev.json` | Do not change. |
-| Skin tone post-process | Auto-applied | `scripts/skin_color_match.py` | Runs after ReActor faceswap, before resize. Locks body skin to face_ref cheek LAB. No prompt action needed. |
+| Hand realism post-process | Auto-applied | `workflows/flux_hand_detail.json` | Runs as Stage 3.5 after ReActor — SDXL FaceDetailer inpaint on `hand_yolov8s.pt` bbox. Fixes 6-finger / deformed-hand artefacts. Denoise 0.55, dilation 10px, feather 5px. ~10-15s/slide. |
+| Skin tone post-process | Auto-applied | `scripts/skin_color_match.py` | Runs after hand detail. Locks body skin to face_ref cheek LAB. No prompt action needed. |
 
 ### Hard NEVER rules
 
@@ -150,6 +151,8 @@ The benchmark order. Every new carousel should follow this unless there's a docu
 | `hand touching ribbon tie` / `fingers on lace` / `hand on button/zipper/strings` | Kontext reads as untying/opening the garment | `hand to cheek with fingers near jawline`, `fingertips lightly at collarbone`, `hand raised near shoulder` |
 | `sitting` in a standing carousel | Structural pose change → BG + outfit drift; Kontext fights its own preservation logic | Separate carousel entirely; sitting = standalone post |
 | `change to waist-up portrait framing` | Kontext ignores waist-up cue, stays full-body | `change to chest-up portrait framing showing face neck shoulders and neckline only` |
+| `mid-stride walking toward camera` / any motion verb from a static anchor | Kontext preserves anchor composition — motion instruction silently ignored → slide becomes near-duplicate of anchor pose | Use static-friendly action: `stepping forward with one foot ahead`, `cup raised to lips taking a sip`, `head tilted to one side looking off-camera` |
+| `hand raised through/pushing hair` combined with `holding object in other hand` | Three-hand artefact — Kontext renders the raised arm but also keeps an "expected" hand at the side, producing extra limb | Pick one: either hair-push (both hands free from objects) OR holding object (no hair-push). If both poses needed, split across two slides. |
 
 ### Concrete before/after examples
 

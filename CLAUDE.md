@@ -151,7 +151,8 @@ Before copying any fix output into the source folder: **re-read the source carou
 
 ### Identity & post-process locks (auto-applied — do not override)
 
-- **Skin tone**: `scripts/skin_color_match.py` runs after ReActor faceswap. Locks body skin to face_ref cheek LAB tone. NEVER add skin tone tokens to prompts.
+- **Hand realism**: `workflows/flux_hand_detail.json` runs as Stage 3.5 after ReActor — SDXL inpaint on YOLO-detected hand bboxes (`hand_yolov8s.pt`). Fixes FLUX 6-finger / deformed-hand artefacts. Adds ~10-15s/slide. Degrades gracefully on failure (ships original hands).
+- **Skin tone**: `scripts/skin_color_match.py` runs after hand detail. Locks body skin to face_ref cheek LAB tone. NEVER add skin tone tokens to prompts.
 - **NEVER re-prompt anatomy**: face shape, eye color, hair color, ethnicity, skin tone. Seed + ReActor handle these.
 
 Full procedural reference + worked examples + per-outfit-type rules + caption workflow + maintenance rules: `character/ananya/carousel_workflow.md`.
