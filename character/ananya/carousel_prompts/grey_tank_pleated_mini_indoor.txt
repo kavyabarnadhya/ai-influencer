@@ -1,0 +1,24 @@
+# Carousel: charcoal grey ribbed tank + black pleated mini skirt, indoor industrial cafe
+# Anchor YAML: character/ananya/anchor_libraries/grey_tank_pleated_mini_indoor.yaml
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/grey_tank_pleated_mini_indoor.yaml --prompts character/ananya/carousel_prompts/grey_tank_pleated_mini_indoor.txt --name grey_tank_indoor_v3 --flux-dev --kontext
+#
+# FORMAT: one line per slide — anchor=default | [full prompt on one line]
+# BG lock auto-appended in code
+
+# slide_00: full body scroll-stop hook — hand on hip, holding cup, confident direct gaze
+anchor=default | same woman in same charcoal grey ribbed scoop-neck tank and black pleated mini skirt in indoor industrial cafe, right hand holding small white espresso cup at chest level, left hand on hip, weight shifted hard onto left hip, confident soft smile looking directly at camera, exposed grey concrete wall behind and wooden door frame on right, keeping exact same fitted ribbed scoop-neck tank with thin spaghetti straps, black knife-pleated mini skirt hemline at mid-thigh, brown leather crossbody bag with chain strap, thin pendant chain, and long dark side-parted hair
+
+# slide_01: chest-up closeup, direct gaze, neckline + bag detail
+anchor=default | change to chest-up portrait framing showing face neck shoulders and neckline only, same woman in same charcoal grey ribbed scoop-neck tank holding small white espresso cup near collarbone, direct camera gaze with warm soft smile, exposed concrete wall in soft bokeh background, keeping exact same fitted ribbed scoop-neck tank with thin spaghetti straps, thin pendant chain at neckline, and long dark side-parted hair
+
+# slide_02: full body, head tilted off-camera with cup at chest — static-friendly variant (NO motion verbs, see workflow doc §8)
+anchor=default | same woman in same charcoal grey ribbed scoop-neck tank and black pleated mini skirt standing relaxed with weight shifted on right hip, right hand holding small white espresso cup at chest level, left arm relaxed at side, head tilted slightly to the right looking off-camera with soft candid smile, hair falling naturally over right shoulder, exposed grey concrete wall behind and wooden door frame on right, keeping exact same fitted ribbed tank, knife-pleated mini skirt, brown crossbody bag with chain strap, thin pendant chain, and long dark side-parted hair
+
+# slide_03: full body three-quarter angle facing camera, leaning against wooden door, hair push
+anchor=default | same woman in same charcoal grey ribbed scoop-neck tank and black pleated mini skirt leaning back lightly against warm wooden cafe door frame, body three-quarter angle facing slightly right toward camera, right hand raised pushing wavy hair back off face, left hand relaxed holding espresso cup at hip level, looking at camera with relaxed candid expression, small round wooden cafe table on left with tissue dispenser, exposed concrete walls behind, keeping exact same fitted ribbed scoop-neck tank, knife-pleated mini skirt, brown crossbody bag, thin pendant chain, and long dark side-parted hair
+
+# slide_04: full body relaxed candid, looking down at cup with soft smile
+anchor=default | same woman in same charcoal grey ribbed scoop-neck tank and black pleated mini skirt standing relaxed in indoor cafe, both hands cradling small white espresso cup at chest level, head tilted slightly looking down at the cup with candid soft smile, soft natural pose weight on right leg, small wooden cafe table on left and wooden door frame on right, exposed grey concrete walls behind, keeping exact same fitted ribbed tank, knife-pleated mini skirt, brown crossbody bag with chain strap, and long dark side-parted hair
+
+# slide_05: chest-up closeup, hand to cheek, warm smile — closing slide
+anchor=default | change to chest-up portrait framing, same woman in same charcoal grey ribbed scoop-neck tank, chin slightly lowered looking up at camera with confident warm smile, right hand raised lightly to cheek with fingers near jawline, left hand out of frame, soft indoor diffused light, exposed concrete wall in soft bokeh behind, keeping exact same fitted ribbed scoop-neck tank with thin spaghetti straps, thin pendant chain at neckline, and long dark side-parted hair
