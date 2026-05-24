@@ -242,30 +242,32 @@ def _find_recent_images(output_dir: Path, character: str, subdir_name: str, limi
     """
     Helper to find recent images using date-based traversal.
     Optimization: Traverse date-based directories (YYYY-MM-DD) in reverse order.
-    This avoids expensive rglob over thousands of images in a flat structure.
+    Uses os.scandir for faster discovery without Path object overhead.
     """
     recent_images = []
+    prefix = f"{character}_"
     try:
         # Match YYYY-MM-DD pattern to be safe, though all dirs are currently dates
-        date_dirs = sorted(
-            [d for d in output_dir.iterdir() if d.is_dir() and len(d.name) == 10],
-            key=lambda d: d.name,
-            reverse=True
-        )
-        for date_dir in date_dirs:
-            char_dir = date_dir / subdir_name
+        with os.scandir(output_dir) as it:
+            date_dirs = sorted(
+                [entry.name for entry in it if entry.is_dir() and len(entry.name) == 10],
+                reverse=True
+            )
+
+        for dname in date_dirs:
+            char_dir = output_dir / dname / subdir_name
             if char_dir.exists() and char_dir.is_dir():
                 # Find images in this specific directory
                 # Optimization: Sort by name (descending) instead of mtime.
-                # Filenames {character}_{today}_{timestamp}_{seed}.png are chronologically sortable.
-                # This avoids expensive stat() calls for every image, approx 10x faster.
-                day_images = sorted(
-                    char_dir.glob(f"{character}_*.png"),
-                    reverse=True
-                )
+                # Use scandir to avoid Path object overhead in hot discovery loops.
+                with os.scandir(char_dir) as it:
+                    day_images = sorted(
+                        [entry.name for entry in it if entry.is_file() and entry.name.startswith(prefix) and entry.name.endswith(".png")],
+                        reverse=True
+                    )
                 # Optimization: Only extend by what's needed to reach the limit
                 needed = limit - len(recent_images)
-                recent_images.extend(day_images[:needed])
+                recent_images.extend([char_dir / name for name in day_images[:needed]])
                 if len(recent_images) >= limit:
                     break
     except OSError:
@@ -346,7 +348,16 @@ def review_carousel(carousel_path: str) -> str:
     if not folder.exists():
         return f"ERROR: Folder not found: {folder}"
 
-    slides = sorted(folder.glob("slide_*.png"), key=lambda p: p.name)
+    # Optimization: Use scandir to find slide files without Path object overhead
+    try:
+        with os.scandir(folder) as it:
+            slide_names = sorted(
+                [entry.name for entry in it if entry.is_file() and entry.name.startswith("slide_") and entry.name.endswith(".png")]
+            )
+        slides = [folder / name for name in slide_names]
+    except OSError:
+        slides = []
+
     if not slides:
         return f"ERROR: No slide_*.png files found in {folder}"
 
@@ -501,27 +512,27 @@ def draft_caption(carousel_path: str, platform: str = "instagram") -> str:
 def _find_all_carousels(output_dir: Path, subdir_name: str) -> list[Path]:
     """
     Helper to find all carousel directories using date-based traversal.
-    Optimization: Traverse date-based directories in reverse order to avoid rglob.
+    Optimization: Traverse date-based directories in reverse order using os.scandir.
     """
     carousel_dirs = []
     try:
-        date_dirs = sorted(
-            [d for d in output_dir.iterdir() if d.is_dir() and len(d.name) == 10],
-            key=lambda d: d.name,
-            reverse=True
-        )
-        for date_dir in date_dirs:
-            char_dir = date_dir / subdir_name
+        with os.scandir(output_dir) as it:
+            date_dirs = sorted(
+                [entry.name for entry in it if entry.is_dir() and len(entry.name) == 10],
+                reverse=True
+            )
+
+        for dname in date_dirs:
+            char_dir = output_dir / dname / subdir_name
             if char_dir.exists() and char_dir.is_dir():
                 # Optimization: Sort by name (descending) instead of mtime.
-                # Carousel folders are named carousel_{name} and are generally
-                # created in order. While less strict than image timestamps,
-                # name sort avoids expensive stat() calls in large directories.
-                day_carousels = sorted(
-                    [p for p in char_dir.glob("carousel_*") if p.is_dir()],
-                    reverse=True
-                )
-                carousel_dirs.extend(day_carousels)
+                # Use scandir to avoid Path object overhead in large directories.
+                with os.scandir(char_dir) as it:
+                    day_carousels = sorted(
+                        [entry.name for entry in it if entry.is_dir() and entry.name.startswith("carousel_")],
+                        reverse=True
+                    )
+                carousel_dirs.extend([char_dir / name for name in day_carousels])
     except OSError:
         pass
     return carousel_dirs
@@ -550,8 +561,12 @@ def content_readiness_report(character: str = "ananya") -> str:
 
     rows = []
     for d in carousel_dirs:
-        slides = list(d.glob("slide_*.png"))
-        slide_count = len(slides)
+        # Optimization: Use scandir to count slides without creating Path objects
+        try:
+            with os.scandir(d) as it:
+                slide_count = sum(1 for entry in it if entry.is_file() and entry.name.startswith("slide_") and entry.name.endswith(".png"))
+        except OSError:
+            slide_count = 0
 
         review_status = "not reviewed"
         carousel_pass = None
