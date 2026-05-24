@@ -21,10 +21,24 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+import yaml
 
-FACE_MODEL = Path(r"C:\Users\barna\Documents\ComfyUI\models\ultralytics\bbox\face_yolov8m.pt")
-SEG_MODEL = Path(r"C:\Users\barna\Documents\ComfyUI\models\ultralytics\segm\yolov8n-seg.pt")
 DEFAULT_FACE_REF = Path("character/ananya/seeds_v2/face_ref_v2.png")
+_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.yaml"
+
+
+@lru_cache(maxsize=1)
+def _load_config() -> dict:
+    with open(_CONFIG_PATH, "r", encoding="utf-8") as fh:
+        return yaml.safe_load(fh)
+
+
+def _model_path(key: str) -> Path:
+    cfg = _load_config()
+    path = cfg.get("models", {}).get(key)
+    if not path:
+        raise RuntimeError(f"config.yaml missing models.{key}")
+    return Path(path)
 
 # HSV skin range — tuned for South Asian M-tone (seed 334521876)
 # Hue: 0-25 + 165-180 (warm skin tones, excludes pink clothing artefacts)
@@ -53,13 +67,19 @@ _MIN_SKIN_PIXELS = 200
 @lru_cache(maxsize=1)
 def _load_face_model():
     from ultralytics import YOLO
-    return YOLO(str(FACE_MODEL))
+    return YOLO(str(_model_path("yolo_face_bbox")))
 
 
 @lru_cache(maxsize=1)
 def _load_seg_model():
     from ultralytics import YOLO
-    return YOLO(str(SEG_MODEL))
+    return YOLO(str(_model_path("yolo_person_seg")))
+
+
+@lru_cache(maxsize=8)
+def _sample_face_skin_lab_cached(face_ref_str: str, mtime_ns: int) -> tuple[float, float, float]:
+    """LRU-cached face_ref LAB sample keyed on (path, mtime). mtime_ns invalidates cache if face_ref changes."""
+    return _sample_face_skin_lab(Path(face_ref_str))
 
 
 def _bgr_to_lab(bgr: np.ndarray) -> np.ndarray:
@@ -232,7 +252,12 @@ def match_body_skin_to_face_ref(
     if img_bgr is None:
         raise FileNotFoundError(f"Slide not found: {slide_path}")
 
-    target_lab = _sample_face_skin_lab(face_ref_path)
+    # Cache target LAB by (path, mtime) — avoids re-sampling face_ref on every slide
+    face_ref_resolved = face_ref_path.resolve()
+    target_lab = _sample_face_skin_lab_cached(
+        str(face_ref_resolved),
+        face_ref_resolved.stat().st_mtime_ns,
+    )
 
     face_bbox = _detect_face_bbox(img_bgr)
     pmask = _person_mask(img_bgr)

@@ -568,8 +568,13 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                 )
                 _run_and_save(client, wf3, final_path, timeout=180)
 
-                # Skin tone lock: shift body skin to face_ref target (face region untouched)
-                match_body_skin_to_face_ref(final_path, face_ref_path, final_path)
+                # Skin tone lock: shift body skin to face_ref target (face region untouched).
+                # If it fails (missing model, segmentation error, etc.), ship the uncorrected
+                # slide rather than abort — uncorrected face/body is still better than no slide.
+                try:
+                    match_body_skin_to_face_ref(final_path, face_ref_path, final_path)
+                except Exception as e:
+                    console.print(f"  [yellow]skin_color_match failed: {e} — shipping uncorrected slide[/yellow]")
 
                 # Resize to 1080×1920 (9:16 — Instagram Reels + carousel native res)
                 # Original preserved in _intermediate/ base file before overwrite
