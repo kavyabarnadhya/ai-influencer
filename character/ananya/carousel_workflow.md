@@ -34,7 +34,7 @@ These never change across any Ananya carousel. They are the foundation of cross-
 | Body seed | `334521876` | `anchor_seed:` in anchor YAML | Validated M-size hourglass. Derives skin tone naturally with `South Asian woman` token. |
 | Body LoRA strength | `0.5` universal | `anchor_body_lora_strength:` in anchor YAML | Exceptions: `0.0` for headshot (no body) or flowy/loose linen (LoRA amplifies fabric volume). |
 | Realism LoRA | `0.5` baked into workflow node 15 | `workflows/flux_dev.json` | Do not change. |
-| Hand realism post-process | Auto-applied | `workflows/flux_hand_detail.json` | Runs as Stage 3.5 after ReActor — SDXL FaceDetailer inpaint on `hand_yolov8s.pt` bbox. Fixes 6-finger / deformed-hand artefacts. Denoise 0.55, dilation 10px, feather 5px. ~10-15s/slide. |
+| Hand realism post-process | Auto-applied | `workflows/flux_hand_detail.json` | Runs as Stage 3.5 after ReActor — SDXL FaceDetailer inpaint on `hand_yolov8s.pt` bbox using Juggernaut XL. Fixes FLUX 6-finger / deformed-hand artefacts (especially cup-grip poses). Sweet-spot tuned: denoise 0.50, cycle 1, bbox_dilation 15, feather 8. Higher denoise (0.65+) makes hands look heavy/uncanny. ~10-15s/slide. ORDER: must run BEFORE skin lock — hand inpaint may shift hand skin tone; subsequent skin lock unifies whole body to face_ref. |
 | Skin tone post-process | Auto-applied | `scripts/skin_color_match.py` | Runs after hand detail. Locks body skin to face_ref cheek LAB. No prompt action needed. |
 
 ### Hard NEVER rules
