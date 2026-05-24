@@ -104,6 +104,58 @@ All paths, model filenames, GPU flags, and generation defaults live here. Script
 
 Violations cause "double-baking" — the LoRA tries to overlay identity descriptions onto an already-encoded face, producing plastic or distorted results. The base_prompt.txt for each character contains the full identity description used only during pre-LoRA bootstrap.
 
+## Carousel Pre-Flight (MANDATORY)
+
+**Before running ANY Ananya carousel, complete this checklist. Skipping any step has produced documented failures.**
+
+### 5-step pre-flight ritual
+
+1. **Read `character/ananya/carousel_workflow.md` in full.** Not skim — read. The canonical procedural reference. CLAUDE.md is the gate; workflow doc is the full reference with worked examples.
+2. **Confirm anchor YAML has identity locks:**
+   - `face_ref: character/ananya/seeds_v2/face_ref_v2.png`
+   - `anchor_seed: 334521876`
+   - `anchor_body_lora_strength: 0.5` (or `0.0` for headshot / flowy linen)
+3. **Confirm command includes `--flux-dev --kontext`** flags. Without these, FLUX img2img locks anchor composition → all 6 slides become the same pose.
+4. **Always run `--anchor-only` first.** Wait for user approval. Then run full carousel. Never skip the gate.
+5. **Read slide prompt file end-to-end** and verify no forbidden patterns (table below) appear.
+
+### Mandatory run command templates
+
+**Stage A — anchor only (always first):**
+```powershell
+python scripts/faceswap_carousel.py `
+  --anchor-config character/ananya/anchor_libraries/<name>.yaml `
+  --name <name>_v1 --flux-dev --kontext --anchor-only
+```
+
+**Stage B — full carousel (only after user approves anchor):**
+```powershell
+python scripts/faceswap_carousel.py `
+  --anchor-config character/ananya/anchor_libraries/<name>.yaml `
+  --prompts character/ananya/carousel_prompts/<name>.txt `
+  --name <name>_v1 --flux-dev --kontext
+```
+
+### Forbidden Kontext slide prompt patterns
+
+| Pattern | Replacement |
+|---|---|
+| `body turned away from camera` / `back to camera` | `three-quarter angle facing slightly left/right toward camera, head turned over shoulder` |
+| `hand touching ribbon tie / lace / button / zipper / strings` | `hand to cheek`, `fingertips at collarbone`, `hand raised near shoulder` |
+| `sitting` in a standing carousel | Separate carousel entirely |
+| `change to waist-up portrait framing` | `change to chest-up portrait framing showing face neck shoulders and neckline only` |
+
+### Partial rerun rule
+
+Before copying any fix output into the source folder: **re-read the source carousel folder** to confirm exact slide indices that need replacement. Write the mapping as a 2-column table (fix output → target filename) BEFORE running copy. Verify each destination by reading the file after copy.
+
+### Identity & post-process locks (auto-applied — do not override)
+
+- **Skin tone**: `scripts/skin_color_match.py` runs after ReActor faceswap. Locks body skin to face_ref cheek LAB tone. NEVER add skin tone tokens to prompts.
+- **NEVER re-prompt anatomy**: face shape, eye color, hair color, ethnicity, skin tone. Seed + ReActor handle these.
+
+Full procedural reference + worked examples + per-outfit-type rules + caption workflow + maintenance rules: `character/ananya/carousel_workflow.md`.
+
 ## Content Compliance
 
 - All outputs → `output/YYYY-MM-DD/{character}/` (character-specific subfolder)

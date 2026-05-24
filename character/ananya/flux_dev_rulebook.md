@@ -363,35 +363,35 @@ Exceptions:
 
 ---
 
-## RULE 16: Kontext Carousel — Slide Prompt Rules & Partial Rerun Procedure
+## RULE 16: Kontext Carousel — Technical Failure Modes (Why)
 
-### Standard 6-slide order
-```
-slide_00: full body, strong pose (hand on hip / walking) — scroll-stop hook
-slide_01: chest-up portrait closeup — neckline/face detail
-slide_02: full body, dynamic variant (walking, leaning, hair push)
-slide_03: full body, different angle (three-quarter TOWARD camera)
-slide_04: full body, relaxed candid (looking off-camera, arms loose)
-slide_05: chest-up portrait closeup — closing slide (different expression from slide_01)
-```
+**For procedural rules (slide order, partial rerun steps, mandatory flags, anchor-first gate, caption workflow), see `character/ananya/carousel_workflow.md` — the canonical procedural reference.**
 
-### FORBIDDEN slide prompt patterns
-| Pattern | Why | Use instead |
-|---------|-----|-------------|
-| `body turned away from camera` / `back to camera` | Full 180° flip → Kontext invents new BG | Three-quarter toward camera, head slightly turned |
-| `hand touching [tie/lace/button/zipper/strings]` | Kontext reads as opening/untying garment | `hand to cheek`, `fingertips at collarbone`, `hand raised near shoulder` |
-| `sitting` in a standing carousel | Structural pose change — BG and outfit drift | Separate carousel entirely |
-| `change to waist-up portrait framing` | Kontext stays full-body | `change to chest-up portrait framing showing face neck shoulders and neckline only` |
+This rule documents the **technical reasons** specific Kontext patterns break, for debugging and future-extension. The fixes themselves are in the workflow doc.
 
-### Partial rerun procedure (replacing specific slides)
-1. Create `_[name]_fix.txt` with only the slides to regenerate
-2. Run with `--name [carousel_name]_fix --flux-dev --kontext`
-3. Output will be named `slide_00`, `slide_01`... regardless of which slides they replace
-4. **Map explicitly:** identify target slide number in v3 folder BEFORE copying
-   - fix/slide_00 → v3/slide_NN (NN = the slide you want to replace)
-   - fix/slide_01 → v3/slide_MM
-5. Copy with explicit target filename: `Copy-Item fix/slide_00 v3/slide_03_cand_0.png`
-6. Verify by reading the destination file after copy
+### Why 180° body flip breaks BG
+
+Kontext is fundamentally a **composition-preservation** model — it edits the anchor image while holding scene geometry constant. Asking it to flip the subject 180° (body turned away from camera) forces it to repaint the scene: what was "behind" the subject in the anchor (the veranda, arch, mosaic column) is now blocked by the subject's back, and what's "behind" in the new orientation (originally foreground / sides) has no reference data. Kontext resolves the ambiguity by inventing a new BG that fits the new pose. The BG lock token `, same background, same scene, unchanged environment` is appended but insufficient to override a full geometric flip.
+
+**Validated 2026-05-24** on pink café v3 slide_04: `body turned three-quarter away from camera` → rendered dark iron gate + green hedge wall instead of white café arch. Fixed by changing to `body turned three-quarter facing slightly right toward camera, head turned over right shoulder looking at camera`.
+
+### Why "hand touching tie/lace/button" breaks outfit
+
+Kontext interprets "touching [garment closure]" as an action verb on that closure — the model has stronger priors on untying / unbuttoning / unzipping than on "casually resting fingers." The result reads as the subject opening or removing the garment.
+
+**Validated 2026-05-24** on pink café v3 slide_05: `right hand lightly touching ribbon tie at neckline` → rendered hands pulling ribbon strings outward. Fixed by changing to `right hand raised lightly to cheek with fingers near jawline`.
+
+### Why "waist-up portrait framing" fails
+
+Kontext's framing-change recognition is biased toward "chest-up" (closeup) and full-body. Intermediate waist-up cropping is ignored — Kontext stays full-body. The exact phrase that works reliably: `change to chest-up portrait framing showing face neck shoulders and neckline only`.
+
+### Why sitting in a standing carousel fails
+
+Same root cause as 180° flip: structural pose change. Standing→sitting requires repainting limb positions, height of subject in frame, and what's visible behind/around. Kontext fights it because every other slide preserves standing geometry. Solution: sitting carousels are separate posts.
+
+### BG lock token
+
+The token `, same background, same scene, unchanged environment` is auto-appended to every Kontext slide prompt by `_inject_flux_kontext()` in `scripts/faceswap_carousel.py`. Helpful for minor pose changes; insufficient against structural composition changes (above).
 
 ---
 
