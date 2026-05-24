@@ -18,7 +18,7 @@
     "_meta": {"title": "Hand positive prompt"},
     "class_type": "CLIPTextEncode",
     "inputs": {
-      "text": "natural realistic human hand, five fingers, anatomically correct fingers, detailed skin texture on hand, soft natural lighting",
+      "text": "natural realistic human hand with exactly five fingers, one thumb and four fingers, anatomically correct finger count, hand naturally gripping coffee cup, detailed knuckles and nails, realistic skin texture on hand, soft natural lighting",
       "clip": ["1", 1]
     }
   },
@@ -26,7 +26,7 @@
     "_meta": {"title": "Hand negative prompt"},
     "class_type": "CLIPTextEncode",
     "inputs": {
-      "text": "extra fingers, six fingers, seven fingers, missing fingers, deformed hand, mutated hand, fused fingers, extra digits, malformed limbs, bad anatomy",
+      "text": "extra fingers, six fingers, seven fingers, eight fingers, missing fingers, four fingers only, three fingers only, deformed hand, mutated hand, fused fingers, extra digits, malformed limbs, bad anatomy, twisted fingers, melting fingers, double thumb",
       "clip": ["1", 1]
     }
   },
@@ -56,12 +56,12 @@
       "cfg": 7.0,
       "sampler_name": "dpmpp_2m",
       "scheduler": "karras",
-      "denoise": 0.55,
-      "feather": 5,
+      "denoise": 0.50,
+      "feather": 8,
       "noise_mask": true,
       "force_inpaint": true,
       "bbox_threshold": 0.5,
-      "bbox_dilation": 10,
+      "bbox_dilation": 15,
       "bbox_crop_factor": 3.0,
       "sam_detection_hint": "center-1",
       "sam_dilation": 0,
