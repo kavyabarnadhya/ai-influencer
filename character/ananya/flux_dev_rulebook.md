@@ -141,6 +141,12 @@ no overly smooth surfaces, organic human appearance,
 shot on Sony A7IV 85mm, natural ambient light
 ```
 
+**NEVER add explicit skin tone tokens** (e.g. `warm medium-brown`, `tan complexion`).
+Seed 334521876 + `South Asian woman` derives skin tone naturally — matches validated carousel output.
+Explicit tone tokens override seed → different/darker result than expected.
+
+**Body skin tone lock:** `scripts/skin_color_match.py` runs automatically after ReActor faceswap in the carousel pipeline. It shifts body skin (arms, legs, décolletage) in LAB space to match `face_ref_v2.png` cheek tone. Face region is excluded — ReActor output preserved. Delta is clamped (max ΔL=30, Δa/b=15) to prevent over-correction. No prompt changes needed — this is a post-process stage.
+
 CFG effect: lower CFG (1.5–2.5) naturally improves skin but trades prompt adherence.
 At CFG 3.5: must explicitly front-load skin tokens.
 

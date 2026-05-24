@@ -42,6 +42,7 @@ from rich.console import Console
 
 sys.path.insert(0, str(Path(__file__).parent))
 from comfyui_api import ComfyUIClient, ComfyUIError, find_comfyui_port, load_workflow, inject_workflow_values
+from skin_color_match import match_body_skin_to_face_ref
 
 console = Console()
 ROOT = Path(__file__).parent.parent
@@ -61,7 +62,7 @@ DEFAULT_ANCHOR_PROMPT = (
     "raw unedited look, no retouching"
 )
 DEFAULT_DENOISE_VARIED = 0.85
-DEFAULT_DENOISE_OUTFIT_LOCK = 0.40
+DEFAULT_DENOISE_OUTFIT_LOCK = 0.60
 
 
 def _inject_flux_t2i(wf: dict, prompt: str, seed: int, propagate_cache: bool = True) -> dict:
@@ -566,6 +567,9 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                     propagate_cache=False
                 )
                 _run_and_save(client, wf3, final_path, timeout=180)
+
+                # Skin tone lock: shift body skin to face_ref target (face region untouched)
+                match_body_skin_to_face_ref(final_path, face_ref_path, final_path)
 
                 # Resize to 1080×1920 (9:16 — Instagram Reels + carousel native res)
                 # Original preserved in _intermediate/ base file before overwrite

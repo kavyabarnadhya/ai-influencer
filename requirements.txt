@@ -7,3 +7,7 @@ rich>=13.7.0
 click>=8.1.7
 websocket-client>=1.8.0
 anthropic>=0.25.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+scikit-image>=0.21.0
+ultralytics>=8.0.0
