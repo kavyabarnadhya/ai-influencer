@@ -1,0 +1,24 @@
+# Carousel: baby pink fit-and-flare mini frock, outdoor café veranda
+# Anchor YAML: character/ananya/anchor_libraries/pink_corset_mini_cafe.yaml
+# Run: python scripts/faceswap_carousel.py --prompts character/ananya/carousel_prompts/pink_corset_mini_cafe.txt --name pink_corset_cafe_v3 --anchor-config character/ananya/anchor_libraries/pink_corset_mini_cafe.yaml --flux-dev --kontext
+#
+# FORMAT RULE: one line per slide — anchor=default | [full prompt on one line]
+# BG lock auto-appended in code: ", same background, same scene, unchanged environment"
+
+# slide_00: full body, right hand on hip, confident direct gaze — scroll-stop hook
+anchor=default | same woman in same pale baby pink fit-and-flare mini frock on café veranda, right hand on hip, left arm relaxed at side showing small gold bracelet on wrist, weight shifted hard onto right hip, confident soft smile looking directly at camera, ornate white iron arch behind, mosaic tile column on left, keeping exact same ribbon lace tie knotted at neckline, thick shoulder straps, and flowy mini skirt hemline at mid-thigh
+
+# slide_01: change to tight chest-up closeup, neckline hero detail
+anchor=default | change to chest-up portrait framing showing face neck shoulders and neckline detail only, same woman in same pale baby pink fit-and-flare mini frock, direct camera gaze with warm smile, soft bokeh of green foliage and iron arch behind, keeping exact same ribbon lace tie knotted at center front neckline and thick shoulder straps
+
+# slide_02: full body, weight shifted with confident smile (static-friendly, NO motion verbs — workflow doc §8)
+anchor=default | same woman in same pale baby pink fit-and-flare mini frock standing with weight shifted onto left hip, right hand relaxed at side, left hand lightly resting on skirt, slight motion in dark wavy hair as if breeze just passed, confident soft smile looking directly at camera, ornate iron arch and mosaic column behind, keeping exact same ribbon lace tie knotted at neckline, thick shoulder straps, and flowy mini hemline at mid-thigh
+
+# slide_03: full body, leaning back against iron arch, looking off-camera candid
+anchor=default | same woman in same pale baby pink fit-and-flare mini frock leaning back lightly against ornate white iron arch, right hand raised pushing wavy hair back off face, looking slightly off-camera with candid soft expression, mosaic tile column prominent on left with colorful diamond tiles, iron café chair visible right, keeping exact same ribbon lace tie knotted at neckline, thick shoulder straps, and flowy mini skirt
+
+# slide_04: full body, three-quarter turn, over-shoulder look, skirt caught in breeze
+anchor=default | same woman in same pale baby pink fit-and-flare mini frock, body turned three-quarter away from camera, face looking back over right shoulder directly at camera with playful smile, flowy skirt caught mid-swing, ornate iron arch behind, lush green foliage filling background, keeping exact same ribbon lace tie at neckline, thick shoulder straps, and mini hemline at mid-thigh
+
+# slide_05: tight closeup, chin slightly down, confident smirk — closing slide
+anchor=default | change to chest-up portrait framing, same woman in same pale baby pink fit-and-flare mini frock, chin slightly lowered looking at camera with confident smirk and soft eyes, right hand lightly touching ribbon tie at neckline, soft overcast light, iron arch and green foliage in bokeh behind, keeping exact same ribbon lace tie knotted at center front neckline and thick shoulder straps

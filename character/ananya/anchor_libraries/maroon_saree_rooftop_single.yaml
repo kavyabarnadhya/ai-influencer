@@ -1,6 +1,5 @@
 # SINGLE-ANCHOR OOTD — maroon Banarasi saree on Mumbai rooftop golden hour.
-# All slides img2img off this ONE anchor. Accessories rendered once → consistent.
-#
+# Used with: --flux-dev --kontext flags (MANDATORY)
 # Run:
 #   python scripts/faceswap_carousel.py \
 #     --prompts character/ananya/carousel_prompts/maroon_saree_rooftop_single.txt \

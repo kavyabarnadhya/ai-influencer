@@ -1,0 +1,26 @@
+# Anchor: baby pink fit-and-flare mini frock, outdoor café veranda with wrought-iron arch.
+# South Mumbai / Bandra café aesthetic — mosaic tile column, ornate white iron arch, green foliage.
+# Used with: --flux-dev --kontext flags (MANDATORY — do not run without these)
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/pink_corset_mini_cafe.yaml --prompts character/ananya/carousel_prompts/pink_corset_mini_cafe.txt --name pink_corset_cafe_vN --flux-dev --kontext
+
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
+
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure,
+  soft natural curves not slim editorial, not plus-size, average Indian build,
+  wearing pale baby pink fit-and-flare mini frock, structured fitted bodice,
+  thin ribbon lace tie knotted at center front neckline, thick wide shoulder straps,
+  soft fabric flaring out from waist into full flowy skirt, loose flowing fabric with natural swing, hemline at mid-thigh well above the knee, bare legs from mid-thigh to feet,
+  long dark hair loose and slightly wavy falling past shoulders,
+  small gold bracelet on right wrist,
+  standing facing camera with weight shifted on right leg and left arm relaxed at side,
+  on outdoor café veranda with large ornate white wrought-iron decorative arch behind,
+  colorful mosaic tile column on left with multicolor geometric diamond-pattern tiles in red blue green yellow orange,
+  white iron café chairs and round glass table visible on right,
+  lush green trees and foliage filling background through arch,
+  bright overcast daylight, soft even light no harsh shadows,
+  shot on Sony A7IV 50mm,
+  authentic skin texture with visible pores, natural skin imperfections, no plasticky skin,
+  asymmetric facial features, slightly off-center composition, candid moment not posed

@@ -42,6 +42,7 @@ from rich.console import Console
 
 sys.path.insert(0, str(Path(__file__).parent))
 from comfyui_api import ComfyUIClient, ComfyUIError, find_comfyui_port, load_workflow, inject_workflow_values
+from skin_color_match import match_body_skin_to_face_ref
 
 console = Console()
 ROOT = Path(__file__).parent.parent
@@ -61,7 +62,7 @@ DEFAULT_ANCHOR_PROMPT = (
     "raw unedited look, no retouching"
 )
 DEFAULT_DENOISE_VARIED = 0.85
-DEFAULT_DENOISE_OUTFIT_LOCK = 0.40
+DEFAULT_DENOISE_OUTFIT_LOCK = 0.60
 
 
 def _inject_flux_t2i(wf: dict, prompt: str, seed: int, propagate_cache: bool = True) -> dict:
@@ -120,6 +121,17 @@ def _inject_faceswap(wf: dict, face_ref_name: str, target_name: str, propagate_c
     overrides = {
         "_claude_inject_source_image": {"inputs.image": face_ref_name},
         "_claude_inject_target_image": {"inputs.image": target_name}
+    }
+    return inject_workflow_values(wf, overrides, propagate_cache=propagate_cache)
+
+
+def _inject_hand_detail(wf: dict, input_image_name: str, seed: int, propagate_cache: bool = True) -> dict:
+    """
+    Inject input image + seed into FLUX hand detailer workflow (SDXL inpaint on hand bbox).
+    """
+    overrides = {
+        "_claude_inject_input_image": {"inputs.image": input_image_name},
+        "_claude_inject_seed": {"inputs.seed": seed}
     }
     return inject_workflow_values(wf, overrides, propagate_cache=propagate_cache)
 
@@ -495,6 +507,7 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
         return
 
     faceswap_template = load_workflow(str(ROOT / "workflows" / "faceswap_reactor.json"))
+    hand_detail_template = load_workflow(str(ROOT / "workflows" / "flux_hand_detail.json"))
 
     failed = []
     for idx, slide in enumerate(slides):
@@ -566,6 +579,32 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                     propagate_cache=False
                 )
                 _run_and_save(client, wf3, final_path, timeout=180)
+
+                # Stage 3.5: Hand realism — SDXL inpaint on YOLO-detected hand bboxes.
+                # Fixes FLUX 6-finger / deformed-hand artefacts. Failures degrade gracefully
+                # (ship slide with original FLUX hands rather than abort).
+                # ORDER MATTERS: hand detail MUST run BEFORE skin lock (Stage 3.6).
+                # Hand inpaint may shift hand skin tone; subsequent skin lock then unifies
+                # the whole body skin to face_ref tone. Reversing the order would undo skin lock.
+                try:
+                    uploaded_for_hands = client.upload_image(str(final_path))
+                    wf_hands = _inject_hand_detail(
+                        hand_detail_template,
+                        uploaded_for_hands,
+                        seed=slide_seed,
+                        propagate_cache=False,
+                    )
+                    _run_and_save(client, wf_hands, final_path, timeout=180)
+                except Exception as e:
+                    console.print(f"  [yellow]hand_detail failed: {e} — shipping uncorrected hands[/yellow]")
+
+                # Skin tone lock: shift body skin to face_ref target (face region untouched).
+                # If it fails (missing model, segmentation error, etc.), ship the uncorrected
+                # slide rather than abort — uncorrected face/body is still better than no slide.
+                try:
+                    match_body_skin_to_face_ref(final_path, face_ref_path, final_path)
+                except Exception as e:
+                    console.print(f"  [yellow]skin_color_match failed: {e} — shipping uncorrected slide[/yellow]")
 
                 # Resize to 1080×1920 (9:16 — Instagram Reels + carousel native res)
                 # Original preserved in _intermediate/ base file before overwrite

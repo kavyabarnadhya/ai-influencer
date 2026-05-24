@@ -141,6 +141,12 @@ no overly smooth surfaces, organic human appearance,
 shot on Sony A7IV 85mm, natural ambient light
 ```
 
+**NEVER add explicit skin tone tokens** (e.g. `warm medium-brown`, `tan complexion`).
+Seed 334521876 + `South Asian woman` derives skin tone naturally — matches validated carousel output.
+Explicit tone tokens override seed → different/darker result than expected.
+
+**Body skin tone lock:** `scripts/skin_color_match.py` runs automatically after ReActor faceswap in the carousel pipeline. It shifts body skin (arms, legs, décolletage) in LAB space to match `face_ref_v2.png` cheek tone. Face region is excluded — ReActor output preserved. Delta is clamped (max ΔL=30, Δa/b=15) to prevent over-correction. No prompt changes needed — this is a post-process stage.
+
 CFG effect: lower CFG (1.5–2.5) naturally improves skin but trades prompt adherence.
 At CFG 3.5: must explicitly front-load skin tokens.
 
@@ -353,6 +359,39 @@ Exceptions:
 - `carousel_black_oneshoulder_ruched_v1` — no body LoRA (pre-recipe), BG consistent, natural slim
 - `carousel_black_oneshoulder_bglock_test` — Body FIX 0.7 + BG lock, curvy + consistent ✓
 - `carousel_red_oneshoulder_ruched_v1` — full 6-slide validation, all 3 targets met ✓ **(gold standard)**
+- `carousel_pink_corset_cafe_v3` — skin lock + Kontext + 6 distinct poses validated ✓ (2026-05-24)
+
+---
+
+## RULE 16: Kontext Carousel — Technical Failure Modes (Why)
+
+**For procedural rules (slide order, partial rerun steps, mandatory flags, anchor-first gate, caption workflow), see `character/ananya/carousel_workflow.md` — the canonical procedural reference.**
+
+This rule documents the **technical reasons** specific Kontext patterns break, for debugging and future-extension. The fixes themselves are in the workflow doc.
+
+### Why 180° body flip breaks BG
+
+Kontext is fundamentally a **composition-preservation** model — it edits the anchor image while holding scene geometry constant. Asking it to flip the subject 180° (body turned away from camera) forces it to repaint the scene: what was "behind" the subject in the anchor (the veranda, arch, mosaic column) is now blocked by the subject's back, and what's "behind" in the new orientation (originally foreground / sides) has no reference data. Kontext resolves the ambiguity by inventing a new BG that fits the new pose. The BG lock token `, same background, same scene, unchanged environment` is appended but insufficient to override a full geometric flip.
+
+**Validated 2026-05-24** on pink café v3 slide_04: `body turned three-quarter away from camera` → rendered dark iron gate + green hedge wall instead of white café arch. Fixed by changing to `body turned three-quarter facing slightly right toward camera, head turned over right shoulder looking at camera`.
+
+### Why "hand touching tie/lace/button" breaks outfit
+
+Kontext interprets "touching [garment closure]" as an action verb on that closure — the model has stronger priors on untying / unbuttoning / unzipping than on "casually resting fingers." The result reads as the subject opening or removing the garment.
+
+**Validated 2026-05-24** on pink café v3 slide_05: `right hand lightly touching ribbon tie at neckline` → rendered hands pulling ribbon strings outward. Fixed by changing to `right hand raised lightly to cheek with fingers near jawline`.
+
+### Why "waist-up portrait framing" fails
+
+Kontext's framing-change recognition is biased toward "chest-up" (closeup) and full-body. Intermediate waist-up cropping is ignored — Kontext stays full-body. The exact phrase that works reliably: `change to chest-up portrait framing showing face neck shoulders and neckline only`.
+
+### Why sitting in a standing carousel fails
+
+Same root cause as 180° flip: structural pose change. Standing→sitting requires repainting limb positions, height of subject in frame, and what's visible behind/around. Kontext fights it because every other slide preserves standing geometry. Solution: sitting carousels are separate posts.
+
+### BG lock token
+
+The token `, same background, same scene, unchanged environment` is auto-appended to every Kontext slide prompt by `_inject_flux_kontext()` in `scripts/faceswap_carousel.py`. Helpful for minor pose changes; insufficient against structural composition changes (above).
 
 ---
 

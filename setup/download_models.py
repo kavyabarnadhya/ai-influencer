@@ -64,6 +64,33 @@ MODELS["8gb"] = [m for m in MODELS["6gb"] if "Q3" not in m["name"]]
 MODELS["12gb+"] = MODELS["8gb"]
 
 
+def _download_yolo_models(models_root: Path) -> None:
+    """Download YOLO models used by skin_color_match.py. Source: ultralytics auto-download from GitHub releases."""
+    seg_dest = models_root / "ultralytics" / "segm" / "yolov8n-seg.pt"
+    if seg_dest.exists():
+        console.print(f"[dim]Skipping YOLOv8n-seg (already present at {seg_dest})[/dim]")
+        return
+
+    console.print("[cyan]Downloading YOLOv8n-seg (person segmentation, ~6MB)...[/cyan]")
+    try:
+        from ultralytics import YOLO
+        import shutil
+        seg_dest.parent.mkdir(parents=True, exist_ok=True)
+        # ultralytics auto-downloads to CWD on first instantiation; move to configured path
+        YOLO("yolov8n-seg.pt")
+        cwd_path = Path("yolov8n-seg.pt")
+        if cwd_path.exists():
+            shutil.move(str(cwd_path), str(seg_dest))
+            console.print(f"[green]OK: YOLOv8n-seg -> {seg_dest}[/green]")
+        else:
+            console.print("[red]FAILED: YOLOv8n-seg download produced no file in CWD[/red]")
+    except ImportError:
+        console.print("[red]FAILED: ultralytics package not installed. Run: pip install ultralytics[/red]")
+    except Exception as e:
+        short_err = str(e).split("\n")[0][:120]
+        console.print(f"[red]FAILED: YOLOv8n-seg: {short_err}[/red]")
+
+
 @click.command()
 @click.option("--hf-token", required=True, envvar="HF_TOKEN", help="Hugging Face access token (or set HF_TOKEN env var)")
 @click.option("--vram", type=click.Choice(["6gb", "8gb", "12gb+"]), default="6gb", show_default=True, help="VRAM tier")
@@ -119,7 +146,10 @@ def main(hf_token: str, vram: str, comfyui_path: str):
         console.print(f"\n[yellow]Failed downloads ({len(failed)}): {', '.join(failed)}[/yellow]")
         console.print("[yellow]Check that your HF token has access and you accepted model licenses on huggingface.co[/yellow]")
     else:
-        console.print("\n[bold green]All downloads complete.[/bold green]")
+        console.print("\n[bold green]All HF downloads complete.[/bold green]")
+
+    # YOLO models for skin_color_match.py (separate source — GitHub releases via ultralytics)
+    _download_yolo_models(models_root)
 
     console.print("Next: python setup/verify_setup.py")
 

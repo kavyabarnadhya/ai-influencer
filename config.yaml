@@ -17,6 +17,8 @@ models:
   t5xxl: t5xxl_fp8_e4m3fn.safetensors
   upscaler: 4x-UltraSharp.pth
   controlnet_openpose: control-lora-openposeXL2-rank256.safetensors
+  yolo_face_bbox: C:/Users/barna/Documents/ComfyUI/models/ultralytics/bbox/face_yolov8m.pt
+  yolo_person_seg: C:/Users/barna/Documents/ComfyUI/models/ultralytics/segm/yolov8n-seg.pt
 
 characters:
   ananya:
