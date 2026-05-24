@@ -101,3 +101,7 @@
 ## 2026-05-17 - Avoiding Redundant stat() Calls for Discovery
 **Learning:** Sorting files by modification time (`st_mtime`) in a directory with hundreds or thousands of files is extremely expensive because it triggers a `stat()` syscall for every entry. In this application, image and carousel filenames contain timestamps or are created sequentially, meaning alphabetical sorting is chronologically equivalent to `mtime` sorting.
 **Action:** Replace `key=lambda p: p.stat().st_mtime` with default name-based sorting in discovery helpers. Combine this with early slicing of the result set to minimize memory overhead when satisfied by the first few days of output.
+
+## 2026-05-20 - Scandir for Faster Discovery and Reduced Path Overhead
+**Learning:** `pathlib.Path.glob` and `Path.iterdir` are significantly slower than `os.scandir` in large directories because they instantiate `Path` objects for every entry and may trigger redundant `stat()` calls. In hot discovery loops (like those in MCP servers), using `os.scandir` with string-based prefix/suffix matching provides a measurable speedup (approx 2-4x) by avoiding object allocation overhead and leveraging cached entry metadata.
+**Action:** Replace `Path.glob` and `Path.iterdir` with `os.scandir` in hot-loop discovery helpers. Perform filtering using `entry.name.startswith` and `entry.name.endswith` to keep discovery as close to the kernel as possible.
