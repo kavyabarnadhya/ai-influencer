@@ -11,8 +11,8 @@ anchor=default | same woman in same pale baby pink fit-and-flare mini frock on c
 # slide_01: change to tight chest-up closeup, neckline hero detail
 anchor=default | change to chest-up portrait framing showing face neck shoulders and neckline detail only, same woman in same pale baby pink fit-and-flare mini frock, direct camera gaze with warm smile, soft bokeh of green foliage and iron arch behind, keeping exact same ribbon lace tie knotted at center front neckline and thick shoulder straps
 
-# slide_02: full body, walking toward camera, slight motion in skirt and hair
-anchor=default | same woman in same pale baby pink fit-and-flare mini frock mid-stride walking toward camera on café veranda, flowy skirt swinging with motion, slight movement in dark wavy hair, confident half-smile, ornate iron arch and mosaic column behind, keeping exact same ribbon lace tie knotted at neckline, thick shoulder straps, and flowy mini hemline at mid-thigh
+# slide_02: full body, weight shifted with confident smile (static-friendly, NO motion verbs — workflow doc §8)
+anchor=default | same woman in same pale baby pink fit-and-flare mini frock standing with weight shifted onto left hip, right hand relaxed at side, left hand lightly resting on skirt, slight motion in dark wavy hair as if breeze just passed, confident soft smile looking directly at camera, ornate iron arch and mosaic column behind, keeping exact same ribbon lace tie knotted at neckline, thick shoulder straps, and flowy mini hemline at mid-thigh
 
 # slide_03: full body, leaning back against iron arch, looking off-camera candid
 anchor=default | same woman in same pale baby pink fit-and-flare mini frock leaning back lightly against ornate white iron arch, right hand raised pushing wavy hair back off face, looking slightly off-camera with candid soft expression, mosaic tile column prominent on left with colorful diamond tiles, iron café chair visible right, keeping exact same ribbon lace tie knotted at neckline, thick shoulder straps, and flowy mini skirt

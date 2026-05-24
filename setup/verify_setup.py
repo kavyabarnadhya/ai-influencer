@@ -25,6 +25,7 @@ WORKFLOW_SENTINELS = {
     "flux_dev_img2img_controlnet": ["_claude_inject_prompt", "_claude_inject_seed", "_claude_inject_init_image", "_claude_inject_controlnet", "_claude_inject_pose_image", "_claude_inject_skin_lora"],
     "flux_kontext": ["_claude_inject_prompt", "_claude_inject_init_image", "_claude_inject_seed"],
     "faceswap_reactor": ["_claude_inject_source_image", "_claude_inject_target_image"],
+    "flux_hand_detail": ["_claude_inject_checkpoint", "_claude_inject_input_image", "_claude_inject_seed"],
 }
 
 
@@ -48,6 +49,10 @@ def check_models(cfg: dict) -> list[tuple[str, bool, str]]:
         ("FLUX VAE", models_dir / "vae" / cfg["models"]["flux_vae"]),
         ("CLIP-L", models_dir / "clip" / cfg["models"]["clip_l"]),
         ("T5-XXL fp8", models_dir / "clip" / cfg["models"]["t5xxl"]),
+        # YOLO models for post-process pipeline (skin tone lock + hand realism)
+        ("YOLO face bbox (skin lock)", Path(cfg["models"]["yolo_face_bbox"])),
+        ("YOLO person seg (skin lock)", Path(cfg["models"]["yolo_person_seg"])),
+        ("YOLO hand bbox (hand detail)", models_dir / "ultralytics" / "bbox" / "hand_yolov8s.pt"),
     ]
     # Check LoRA for each character
     for char_name, char_cfg in cfg.get("characters", {}).items():

@@ -583,6 +583,9 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                 # Stage 3.5: Hand realism — SDXL inpaint on YOLO-detected hand bboxes.
                 # Fixes FLUX 6-finger / deformed-hand artefacts. Failures degrade gracefully
                 # (ship slide with original FLUX hands rather than abort).
+                # ORDER MATTERS: hand detail MUST run BEFORE skin lock (Stage 3.6).
+                # Hand inpaint may shift hand skin tone; subsequent skin lock then unifies
+                # the whole body skin to face_ref tone. Reversing the order would undo skin lock.
                 try:
                     uploaded_for_hands = client.upload_image(str(final_path))
                     wf_hands = _inject_hand_detail(
