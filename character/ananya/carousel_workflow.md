@@ -1,6 +1,6 @@
 # Ananya Carousel Workflow — Canonical Reference
 
-**Last updated: 2026-05-25 — skin lock Stage 3.6 now Gaussian-feathers body skin mask (σ=8px) before LAB shift, eliminates seam halo at body silhouette when ΔL > 10. Added `scripts/reprocess_carousel_post.py` for re-running ReActor + hand detail + skin lock from `_intermediate/*_base.png` without re-rolling FLUX. Added orange tank cafe v3 worked example.**
+**Last updated: 2026-05-25 — skin lock Stage 3.6 now Gaussian-feathers body skin mask (σ=8px) before LAB shift, eliminates seam halo at body silhouette when ΔL > 10. Added `scripts/reprocess_carousel_post.py` for re-running ReActor + hand detail + skin lock from `_intermediate/*_base.png` without re-rolling FLUX (deterministic hand seed, `--seed-base N` to reroll). Added orange tank cafe v3 worked example, body push prompt formula (§2), slide-vs-anchor vocab lock rule (§4), ribbed bodysuit + wrap skirt outfit-type rules (§4), §9 reprocess-script subsection.**
 
 This is the **single source of truth** for generating any Ananya OOTD/lifestyle carousel. Read this end-to-end before starting a new carousel. CLAUDE.md contains the short pre-flight gate; this doc contains the full reference and worked examples.
 
@@ -42,6 +42,14 @@ These never change across any Ananya carousel. They are the foundation of cross-
 - **NEVER add explicit skin tone tokens** (`warm medium-brown`, `tan complexion`, `olive`, `medium South Asian skin`). The seed + `South Asian woman` derives the correct tone. Adding tokens overrides the seed → wrong/darker tone.
 - **NEVER re-prompt anatomy** (face shape, eye color, hair color, ethnicity, age beyond `23-year-old`). The seed + ReActor handle these. Re-prompting causes "double-baking" → distorted face.
 - **NEVER swap the body seed** mid-project. `334521876` is the validated reference. Other seeds (`837492016`, `112847593`) produced wrong body types and are blocklisted.
+
+### Body push prompt formula (when FLUX drifts slim editorial)
+
+Seed 334521876 + body LoRA 0.5 + `South Asian woman with M-size hourglass figure` is the baseline. On form-fitting bodysuits, ribbed tanks, and tight-bodice outfits FLUX still drifts slim/editorial. When that happens, add to the anchor_prompt:
+
+> `size 12 curvy body with full M-size hourglass figure, fuller heavier curvier build with soft visible belly midsection, wide hips noticeably wider than waist, thick fuller thighs touching, fuller décolletage, defined cinched waist with curves above and below, distinctly NOT slim NOT editorial NOT model-thin, average everyday curvy Indian woman build`
+
+Key tokens that landed it (validated orange tank cafe v3, 2026-05-25): concrete size (`size 12`), negative comparisons (`NOT slim NOT editorial NOT model-thin`), and body-part-specific cues (`wide hips noticeably wider than waist`, `thick fuller thighs touching`, `soft visible belly midsection`). Weaker phrasing (`fuller curvier body`, `soft natural curves`) alone is not enough — FLUX bias is strong.
 
 ---
 
@@ -89,6 +97,7 @@ The anchor describes the outfit physically (geometry, fabric, color) **once** in
 - **No contradictory neckline descriptors in one prompt.** Pick one neckline (halter / bandeau / V-neck / off-shoulder) and stick to it. See Rule 14 in `flux_dev_rulebook.md`.
 - **Fabric weight cue required** for any draped element: `soft chiffon`, `starched cotton`, `heavy silk`, `crinkle viscose`.
 - **Every slide's `keeping exact same` block** should repeat at minimum: neckline geometry, strap/sleeve detail, waist detail, hem detail.
+- **Slide-prompt vocabulary MUST match anchor YAML vocabulary.** If anchor says `wrap mini skirt with smooth front panel and no shorts underneath` and slides say `mini skort`, Kontext will drift toward the slide's vocabulary on regen → outfit changes mid-carousel. Use the same garment noun and the same defining clauses in both files. Validated fail: orange tank cafe v3 — anchor said wrap skirt, slides said `skort` → first render came back as cuffed shorts with lace-up on both sides.
 
 ### Per-outfit-type rules
 
@@ -96,6 +105,8 @@ The anchor describes the outfit physically (geometry, fabric, color) **once** in
 |---|---|
 | Ethnic (kurta, saree, lehenga) | `fitted/tailored/cinched` — NEVER `flowing/loose`. Dupatta needs contrasting color + named shoulder. Pallu pinned at left shoulder + falling behind. |
 | Form-fitting western (slip, bodycon, mini frock) | Add `fabric shows soft midsection` to avoid slim-editorial default. |
+| Ribbed bodysuit / fitted tank | Use `very thin string-like delicate spaghetti shoulder straps thin as cords` if straps are meant to read as spaghetti. Default `thin spaghetti straps` reads as full ~1cm webbing. |
+| Wrap mini skirt with side tie | `wrap mini skirt with smooth solid front skirt panel falling unbroken to mid-thigh and NO shorts underneath, single decorative ribbon lace-up corset-tie detail only on left hip side seam`. Without `NO shorts underneath` + `single ... only on left hip` the render comes back as cuffed shorts with lace-up on both sides. |
 | Layered western (overshirt, jacket) | `unbuttoned worn OPEN, sleeves rolled` + `fitted ribbed tank underneath`. |
 | Corset/bodice mini | Repeat `structured fitted bodice, thick wide shoulder straps` if straps are visual hero. Thin straps drift if not enforced. |
 
@@ -189,6 +200,24 @@ When only 1-2 slides fail review. The danger here is off-by-one indexing — ove
 6. **Read each destination file after copy** to verify the correct image landed. (Use the Read tool in Claude Code.)
 
 **Common failure mode (this session):** writing "slide_03 replacement" and "slide_04 replacement" in the fix file when the actual problem slides were 04 and 05 → off-by-one. Always cross-reference the source folder, not the fix file's comments.
+
+### Post-process-only rerun (skip FLUX, replay ReActor + hand + skin lock)
+
+When the issue is in the post-process pipeline (skin lock burn, hand artefact, etc.) and the FLUX renders themselves are good, use `scripts/reprocess_carousel_post.py` instead of full Stage B. It reads the pre-faceswap base files from `_intermediate/` and re-applies Stages 3 → 3.5 → 3.6 in place.
+
+```powershell
+python scripts/reprocess_carousel_post.py `
+  --carousel-dir output/YYYY-MM-DD/ananya/carousel_<name>/
+# optional flags:
+#   --face-ref <path>   (default: character/ananya/seeds_v2/face_ref_v2.png)
+#   --cand N            (candidate index, default 0)
+#   --seed-base N       (reroll hands without renaming files; default 0 = deterministic)
+```
+
+- ~5-8 min for 6 slides vs ~12-15 min for full Stage B.
+- Hand-detail seed is deterministic (`sha256(base_filename) + seed_base mod 2^31-1`). Same carousel reprocessed twice produces identical hands. Bump `--seed-base 1` to reroll without renaming files.
+- **In-place overwrite of slide_*.png** — if you need to keep the original, copy the carousel folder first (`cp -r <folder> <folder>_backup`).
+- Validated 2026-05-25 on orange tank cafe v3 (skin lock feather patch reroll) and pink corset cafe v3 (smoke test, no regression on low ΔL).
 
 ---
 
