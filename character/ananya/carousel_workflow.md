@@ -1,6 +1,6 @@
 # Ananya Carousel Workflow — Canonical Reference
 
-**Last updated: 2026-05-24 — added hand realism Stage 3.5 (flux_hand_detail.json) + "walking from static anchor" + "hair-push while holding object" to forbidden patterns (grey tank indoor stress test)**
+**Last updated: 2026-05-25 — skin lock Stage 3.6 now Gaussian-feathers body skin mask (σ=8px) before LAB shift, eliminates seam halo at body silhouette when ΔL > 10. Added `scripts/reprocess_carousel_post.py` for re-running ReActor + hand detail + skin lock from `_intermediate/*_base.png` without re-rolling FLUX. Added orange tank cafe v3 worked example.**
 
 This is the **single source of truth** for generating any Ananya OOTD/lifestyle carousel. Read this end-to-end before starting a new carousel. CLAUDE.md contains the short pre-flight gate; this doc contains the full reference and worked examples.
 
@@ -35,7 +35,7 @@ These never change across any Ananya carousel. They are the foundation of cross-
 | Body LoRA strength | `0.5` universal | `anchor_body_lora_strength:` in anchor YAML | Exceptions: `0.0` for headshot (no body) or flowy/loose linen (LoRA amplifies fabric volume). |
 | Realism LoRA | `0.5` baked into workflow node 15 | `workflows/flux_dev.json` | Do not change. |
 | Hand realism post-process | Auto-applied | `workflows/flux_hand_detail.json` | Runs as Stage 3.5 after ReActor — SDXL FaceDetailer inpaint on `hand_yolov8s.pt` bbox using Juggernaut XL. Fixes FLUX 6-finger / deformed-hand artefacts (especially cup-grip poses). Sweet-spot tuned: denoise 0.50, cycle 1, bbox_dilation 15, feather 8. Higher denoise (0.65+) makes hands look heavy/uncanny. ~10-15s/slide. ORDER: must run BEFORE skin lock — hand inpaint may shift hand skin tone; subsequent skin lock unifies whole body to face_ref. |
-| Skin tone post-process | Auto-applied | `scripts/skin_color_match.py` | Runs after hand detail. Locks body skin to face_ref cheek LAB. No prompt action needed. |
+| Skin tone post-process | Auto-applied | `scripts/skin_color_match.py` | Runs after hand detail. Locks body skin to face_ref cheek LAB. Mask Gaussian-feathered σ=8px before LAB shift — required to avoid seam halo at body silhouette when ΔL > 10 (validated on orange tank cafe v3). No prompt action needed. |
 
 ### Hard NEVER rules
 
@@ -223,7 +223,28 @@ Apply to every slide. Fail if any criterion fails on any slide (with documented 
 
 ---
 
-## 12. Worked example — pink corset café v3 (2026-05-24)
+## 12. Worked examples
+
+### Orange tank + brown wrap mini skort café v3 (2026-05-25)
+
+- **Anchor YAML:** `character/ananya/anchor_libraries/orange_tank_brown_skort_cafe.yaml`
+- **Prompt file:** `character/ananya/carousel_prompts/orange_tank_brown_skort_cafe.txt`
+- **Caption file:** `character/ananya/captions/orange_tank_brown_skort_cafe.txt`
+- **Output:** `output/2026-05-25/ananya/carousel_orange_tank_skort_cafe_v3/`
+
+**Recipe:** Body LoRA 0.5, seed 334521876, face_ref_v2, `--flux-dev --kontext`, premium tier (low scoop), skin lock (patched feather) auto-applied.
+
+**Outfit:** fitted orange ribbed tank bodysuit, thin string spaghetti straps, deep scoop neckline, chocolate brown high-waisted A-line mini wrap skirt with single left-hip lace-up corset tie, white baseball cap, brown leather crossbody.
+
+**Body push that finally landed M-size hourglass on FLUX:** `size 12 curvy body with full M-size hourglass, fuller heavier curvier build with soft visible belly midsection, wide hips noticeably wider than waist, thick fuller thighs touching, distinctly NOT slim NOT editorial NOT model-thin`. Earlier v1/v2 attempts using only `fuller curvier body with soft visible midsection` produced slim-editorial drift. FLUX bias is strong — push the negative comparison hard (`NOT slim NOT editorial NOT model-thin`) and add concrete size token (`size 12`).
+
+**Skort vs shorts fix:** `cotton A-line mini wrap skirt with smooth solid front skirt panel falling unbroken to mid-thigh and NO shorts underneath, single decorative ribbon lace-up corset-tie detail only on left hip side seam`. Earlier `mini skort with side ribbon lace-up tie` rendered as cuffed shorts with lace-up on both sides. Naming `wrap skirt` + `no shorts underneath` + `single side seam` flipped it.
+
+**Skin lock burn fix (skin_color_match.py patched mid-run):** Stage 3.6 was producing visible halo at body silhouette on full-body slides (00, 02, 04) when ΔL > 10. Root cause: hard bool mask + flat LAB shift = seam at mask edge. Patched: feather mask with Gaussian blur σ=8px, alpha-blend the LAB shift. Reprocessed 6 slides via `scripts/reprocess_carousel_post.py` (reads `_intermediate/*_base.png`, redoes ReActor + hand + patched skin lock, ~5-8 min, skips expensive FLUX). Closeups (01, 05) were unaffected before patch — burn only visible on large-area body shots.
+
+**Final state:** all 7 review criteria pass. Carousel approved for posting.
+
+### Pink corset café v3 (2026-05-24)
 
 - **Anchor YAML:** `character/ananya/anchor_libraries/pink_corset_mini_cafe.yaml`
 - **Prompt file:** `character/ananya/carousel_prompts/pink_corset_mini_cafe.txt`

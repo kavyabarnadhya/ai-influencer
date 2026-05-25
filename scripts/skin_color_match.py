@@ -63,6 +63,11 @@ _MAX_AB_SHIFT = 15.0
 # Minimum body skin pixel count to attempt correction (skip if too few exposed pixels)
 _MIN_SKIN_PIXELS = 200
 
+# Gaussian sigma (px) for soft-feathering the skin mask before applying LAB delta.
+# Hard binary mask + large delta L caused visible seam halos at body silhouette
+# (orange tank carousel v3, 2026-05-25). Feather blends shift smoothly across edge.
+_MASK_FEATHER_SIGMA = 8.0
+
 
 @lru_cache(maxsize=1)
 def _load_face_model():
@@ -226,10 +231,20 @@ def _apply_lab_delta(
           f"delta ({dL:+.1f}, {da:+.1f}, {db:+.1f}) "
           f"pixels={int(body_skin_mask.sum())}")
 
-    result_lab = lab.copy()
-    result_lab[:, :, 0][body_skin_mask] = np.clip(L_vals + dL, 0, 100)
-    result_lab[:, :, 1][body_skin_mask] = np.clip(a_vals + da, -128, 127)
-    result_lab[:, :, 2][body_skin_mask] = np.clip(b_vals + db, -128, 127)
+    # Soft-feather mask: hard bool edges produce visible seam at silhouette when delta L is large.
+    # Gaussian-blur a float [0,1] mask, then alpha-blend the LAB shift.
+    mask_f = body_skin_mask.astype(np.float32)
+    mask_blur = cv2.GaussianBlur(
+        mask_f, (0, 0),
+        sigmaX=_MASK_FEATHER_SIGMA, sigmaY=_MASK_FEATHER_SIGMA,
+    )
+    alpha = mask_blur[..., None]  # (H, W, 1) broadcasts over LAB channels
+
+    shift = np.array([dL, da, db], dtype=np.float32)
+    result_lab = lab + alpha * shift
+    result_lab[..., 0] = np.clip(result_lab[..., 0], 0.0, 100.0)
+    result_lab[..., 1] = np.clip(result_lab[..., 1], -128.0, 127.0)
+    result_lab[..., 2] = np.clip(result_lab[..., 2], -128.0, 127.0)
 
     return _lab_to_bgr(result_lab)
 
