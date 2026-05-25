@@ -1,6 +1,6 @@
 # Ananya Carousel Workflow — Canonical Reference
 
-**Last updated: 2026-05-24 — added hand realism Stage 3.5 (flux_hand_detail.json) + "walking from static anchor" + "hair-push while holding object" to forbidden patterns (grey tank indoor stress test)**
+**Last updated: 2026-05-25 — skin lock Stage 3.6 now Gaussian-feathers body skin mask (σ=8px) before LAB shift, eliminates seam halo at body silhouette when ΔL > 10. Added `scripts/reprocess_carousel_post.py` for re-running ReActor + hand detail + skin lock from `_intermediate/*_base.png` without re-rolling FLUX (deterministic hand seed, `--seed-base N` to reroll). Added orange tank cafe v3 worked example, body push prompt formula (§2), slide-vs-anchor vocab lock rule (§4), ribbed bodysuit + wrap skirt outfit-type rules (§4), §9 reprocess-script subsection.**
 
 This is the **single source of truth** for generating any Ananya OOTD/lifestyle carousel. Read this end-to-end before starting a new carousel. CLAUDE.md contains the short pre-flight gate; this doc contains the full reference and worked examples.
 
@@ -35,13 +35,21 @@ These never change across any Ananya carousel. They are the foundation of cross-
 | Body LoRA strength | `0.5` universal | `anchor_body_lora_strength:` in anchor YAML | Exceptions: `0.0` for headshot (no body) or flowy/loose linen (LoRA amplifies fabric volume). |
 | Realism LoRA | `0.5` baked into workflow node 15 | `workflows/flux_dev.json` | Do not change. |
 | Hand realism post-process | Auto-applied | `workflows/flux_hand_detail.json` | Runs as Stage 3.5 after ReActor — SDXL FaceDetailer inpaint on `hand_yolov8s.pt` bbox using Juggernaut XL. Fixes FLUX 6-finger / deformed-hand artefacts (especially cup-grip poses). Sweet-spot tuned: denoise 0.50, cycle 1, bbox_dilation 15, feather 8. Higher denoise (0.65+) makes hands look heavy/uncanny. ~10-15s/slide. ORDER: must run BEFORE skin lock — hand inpaint may shift hand skin tone; subsequent skin lock unifies whole body to face_ref. |
-| Skin tone post-process | Auto-applied | `scripts/skin_color_match.py` | Runs after hand detail. Locks body skin to face_ref cheek LAB. No prompt action needed. |
+| Skin tone post-process | Auto-applied | `scripts/skin_color_match.py` | Runs after hand detail. Locks body skin to face_ref cheek LAB. Mask Gaussian-feathered σ=8px before LAB shift — required to avoid seam halo at body silhouette when ΔL > 10 (validated on orange tank cafe v3). No prompt action needed. |
 
 ### Hard NEVER rules
 
 - **NEVER add explicit skin tone tokens** (`warm medium-brown`, `tan complexion`, `olive`, `medium South Asian skin`). The seed + `South Asian woman` derives the correct tone. Adding tokens overrides the seed → wrong/darker tone.
 - **NEVER re-prompt anatomy** (face shape, eye color, hair color, ethnicity, age beyond `23-year-old`). The seed + ReActor handle these. Re-prompting causes "double-baking" → distorted face.
 - **NEVER swap the body seed** mid-project. `334521876` is the validated reference. Other seeds (`837492016`, `112847593`) produced wrong body types and are blocklisted.
+
+### Body push prompt formula (when FLUX drifts slim editorial)
+
+Seed 334521876 + body LoRA 0.5 + `South Asian woman with M-size hourglass figure` is the baseline. On form-fitting bodysuits, ribbed tanks, and tight-bodice outfits FLUX still drifts slim/editorial. When that happens, add to the anchor_prompt:
+
+> `size 12 curvy body with full M-size hourglass figure, fuller heavier curvier build with soft visible belly midsection, wide hips noticeably wider than waist, thick fuller thighs touching, fuller décolletage, defined cinched waist with curves above and below, distinctly NOT slim NOT editorial NOT model-thin, average everyday curvy Indian woman build`
+
+Key tokens that landed it (validated orange tank cafe v3, 2026-05-25): concrete size (`size 12`), negative comparisons (`NOT slim NOT editorial NOT model-thin`), and body-part-specific cues (`wide hips noticeably wider than waist`, `thick fuller thighs touching`, `soft visible belly midsection`). Weaker phrasing (`fuller curvier body`, `soft natural curves`) alone is not enough — FLUX bias is strong.
 
 ---
 
@@ -89,6 +97,7 @@ The anchor describes the outfit physically (geometry, fabric, color) **once** in
 - **No contradictory neckline descriptors in one prompt.** Pick one neckline (halter / bandeau / V-neck / off-shoulder) and stick to it. See Rule 14 in `flux_dev_rulebook.md`.
 - **Fabric weight cue required** for any draped element: `soft chiffon`, `starched cotton`, `heavy silk`, `crinkle viscose`.
 - **Every slide's `keeping exact same` block** should repeat at minimum: neckline geometry, strap/sleeve detail, waist detail, hem detail.
+- **Slide-prompt vocabulary MUST match anchor YAML vocabulary.** If anchor says `wrap mini skirt with smooth front panel and no shorts underneath` and slides say `mini skort`, Kontext will drift toward the slide's vocabulary on regen → outfit changes mid-carousel. Use the same garment noun and the same defining clauses in both files. Validated fail: orange tank cafe v3 — anchor said wrap skirt, slides said `skort` → first render came back as cuffed shorts with lace-up on both sides.
 
 ### Per-outfit-type rules
 
@@ -96,6 +105,8 @@ The anchor describes the outfit physically (geometry, fabric, color) **once** in
 |---|---|
 | Ethnic (kurta, saree, lehenga) | `fitted/tailored/cinched` — NEVER `flowing/loose`. Dupatta needs contrasting color + named shoulder. Pallu pinned at left shoulder + falling behind. |
 | Form-fitting western (slip, bodycon, mini frock) | Add `fabric shows soft midsection` to avoid slim-editorial default. |
+| Ribbed bodysuit / fitted tank | Use `very thin string-like delicate spaghetti shoulder straps thin as cords` if straps are meant to read as spaghetti. Default `thin spaghetti straps` reads as full ~1cm webbing. |
+| Wrap mini skirt with side tie | `wrap mini skirt with smooth solid front skirt panel falling unbroken to mid-thigh and NO shorts underneath, single decorative ribbon lace-up corset-tie detail only on left hip side seam`. Without `NO shorts underneath` + `single ... only on left hip` the render comes back as cuffed shorts with lace-up on both sides. |
 | Layered western (overshirt, jacket) | `unbuttoned worn OPEN, sleeves rolled` + `fitted ribbed tank underneath`. |
 | Corset/bodice mini | Repeat `structured fitted bodice, thick wide shoulder straps` if straps are visual hero. Thin straps drift if not enforced. |
 
@@ -190,6 +201,24 @@ When only 1-2 slides fail review. The danger here is off-by-one indexing — ove
 
 **Common failure mode (this session):** writing "slide_03 replacement" and "slide_04 replacement" in the fix file when the actual problem slides were 04 and 05 → off-by-one. Always cross-reference the source folder, not the fix file's comments.
 
+### Post-process-only rerun (skip FLUX, replay ReActor + hand + skin lock)
+
+When the issue is in the post-process pipeline (skin lock burn, hand artefact, etc.) and the FLUX renders themselves are good, use `scripts/reprocess_carousel_post.py` instead of full Stage B. It reads the pre-faceswap base files from `_intermediate/` and re-applies Stages 3 → 3.5 → 3.6 in place.
+
+```powershell
+python scripts/reprocess_carousel_post.py `
+  --carousel-dir output/YYYY-MM-DD/ananya/carousel_<name>/
+# optional flags:
+#   --face-ref <path>   (default: character/ananya/seeds_v2/face_ref_v2.png)
+#   --cand N            (candidate index, default 0)
+#   --seed-base N       (reroll hands without renaming files; default 0 = deterministic)
+```
+
+- ~5-8 min for 6 slides vs ~12-15 min for full Stage B.
+- Hand-detail seed is deterministic (`sha256(base_filename) + seed_base mod 2^31-1`). Same carousel reprocessed twice produces identical hands. Bump `--seed-base 1` to reroll without renaming files.
+- **In-place overwrite of slide_*.png** — if you need to keep the original, copy the carousel folder first (`cp -r <folder> <folder>_backup`).
+- Validated 2026-05-25 on orange tank cafe v3 (skin lock feather patch reroll) and pink corset cafe v3 (smoke test, no regression on low ΔL).
+
 ---
 
 ## 10. Caption workflow
@@ -212,6 +241,7 @@ Apply to every slide. Fail if any criterion fails on any slide (with documented 
 | Face vs face_ref_v2.png | Same facial structure, warm tone, dark eyes, full lips — recognizable as same person | Face shape changed, eye color shifted, wrong skin tone |
 | Body M-size hourglass | Defined waist + natural curves, not slim editorial, not plus-size | Slim-editorial drift, plus-size rendering |
 | Skin tone | Body skin matches face_ref cheek tone (ΔE < 5 after lock) | Visible mismatch between face and arms/legs/décolletage |
+| Skin lock seam | Body silhouette blends smoothly into BG with no edge halo | Visible bright halo / chromatic ring along arm/shoulder/leg silhouette — check post-process log: if ΔL > 10 and burn visible, feather may have failed (verify `_MASK_FEATHER_SIGMA = 8.0` in `scripts/skin_color_match.py`); reprocess via `scripts/reprocess_carousel_post.py` |
 | BG consistency | Same scene tokens as anchor (arch, column, foliage etc) across all slides | New scene invented on any slide |
 | Accessories | Earrings/bracelet present on most slides; outfit core hold all | Outfit core changed (neckline, strap detail, color) |
 | Hair | Long dark loose wavy on every slide | Hair length, color, or style changed |
@@ -223,7 +253,28 @@ Apply to every slide. Fail if any criterion fails on any slide (with documented 
 
 ---
 
-## 12. Worked example — pink corset café v3 (2026-05-24)
+## 12. Worked examples
+
+### Orange tank + brown wrap mini skort café v3 (2026-05-25)
+
+- **Anchor YAML:** `character/ananya/anchor_libraries/orange_tank_brown_skort_cafe.yaml`
+- **Prompt file:** `character/ananya/carousel_prompts/orange_tank_brown_skort_cafe.txt`
+- **Caption file:** `character/ananya/captions/orange_tank_brown_skort_cafe.txt`
+- **Output:** `output/2026-05-25/ananya/carousel_orange_tank_skort_cafe_v3/`
+
+**Recipe:** Body LoRA 0.5, seed 334521876, face_ref_v2, `--flux-dev --kontext`, premium tier (low scoop), skin lock (patched feather) auto-applied.
+
+**Outfit:** fitted orange ribbed tank bodysuit, thin string spaghetti straps, deep scoop neckline, chocolate brown high-waisted A-line mini wrap skirt with single left-hip lace-up corset tie, white baseball cap, brown leather crossbody.
+
+**Body push that finally landed M-size hourglass on FLUX:** `size 12 curvy body with full M-size hourglass, fuller heavier curvier build with soft visible belly midsection, wide hips noticeably wider than waist, thick fuller thighs touching, distinctly NOT slim NOT editorial NOT model-thin`. Earlier v1/v2 attempts using only `fuller curvier body with soft visible midsection` produced slim-editorial drift. FLUX bias is strong — push the negative comparison hard (`NOT slim NOT editorial NOT model-thin`) and add concrete size token (`size 12`).
+
+**Skort vs shorts fix:** `cotton A-line mini wrap skirt with smooth solid front skirt panel falling unbroken to mid-thigh and NO shorts underneath, single decorative ribbon lace-up corset-tie detail only on left hip side seam`. Earlier `mini skort with side ribbon lace-up tie` rendered as cuffed shorts with lace-up on both sides. Naming `wrap skirt` + `no shorts underneath` + `single side seam` flipped it.
+
+**Skin lock burn fix (skin_color_match.py patched mid-run):** Stage 3.6 was producing visible halo at body silhouette on full-body slides (00, 02, 04) when ΔL > 10. Root cause: hard bool mask + flat LAB shift = seam at mask edge. Patched: feather mask with Gaussian blur σ=8px, alpha-blend the LAB shift. Reprocessed 6 slides via `scripts/reprocess_carousel_post.py` (reads `_intermediate/*_base.png`, redoes ReActor + hand + patched skin lock, ~5-8 min, skips expensive FLUX). Closeups (01, 05) were unaffected before patch — burn only visible on large-area body shots.
+
+**Final state:** all 7 review criteria pass. Carousel approved for posting.
+
+### Pink corset café v3 (2026-05-24)
 
 - **Anchor YAML:** `character/ananya/anchor_libraries/pink_corset_mini_cafe.yaml`
 - **Prompt file:** `character/ananya/carousel_prompts/pink_corset_mini_cafe.txt`
