@@ -9,7 +9,7 @@ overwriting current finals.
 """
 from __future__ import annotations
 
-import random
+import hashlib
 import sys
 from pathlib import Path
 
@@ -33,7 +33,10 @@ console = Console()
 @click.option("--face-ref", default="character/ananya/seeds_v2/face_ref_v2.png",
               type=click.Path(exists=True, dir_okay=False))
 @click.option("--cand", default=0, type=int, help="Candidate index to reprocess (default 0)")
-def main(carousel_dir: str, face_ref: str, cand: int) -> None:
+@click.option("--seed-base", default=0, type=int,
+              help="Added to per-slide deterministic seed. Change to reroll hands without "
+                   "renaming files (default 0 = stable seed derived from base filename).")
+def main(carousel_dir: str, face_ref: str, cand: int, seed_base: int) -> None:
     out_dir = Path(carousel_dir).resolve()
     inter = out_dir / "_intermediate"
     if not inter.exists():
@@ -68,10 +71,14 @@ def main(carousel_dir: str, face_ref: str, cand: int) -> None:
             console.print(f"  ReActor OK")
 
             # Stage 3.5: hand detail
+            # Deterministic seed: derive from base filename so reruns produce identical hands.
+            # Add --seed-base N to reroll without renaming files.
+            hand_seed = (int(hashlib.sha256(base_path.name.encode()).hexdigest(), 16)
+                         + seed_base) % (2 ** 31 - 1)
             try:
                 uploaded_for_hands = client.upload_image(str(final_path))
                 wf_hands = _inject_hand_detail(hand_tpl, uploaded_for_hands,
-                                               seed=random.randint(1, 2**31 - 1),
+                                               seed=hand_seed,
                                                propagate_cache=False)
                 _run_and_save(client, wf_hands, final_path, timeout=180)
                 console.print(f"  hand_detail OK")
