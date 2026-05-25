@@ -241,6 +241,7 @@ Apply to every slide. Fail if any criterion fails on any slide (with documented 
 | Face vs face_ref_v2.png | Same facial structure, warm tone, dark eyes, full lips — recognizable as same person | Face shape changed, eye color shifted, wrong skin tone |
 | Body M-size hourglass | Defined waist + natural curves, not slim editorial, not plus-size | Slim-editorial drift, plus-size rendering |
 | Skin tone | Body skin matches face_ref cheek tone (ΔE < 5 after lock) | Visible mismatch between face and arms/legs/décolletage |
+| Skin lock seam | Body silhouette blends smoothly into BG with no edge halo | Visible bright halo / chromatic ring along arm/shoulder/leg silhouette — check post-process log: if ΔL > 10 and burn visible, feather may have failed (verify `_MASK_FEATHER_SIGMA = 8.0` in `scripts/skin_color_match.py`); reprocess via `scripts/reprocess_carousel_post.py` |
 | BG consistency | Same scene tokens as anchor (arch, column, foliage etc) across all slides | New scene invented on any slide |
 | Accessories | Earrings/bracelet present on most slides; outfit core hold all | Outfit core changed (neckline, strap detail, color) |
 | Hair | Long dark loose wavy on every slide | Hair length, color, or style changed |
