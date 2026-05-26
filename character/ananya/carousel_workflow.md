@@ -1,6 +1,8 @@
 # Ananya Carousel Workflow — Canonical Reference
 
-**Last updated: 2026-05-25 — skin lock Stage 3.6 now Gaussian-feathers body skin mask (σ=8px) before LAB shift, eliminates seam halo at body silhouette when ΔL > 10. Added `scripts/reprocess_carousel_post.py` for re-running ReActor + hand detail + skin lock from `_intermediate/*_base.png` without re-rolling FLUX (deterministic hand seed, `--seed-base N` to reroll). Added orange tank cafe v3 worked example, body push prompt formula (§2), slide-vs-anchor vocab lock rule (§4), ribbed bodysuit + wrap skirt outfit-type rules (§4), §9 reprocess-script subsection.**
+**Last updated: 2026-05-26 — body push formula now fabric-aware (§2: slimming fabrics like leather need a softer push; voluminous fabrics need none). §5 BG rules add floor cleanliness override + event-installation wall-floor colour match. Added black strapless leather maxi event v5 worked example (§12). Validated skin lock feather patch in production (orange tank cafe v3 + black leather event v5, ΔL up to 13.7 with no burn).
+
+Prior 2026-05-25: skin lock Stage 3.6 Gaussian-feathers body skin mask (σ=8px) before LAB shift, eliminates seam halo when ΔL > 10. Added `scripts/reprocess_carousel_post.py` (deterministic hand seed, `--seed-base N` to reroll). Body push prompt formula, slide-vs-anchor vocab lock rule, ribbed bodysuit + wrap skirt outfit-type rules, reprocess-script subsection.**
 
 This is the **single source of truth** for generating any Ananya OOTD/lifestyle carousel. Read this end-to-end before starting a new carousel. CLAUDE.md contains the short pre-flight gate; this doc contains the full reference and worked examples.
 
@@ -50,6 +52,18 @@ Seed 334521876 + body LoRA 0.5 + `South Asian woman with M-size hourglass figure
 > `size 12 curvy body with full M-size hourglass figure, fuller heavier curvier build with soft visible belly midsection, wide hips noticeably wider than waist, thick fuller thighs touching, fuller décolletage, defined cinched waist with curves above and below, distinctly NOT slim NOT editorial NOT model-thin, average everyday curvy Indian woman build`
 
 Key tokens that landed it (validated orange tank cafe v3, 2026-05-25): concrete size (`size 12`), negative comparisons (`NOT slim NOT editorial NOT model-thin`), and body-part-specific cues (`wide hips noticeably wider than waist`, `thick fuller thighs touching`, `soft visible belly midsection`). Weaker phrasing (`fuller curvier body`, `soft natural curves`) alone is not enough — FLUX bias is strong.
+
+**Fabric-aware calibration — use a softer push on slimming fabrics.** The full body push above is calibrated for light/airy fabrics (cotton ribbed tanks, mini frocks) where FLUX defaults to slim editorial. **On slimming fabrics (black leather, dark sheath, structured bodice) the full push over-corrects to plus-size.** Validated on black strapless leather maxi event v5 (2026-05-26): the full push produced plus-size; the slim-default push produced slim editorial; the balanced middle landed M-size hourglass:
+
+> `M-size hourglass figure, pronounced hourglass with hips noticeably wider than waist, fuller chest and décolletage, defined cinched narrow waist with soft curves at hips and bust, healthy curvy M-size Indian woman build, NOT slim editorial NOT model-thin NOT plus-size NOT oversized, balanced M-size proportions like a real event-goer with natural feminine curves not exaggerated`
+
+Key difference: drop `size 12`, drop `thick fuller thighs touching`, drop `fuller heavier curvier build`. Keep `hips noticeably wider than waist` + `fuller chest`. Add `NOT plus-size NOT oversized` as a brake. Add `not exaggerated` qualifier.
+
+| Fabric / outfit weight | Push to use |
+|---|---|
+| Light/airy: cotton tank, ribbed bodysuit, mini frock, chiffon slip | Full push (size 12 + fuller heavier + thick thighs) |
+| Slimming: leather, dark sheath, structured pencil maxi, tight knit | Balanced push (drop size 12 + fuller heavier; keep hips>waist + fuller chest; add NOT plus-size NOT oversized) |
+| Voluminous: lehenga, A-line, layered, draped | Minimal push (baseline `M-size hourglass with defined waist` may be enough; the fabric carries the visual volume) |
 
 ---
 
@@ -120,6 +134,8 @@ The anchor describes the outfit physically (geometry, fabric, color) **once** in
   > `ornate white iron arch behind, colorful mosaic tile column on left, white iron café chairs on right, lush green foliage`
 - **Failure mode:** if a slide prompt says "rooftop golden hour" while the anchor was "balcony daylight" → BG diverges. Both must match.
 - **Indoor BG quirk:** indoor flat light renders body skin darker. The skin lock corrects this post-process, no prompt fix needed (validated on sequin mesh ΔL=+13.1).
+- **Floor cleanliness:** FLUX defaults "polished floor" / "marble floor" / "concrete floor" to scuffed-and-stained textures. Add explicit `clean spotless ... no stains no scuffs no dirt no marks no tile grout lines` to enforce a clean surface. Validated on black leather maxi event v5 (2026-05-26): bare `polished concrete or marble floor` produced visible dirt; `clean spotless ... no stains no scuffs no dirt no marks` rendered a clean glossy surface.
+- **Event-installation BG (wall-floor color match):** for store launches, brand activations, step-and-repeats where the floor is painted/carpeted to match the wall, use `clean polished <colour> floor underfoot painted same <colour> as the wall behind so wall and floor blend into one continuous uniform <colour> event installation surface`. Without this, FLUX renders a contrasting grey concrete/marble floor that breaks the immersive backdrop. Validated on black leather maxi event v5 with `terracotta-red wall + terracotta-red floor`.
 
 ---
 
@@ -254,6 +270,34 @@ Apply to every slide. Fail if any criterion fails on any slide (with documented 
 ---
 
 ## 12. Worked examples
+
+### Black strapless bandeau + leather pencil maxi, event launch backdrop v5 (2026-05-26)
+
+- **Anchor YAML:** `character/ananya/anchor_libraries/black_strapless_leather_maxi_event.yaml`
+- **Prompt file:** `character/ananya/carousel_prompts/black_strapless_leather_maxi_event.txt`
+- **Caption file:** `character/ananya/captions/black_strapless_leather_maxi_event.txt`
+- **Output:** `output/2026-05-26/ananya/carousel_black_leather_maxi_event_v5/`
+
+**Recipe:** Body LoRA 0.5, seed 334521876, face_ref_v2, `--flux-dev --kontext`, premium tier (strapless cleavage), patched feather skin lock auto-applied.
+
+**Outfit:** fitted black stretch jersey strapless bandeau tube top, high-waisted black faux leather pencil maxi skirt (no slit, ankle-grazing), burgundy oxblood leather pouch with gold knot clasp, gold watch + small gold hoop earrings, black ankle-strap stiletto heels.
+
+**BG:** indoor event launch backdrop, terracotta-red wall + matching terracotta-red floor (continuous installation), large illuminated white neon-tube generic retail logo sign on wall (illegible script avoids real-brand trademark risk).
+
+**Body push iteration (5 anchor rounds before landing M-size hourglass):**
+- v1 — full orange-tank push (`size 12 curvy ... fuller heavier ... thick fuller thighs touching`) → plus-size. Leather is slimming so push over-corrected.
+- v2 — backed off to slim-default baseline (`M-size hourglass ... soft natural curves`) → slim editorial.
+- v3 — balanced middle (`M-size hourglass with hips noticeably wider than waist + fuller chest + NOT slim NOT plus-size NOT oversized`) → landed M-size hourglass. New §2 fabric-aware table captures this rule for next time.
+
+**Floor cleanliness iteration (v3 → v4):** bare `polished concrete or marble floor` rendered scuffed and stained. Adding `clean spotless ... no stains no scuffs no dirt no marks` enforced a clean glossy surface. New §5 floor cleanliness rule.
+
+**Wall-floor colour match (v4 → v5):** v4 had grey marble floor that broke the immersive red event installation. Adding `painted same terracotta-red as the wall behind so wall and floor blend into one continuous uniform red event installation surface` rendered a red floor matching the wall. New §5 event-installation rule.
+
+**Skin lock burn check:** ΔL reached 13.7 on slide_04. **No burn visible on any slide** — feather patch (σ=8) validated in production. Closeups + full-body all clean.
+
+**Trademark note:** prompt requested `illuminated white neon-tube generic retail logo sign`. FLUX rendered illegible script (`Juime`, `Awive`, etc.) across slides — exactly the desired safe behaviour, no real brand reproduced.
+
+**Final state:** all 7 review criteria pass + skin lock seam criterion (new §11 row) passes. Carousel approved for posting.
 
 ### Orange tank + brown wrap mini skort café v3 (2026-05-25)
 
