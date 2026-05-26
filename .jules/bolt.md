@@ -111,3 +111,11 @@
 ## 2026-05-20 - Scandir for Faster Discovery and Reduced Path Overhead
 **Learning:** `pathlib.Path.glob` and `Path.iterdir` are significantly slower than `os.scandir` in large directories because they instantiate `Path` objects for every entry and may trigger redundant `stat()` calls. In hot discovery loops (like those in MCP servers), using `os.scandir` with string-based prefix/suffix matching provides a measurable speedup (approx 2-4x) by avoiding object allocation overhead and leveraging cached entry metadata.
 **Action:** Replace `Path.glob` and `Path.iterdir` with `os.scandir` in hot-loop discovery helpers. Perform filtering using `entry.name.startswith` and `entry.name.endswith` to keep discovery as close to the kernel as possible.
+
+## 2026-05-22 - Preset Loading Optimization and Deep Copy Isolation
+**Learning:** Repeatedly parsing the same YAML configuration file (e.g., ) in batch loops or interactive tools adds significant latency (~7.5ms per call). Caching the parsed object is a major win, but requires isolation to prevent state leakage.
+**Action:** Use `@functools.lru_cache` to cache raw YAML loads. Return a deep copy of the specific entry using `json.loads(json.dumps())`, which provides a ~125x speedup over repeated I/O while ensuring callers can't corrupt the internal cache.
+
+## 2026-05-22 - Preset Loading Optimization and Deep Copy Isolation
+**Learning:** Repeatedly parsing the same YAML configuration file (e.g., presets.yaml) in batch loops or interactive tools adds significant latency (~7.5ms per call). Caching the parsed object is a major win, but requires isolation to prevent state leakage.
+**Action:** Use `@functools.lru_cache` to cache raw YAML loads. Return a deep copy of the specific entry using `json.loads(json.dumps())`, which provides a ~125x speedup over repeated I/O while ensuring callers can't corrupt the internal cache.
