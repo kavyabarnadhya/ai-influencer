@@ -1,0 +1,26 @@
+# Anchor: black square-neck puff-sleeve ruched crop top + low-rise brown-cream-green tie-dye marble print cotton wrap maxi skirt + gold cuff bangle, outdoor heritage haveli rooftop balcony with yellow sandstone column and railing + lush green babool foliage + distant generic stone fort + golden hour daylight.
+# Premium tier — low square neckline with visible cleavage + bare midriff above low-rise skirt waistband. Rajasthani heritage rooftop aesthetic (generic, not a named fort).
+# Used with: --flux-dev --kontext flags (MANDATORY — do not run without these)
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/black_puff_crop_tiedye_maxi_haveli.yaml --prompts character/ananya/carousel_prompts/black_puff_crop_tiedye_maxi_haveli.txt --name black_puff_crop_haveli_vN --flux-dev --kontext
+
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
+
+anchor_prompt: >
+  23-year-old South Asian woman size 12 curvy body with full M-size hourglass figure,
+  fuller heavier curvier build with soft visible belly midsection, wide hips noticeably wider than waist, thick fuller thighs, fuller décolletage and bust, defined cinched narrow waist with soft curves above and below, distinctly NOT slim NOT editorial NOT model-thin, average everyday curvy Indian woman build like a real heritage-rooftop traveller not a runway model,
+  wearing fitted black stretch jersey crop top with low straight square neckline gathered ruched at center bust showing visible cleavage, short black puff cap sleeves with gathered shoulders, hem cropped high ending just below bust line leaving entire midriff bare and exposed,
+  paired with low-rise long flowy soft cotton wrap maxi skirt in marble tie-dye print of warm cream and chocolate brown and sage green smudged organic abstract pattern, skirt waistband sitting low on hips well below natural waist exposing midriff above, skirt falling long and flowy to ankles with soft drape and gentle movement,
+  long dark wavy hair loose falling past shoulders to mid-back,
+  thick wide hammered gold cuff bangle on right wrist visible,
+  small gold drop earrings,
+  standing facing camera in three-quarter angle with right hand resting lightly on yellow sandstone railing and left hand relaxed at side,
+  on outdoor heritage haveli rooftop balcony with thick smooth painted yellow-ochre sandstone column on left and yellow-ochre sandstone railing across foreground,
+  lush dense green babool acacia foliage filling middle ground behind railing,
+  distant generic warm-toned stone fort architecture on horizon with blurred crenellations,
+  pale blue clear sky above,
+  warm soft golden hour daylight from left with gentle directional glow,
+  shot on Sony A7IV 50mm,
+  authentic skin texture with visible pores, natural skin imperfections, no plasticky skin,
+  asymmetric facial features, slightly off-center composition, candid moment not posed
