@@ -1,6 +1,8 @@
 # Ananya Carousel Workflow — Canonical Reference
 
-**Last updated: 2026-05-26 — body push formula now fabric-aware (§2: slimming fabrics like leather need a softer push; voluminous fabrics need none). §5 BG rules add floor cleanliness override + event-installation wall-floor colour match. Added black strapless leather maxi event v5 worked example (§12). Validated skin lock feather patch in production (orange tank cafe v3 + black leather event v5, ΔL up to 13.7 with no burn).
+**Last updated: 2026-05-27 — §11 review checklist adds hand realism criterion (Stage 3.5 occasionally misses on cup-grip / on-railing / fingers-spread poses); §11 documented exception section adds failure-resolution modes (drop-slide ship 5, reroll post-process, partial rerun) with guidance on when to pick which. Validated 2026-05-27 on black puff crop haveli v1 (slide_00 hand deformity → dropped, shipped 5-slide carousel).
+
+Prior 2026-05-26 — body push formula now fabric-aware (§2: slimming fabrics like leather need a softer push; voluminous fabrics need none). §5 BG rules add floor cleanliness override + event-installation wall-floor colour match. Added black strapless leather maxi event v5 worked example (§12). Validated skin lock feather patch in production (orange tank cafe v3 + black leather event v5, ΔL up to 13.7 with no burn).
 
 Prior 2026-05-25: skin lock Stage 3.6 Gaussian-feathers body skin mask (σ=8px) before LAB shift, eliminates seam halo when ΔL > 10. Added `scripts/reprocess_carousel_post.py` (deterministic hand seed, `--seed-base N` to reroll). Body push prompt formula, slide-vs-anchor vocab lock rule, ribbed bodysuit + wrap skirt outfit-type rules, reprocess-script subsection.**
 
@@ -262,10 +264,21 @@ Apply to every slide. Fail if any criterion fails on any slide (with documented 
 | Accessories | Earrings/bracelet present on most slides; outfit core hold all | Outfit core changed (neckline, strap detail, color) |
 | Hair | Long dark loose wavy on every slide | Hair length, color, or style changed |
 | Pose variance | 6 distinct compositions (not 6 variants of same pose) | Two or more slides have visually-similar pose |
+| Hand realism | All visible hands have 5 fingers, natural joint geometry, no fused fingers, no extra thumbs | Visible 6-finger, fused, or warped hand — Stage 3.5 hand detail occasionally misses on cup-grip / on-railing / fingers-spread poses |
 
 ### Documented exception
 
 - Accessories (specifically bracelets, rings, footwear) may drop in/out across slides — Kontext limitation. Acceptable as long as the outfit core (neckline, fit, color, fabric) holds across all 6.
+
+### Failure-resolution modes (when 1 slide fails)
+
+When 1 slide fails review (hand deformity, pose duplicate, etc.) and other 5 pass, pick the cheapest fix:
+
+1. **Drop the slide, ship 5-slide carousel.** Instagram carousels accept 2-10 slides. Often the simplest path — note dropped slide in the caption file header. Use when the dropped slide doesn't carry a critical pose (hook / closeup).
+2. **Reroll only the post-process** (`scripts/reprocess_carousel_post.py --seed-base 1` → bumps deterministic hand seed). Use when failure is in Stage 3.5 hand detail or Stage 3.6 skin lock and the FLUX render itself is fine. ~5-8 min for all 6 slides (overwrites all but result for unaffected slides should be identical).
+3. **Partial rerun with `_<name>_fix.txt`** (per §9 partial rerun procedure). Use when the FLUX render itself is bad (pose duplicate, BG drift). ~3 min per slide. Copy with explicit destination filename.
+
+Validated 2026-05-27 on black puff crop haveli v1: slide_00 had hand deformity, user shipped 5 slides (option 1) — accepted as cheapest fix when the hook slide had a usable alternative in slide_04.
 
 ---
 
