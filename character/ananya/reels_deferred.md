@@ -92,7 +92,7 @@ without paid uplift.
   - Identity-safe: every pixel sampled from source PNG, no diffusion
   - Palindrome loop default for seamless cycling
   - ~5-10s render per clip
-- `scripts/_extract_frames.py` — debug helper for visual review of mp4 output
+- `scripts/debug_extract_frames.py` — debug helper for visual review of mp4 output
 
 ---
 

@@ -14,11 +14,15 @@ No silhouette wobble, no edge artefacts.
 
 Pipeline:
   1. Load PNG (typically 1080x1920 carousel slide)
-  2. Estimate depth with MiDaS small (CPU, ~5-10s on first run)
+  2. Estimate depth with MiDaS small (CPU, ~5-10s per slide)
   3. Render N frames with parameterised camera path (zoom + optional sway + dolly +
      optional depth-weighted parallax shift via cv2.remap)
   4. Optionally palindrome-mirror for seamless loop
   5. Encode to .mp4 (mp4v fourcc — IG re-encodes on upload anyway)
+
+First invocation downloads ~500MB total to ~/.cache/torch/hub/ (MiDaS small ~16MB,
+gen-efficientnet-pytorch backbone ~200MB, tf_efficientnet_lite3 weights ~80MB,
+transforms). Subsequent runs use the cached weights.
 
 Identity-safe: every output pixel is a sampled position from the input PNG. No
 diffusion, no drift, no eye flicker, no hand melt.
@@ -148,12 +152,13 @@ def render_parallax_frame(
 
 
 def _pick_fourcc() -> tuple[int, str]:
-    """Try H264 first (IG-friendly), fall back to mp4v if openh264 not present."""
-    for code in ("avc1", "H264", "mp4v"):
-        fourcc = cv2.VideoWriter_fourcc(*code)
-        if fourcc != 0:
-            return fourcc, code
-    raise RuntimeError("No supported fourcc found")
+    """Default to mp4v.
+
+    H264 / avc1 would be smaller but requires openh264 DLL on Windows; absence
+    causes OpenCV to silently fall back to mp4v anyway. IG re-encodes everything
+    on upload, so mp4v output (larger but reliable) is the right default.
+    """
+    return cv2.VideoWriter_fourcc(*"mp4v"), "mp4v"
 
 
 @click.command()
