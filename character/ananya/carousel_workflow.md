@@ -361,24 +361,8 @@ Validated 2026-05-27 on black puff crop haveli v1: slide_00 had hand deformity, 
 
 **Final state:** all 7 review criteria pass. Carousel approved for posting.
 
-### Pink corset café v3 (2026-05-24)
-
-- **Anchor YAML:** `character/ananya/anchor_libraries/pink_corset_mini_cafe.yaml`
-- **Prompt file:** `character/ananya/carousel_prompts/pink_corset_mini_cafe.txt`
-- **Caption file:** `character/ananya/captions/pink_corset_mini_cafe.txt`
-- **Output:** `output/2026-05-24/ananya/carousel_pink_corset_cafe_v3/`
-
-**Recipe:** Body LoRA 0.5, seed 334521876, face_ref_v2, `--flux-dev --kontext`, skin lock auto-applied.
-
-**What worked:** Hand-on-hip slide_00 hook, 2 chest-up closeups (slide_01 direct gaze + slide_05 hand-to-chin), walking slide_02, three-quarter hair-push slide_03, off-camera relaxed slide_04.
-
-**What was fixed mid-run:**
-- v1 attempt: ran without `--kontext` → all 6 slides same neutral stand. Fixed by adding `--flux-dev --kontext` and rewriting prompts with explicit pose variety.
-- v3 slide_04 first attempt: `body turned away from camera` → invented dark gate + hedge wall BG. Fixed by changing to "three-quarter facing toward camera".
-- v3 slide_05 first attempt: `hand touching ribbon tie` → looked like she was opening the dress. Fixed by changing to `hand to cheek with fingers near jawline`.
-- Slide_03 / slide_04 ended up identical after a partial-rerun off-by-one error. Fixed by generating a third distinct slide (full body off-camera candid) and copying to slide_04 with explicit filename mapping.
-
-**Final state:** all 7 review criteria pass. Carousel approved for posting.
+<!-- Pink corset café v3 (2026-05-24) pruned 2026-05-29 per §13 ≤3-most-recent rule.
+     Summary preserved in flux_dev_rulebook.md Validated Results (RULE 15). -->
 
 ---
 

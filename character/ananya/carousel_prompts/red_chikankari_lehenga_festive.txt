@@ -1,6 +1,7 @@
-# Carousel: red chikankari embroidered sleeveless V-neck choli + matching lehenga + sheer red dupatta + gold jhumka tassels, indoor festive setting
+# Carousel: plain solid red sleeveless deep bandeau-neckline choli + matching plain solid red flared lehenga + sheer red chiffon dupatta + gold jhumka tassels, indoor festive setting
 # Anchor YAML: character/ananya/anchor_libraries/red_chikankari_lehenga_festive.yaml
-# Run: python scripts/faceswap_carousel.py --prompts character/ananya/carousel_prompts/red_chikankari_lehenga_festive.txt --name red_chikankari_lehenga_v1 --anchor-config character/ananya/anchor_libraries/red_chikankari_lehenga_festive.yaml --flux-dev --kontext
+# Filename retains "chikankari" for Git history continuity — actual outfit is plain solid red bandeau (v9d converged 2026-05-29).
+# Run: python scripts/faceswap_carousel.py --prompts character/ananya/carousel_prompts/red_chikankari_lehenga_festive.txt --name red_chikankari_lehenga_v9d --anchor-config character/ananya/anchor_libraries/red_chikankari_lehenga_festive.yaml --flux-dev --kontext
 #
 # FORMAT RULE: one line per slide — anchor=default | [full prompt on one line]
 # BG lock auto-appended in code: ", same background, same scene, unchanged environment"

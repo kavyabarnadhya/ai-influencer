@@ -53,8 +53,6 @@ _CHEEK_BOT_FRAC = 0.75
 _CHEEK_LEFT_FRAC = 0.25
 _CHEEK_RIGHT_FRAC = 0.75
 
-# Dilation radius for face mask exclusion zone (pixels at native res ~750px wide)
-_FACE_EXCLUSION_DILATE = 10
 
 # Maximum LAB channel shift magnitude — clamp to avoid over-correction.
 # Restored to 25.0 / 12.0 on 2026-05-29 after red lehenga festive: warm-cast
@@ -201,21 +199,11 @@ def _hsv_skin_filter(img_bgr: np.ndarray, person_mask: np.ndarray) -> np.ndarray
     return skin & person_mask
 
 
-def _face_exclusion_mask(img_bgr: np.ndarray, face_bbox: tuple[int, int, int, int] | None) -> np.ndarray:
-    """Returns boolean mask of pixels to EXCLUDE from correction (face region + dilation)."""
-    h, w = img_bgr.shape[:2]
-    mask = np.zeros((h, w), dtype=np.uint8)
-    if face_bbox is None:
-        return mask.astype(bool)
-    x1, y1, x2, y2 = face_bbox
-    mask[y1:y2, x1:x2] = 255
-    if _FACE_EXCLUSION_DILATE > 0:
-        kernel = cv2.getStructuringElement(
-            cv2.MORPH_ELLIPSE,
-            (2 * _FACE_EXCLUSION_DILATE + 1, 2 * _FACE_EXCLUSION_DILATE + 1)
-        )
-        mask = cv2.dilate(mask, kernel, iterations=1)
-    return mask.astype(bool)
+# Note: _face_exclusion_mask + _FACE_EXCLUSION_DILATE were removed 2026-05-29
+# when match_body_skin_to_face_ref switched to face+body inclusion (lift the
+# whole subject to face_ref tone, not just body). If a future scene needs to
+# preserve face pixel-identical and only correct body, restore the helper from
+# Git history (commit before bbb8e8b).
 
 
 def _apply_lab_delta(
@@ -270,8 +258,15 @@ def match_body_skin_to_face_ref(
     out_path: Path,
 ) -> None:
     """
-    Main pipeline: detect face → person mask → HSV skin filter → exclude face → LAB shift body.
-    Face region is pixel-identical to input (ReActor output preserved).
+    Main pipeline: detect face → person mask → HSV skin filter → LAB shift face+body.
+
+    Both face skin and body skin get the same uniform LAB shift toward face_ref_v2
+    cheek tone (sampled from the static reference). This neutralises warm/cool
+    ambient casts (festive red, golden hour, indoor incandescent) that would
+    otherwise leave the rendered face darker than the body once body alone gets
+    lifted. Facial structure (eyes, lips, nose) is preserved by the LAB delta
+    being uniform and tone-only — only colour shifts, never geometry.
+
     Saves corrected image to out_path (may be same as slide_path for in-place).
     """
     slide_path = Path(slide_path)

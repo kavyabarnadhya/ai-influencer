@@ -1,6 +1,7 @@
-# Anchor: deep red chikankari embroidered sleeveless V-neck choli + matching red chikankari lehenga skirt + sheer red chikankari dupatta + statement gold jhumka tassel earrings, indoor festive setting with dark carved wooden door + soft pink wall + traditional genda-phool wall hanging.
-# Premium tier — low V-neck choli with visible cleavage + bare midriff above low-rise lehenga waistband. Generic festive / wedding-guest aesthetic.
-# Body push: balanced (per §2 fabric table — fitted choli + voluminous skirt mix).
+# Anchor: plain solid red sleeveless deep bandeau-neckline choli (NO chikankari, NO V-neck — see anchor_prompt) + matching plain solid red low-rise flared lehenga skirt + sheer plain solid red chiffon dupatta + statement gold jhumka tassel earrings, indoor festive setting with dark carved teak wooden door + soft pink wall + traditional genda-phool wall hanging.
+# Premium tier — deep low underbust bandeau-strip neckline with extreme cleavage + bare midriff above low-rise lehenga waistband. Generic festive / wedding-guest aesthetic.
+# Filename retains "chikankari" for Git history continuity — actual outfit is plain solid red bandeau (converged 2026-05-29 v9d after 9 anchor iterations).
+# Body push: balanced (per §2 fabric table — fitted choli + voluminous skirt mix) + isolated bust boost (M-size everywhere EXCEPT bust = 2 cup sizes larger).
 # Used with: --flux-dev --kontext flags (MANDATORY — do not run without these)
 # Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/red_chikankari_lehenga_festive.yaml --prompts character/ananya/carousel_prompts/red_chikankari_lehenga_festive.txt --name red_chikankari_lehenga_vN --flux-dev --kontext
 
