@@ -26,8 +26,10 @@ Usage:
     python scripts/auto_caption.py --input-dir "..." --mode florence2 --overwrite
 """
 
+import re
 import sys
 from pathlib import Path
+from typing import Any
 
 import click
 from rich.console import Console
@@ -37,6 +39,9 @@ ROOT = Path(__file__).parent.parent
 SUPPORTED_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
 
 TRIGGER = "AnyV2X9"
+
+# Pre-compile regex for multi-space collapse
+_RE_MULTISPACE = re.compile(r"\s{2,}")
 
 CAPTION_TEMPLATE_REMINDER = """
 -- EDIT REQUIRED --
@@ -50,23 +55,9 @@ See: character/ananya/v2_scene_anchor_vocab.md for exact vocabulary.
 """
 
 
-def caption_florence2(image_path: Path) -> str:
-    try:
-        import torch
-        from PIL import Image
-        from transformers import AutoModelForCausalLM, AutoProcessor
-    except ImportError:
-        console.print("[red]transformers or torch not installed.[/red]")
-        console.print("Install: pip install transformers torch pillow")
-        raise SystemExit(1)
-
-    model_name = "microsoft/Florence-2-base"
-    console.print(f"  Loading Florence-2 ({model_name})...")
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    processor = AutoProcessor.from_pretrained(model_name, trust_remote_code=True)
-    model = AutoModelForCausalLM.from_pretrained(model_name, trust_remote_code=True).to(device)
-    model.eval()
+def caption_florence2(image_path: Path, model: Any, processor: Any, device: str) -> str:
+    import torch
+    from PIL import Image
 
     img = Image.open(image_path).convert("RGB")
     prompt_text = "<MORE_DETAILED_CAPTION>"
@@ -97,9 +88,8 @@ def build_draft_caption(raw: str) -> str:
     for term in identity_terms:
         cleaned = cleaned.replace(term, "").replace(term.title(), "").replace(term.upper(), "")
 
-    # Collapse multiple spaces
-    import re
-    cleaned = re.sub(r"\s{2,}", " ", cleaned).strip().strip(",").strip()
+    # Collapse multiple spaces using pre-compiled regex
+    cleaned = _RE_MULTISPACE.sub(" ", cleaned).strip().strip(",").strip()
 
     draft = f"{TRIGGER}, {cleaned}"
     return draft
@@ -123,12 +113,32 @@ def main(input_dir: str, mode: str, overwrite: bool):
     console.print(f"[bold]Auto Caption — {mode}[/bold]")
     console.print(f"Images: {len(images)} | Overwrite: {overwrite}")
     if mode == "florence2":
-        console.print("[yellow]Florence-2: loads model on first image. May take 30-60s on CPU.[/yellow]")
+        console.print("[yellow]Florence-2: loading model. May take 30-60s on CPU...[/yellow]")
     if mode == "stub":
         console.print("[dim]Stub mode: writes empty .txt with template reminder. Fill manually.[/dim]")
 
-    # Florence-2: load model once
-    florence_model_loaded = False
+    # Florence-2: load model once outside the loop
+    model = None
+    processor = None
+    device = None
+    if mode == "florence2":
+        try:
+            import torch
+            from PIL import Image
+            from transformers import AutoModelForCausalLM, AutoProcessor
+            model_name = "microsoft/Florence-2-base"
+            console.print(f"  Loading Florence-2 ({model_name})...")
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            processor = AutoProcessor.from_pretrained(model_name, trust_remote_code=True)
+            model = AutoModelForCausalLM.from_pretrained(model_name, trust_remote_code=True).to(device)
+            model.eval()
+        except ImportError:
+            console.print("[red]Required libraries (transformers, torch, or pillow) not installed.[/red]")
+            console.print("Install: pip install transformers torch pillow")
+            raise SystemExit(1)
+        except Exception as e:
+            console.print(f"[red]Failed to load Florence-2: {e}[/red]")
+            raise SystemExit(1)
 
     skipped = 0
     written = 0
@@ -145,10 +155,7 @@ def main(input_dir: str, mode: str, overwrite: bool):
             caption = f"{TRIGGER}, [FILL IN]\n\n{CAPTION_TEMPLATE_REMINDER}"
         elif mode == "florence2":
             try:
-                if not florence_model_loaded:
-                    # Import happens inside function on first call
-                    florence_model_loaded = True
-                raw = caption_florence2(img_path)
+                raw = caption_florence2(img_path, model, processor, device)
                 caption = build_draft_caption(raw)
             except Exception as e:
                 console.print(f"  [red]Florence-2 error: {e}[/red]")
