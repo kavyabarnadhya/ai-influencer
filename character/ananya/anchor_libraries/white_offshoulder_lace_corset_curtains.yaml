@@ -1,0 +1,33 @@
+# Anchor: white off-shoulder lace corset bustier dress (boned lace bodice + sweetheart neckline + draped off-shoulder sleeves + white ruched mini skirt with scalloped eyelash-lace hem + long sheer white chiffon side train on left), indoor luxe setting with floor-to-ceiling sheer white curtains + warm beige drape on right + pale marble floor, soft window daylight.
+# Premium tier — bare off-shoulder shoulders + light decolletage + thigh-high leg exposure. Editorial fashion aesthetic matching reference shoot.
+# Body push: balanced (per carousel_workflow.md §2 fabric table — structured boned corset is slimming fabric, full size-12 push would over-correct to plus-size). Keep hips>waist + fuller chest; add NOT plus-size NOT oversized brake.
+# Used with: --flux-dev --kontext flags (MANDATORY — do not run without these)
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/white_offshoulder_lace_corset_curtains.yaml --prompts character/ananya/carousel_prompts/white_offshoulder_lace_corset_curtains.txt --name white_offshoulder_lace_corset_v1 --flux-dev --kontext
+
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
+
+anchor_prompt: >
+  23-year-old South Asian woman, size 12 curvy M-size hourglass figure,
+  wide hips noticeably wider than the waist, fuller rounder thighs, fuller chest and décolletage,
+  defined cinched narrow waist with full soft curves above and below, soft rounded feminine curves,
+  healthy curvy everyday Indian woman build,
+  distinctly NOT slim NOT editorial NOT model-thin, but also NOT plus-size NOT oversized,
+  balanced fuller M-size proportions with real natural feminine curves,
+  wearing a white off-shoulder lace corset bustier dress,
+  structured boned white lace corset bodice with a low sweetheart neckline sitting across the bust,
+  soft white chiffon draped off-shoulder sleeves falling off both shoulders leaving shoulders and collarbone bare,
+  vertical-paneled white floral lace overlay running down the boned bodice to the hip,
+  white ruched stretch-jersey mini skirt section hugging the hips and ending mid-thigh,
+  scalloped white eyelash-lace trim along the mini hem,
+  a long sheer white chiffon side panel train falling to the floor on the left side,
+  white pointed-toe stiletto heels, thin black cord bracelet on right wrist, small stud earrings,
+  long dark brown loose flowy wavy hair swept over right shoulder,
+  standing three-quarter to camera with weight shifted onto right hip, left hand relaxed at side near a curtain,
+  indoor luxe daylight setting with floor-to-ceiling sheer white curtains as backdrop behind,
+  warm beige-cream fabric drape along the right edge of frame,
+  pale marble floor underfoot, soft diffused window daylight, bright airy high-key light no harsh shadows,
+  shot on Sony A7IV 50mm,
+  authentic skin texture with visible pores, natural skin imperfections, no plasticky skin,
+  asymmetric facial features, slightly off-center composition, candid moment not posed
