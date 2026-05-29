@@ -1,0 +1,28 @@
+# Anchor: plain solid red sleeveless deep bandeau-neckline choli (NO chikankari, NO V-neck — see anchor_prompt) + matching plain solid red low-rise flared lehenga skirt + sheer plain solid red chiffon dupatta + statement gold jhumka tassel earrings, indoor festive setting with dark carved teak wooden door + soft pink wall + traditional genda-phool wall hanging.
+# Premium tier — deep low underbust bandeau-strip neckline with extreme cleavage + bare midriff above low-rise lehenga waistband. Generic festive / wedding-guest aesthetic.
+# Filename retains "chikankari" for Git history continuity — actual outfit is plain solid red bandeau (converged 2026-05-29 v9d after 9 anchor iterations).
+# Body push: balanced (per §2 fabric table — fitted choli + voluminous skirt mix) + isolated bust boost (M-size everywhere EXCEPT bust = 2 cup sizes larger).
+# Used with: --flux-dev --kontext flags (MANDATORY — do not run without these)
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/red_chikankari_lehenga_festive.yaml --prompts character/ananya/carousel_prompts/red_chikankari_lehenga_festive.txt --name red_chikankari_lehenga_vN --flux-dev --kontext
+
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
+
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure,
+  pronounced hourglass with hips slightly wider than waist, VERY LARGE FULL HEAVY DD-cup breasts with deep substantial cleavage line, prominent fuller décolletage curves, defined cinched narrow waist, NOT slim editorial NOT model-thin NOT plus-size NOT oversized NOT heavy belly NOT thick thighs, balanced M-size proportions everywhere with natural feminine curves, body is M-size everywhere EXCEPT bust which is two full cup sizes larger and heavier than the rest of the build,
+  wearing fitted plain solid deep red sleeveless silk-satin choli blouse, NO chikankari NO large embroidered motifs NO trim NO gold edging NO visible buttons NO button strip NO contrasting hem band — fabric is uniform plain solid red with only tiny scattered white pearl-bead mukaish dot speckles like fine evenly-distributed white pinpoints across the solid red surface, neckline is a very narrow thin underbust bandeau strip wrapped horizontally low under the breasts with shoulder straps stitched on top, the bandeau strip is a thin solid red horizontal band sitting at and just below the bust apex with its top edge running as one SINGLE FLAT HORIZONTAL LINE all the way across the chest from one armpit to the other armpit parallel to the floor, the band top edge cuts across at low bust apex level exposing both breasts mostly above the band showing extreme deep cleavage and full décolletage above the horizontal band line, two wide cropped solid red shoulder straps sit on top of the bandeau strip rising up to the shoulders, the visible deep cleavage is created by the narrow bandeau strip sitting at the apex of the bust NOT by any V-cut NOT by any plunge NOT by any taper, the shape reads as a low underbust bandeau strip + straps NOT V-neck NOT sweetheart NOT plunging neckline NOT high-bandeau, wide cropped shoulder straps set wide apart, choli hem ends just at the under-bust line as plain raw red edge leaving entire midriff bare and exposed,
+  paired with low-rise long flared plain solid deep red flowy chiffon-satin lehenga skirt — fabric is uniform plain solid red with the same tiny scattered white pearl-bead mukaish dot speckles as the choli evenly distributed across the skirt, only a single subtle thin red embroidered border running along the very bottom floor-grazing hem of the skirt, NO chikankari NO large motifs NO waistband band NO contrasting trim, skirt waistband sitting low on hips well below natural waist exposing midriff above, skirt falling long and full and flared to ankles with soft drape and gentle movement,
+  draped with sheer plain solid deep red chiffon dupatta over left shoulder falling behind and along left side of body to the floor, dupatta is plain solid red chiffon with NO embroidery NO pattern NO border,
+  long dark wavy hair loose falling past shoulders to mid-back,
+  large statement gold jhumka tassel earrings with multiple gold bead strands and tiny pearl drops cascading from each earlobe down to the collarbone,
+  thin gold watch on right wrist with delicate gold chain bracelet, single small gold ring on right hand,
+  standing facing camera with weight shifted slightly on right leg and right hand resting lightly at hip just above lehenga waistband,
+  in indoor festive setting with dark carved teak-brown wooden door panel behind as backdrop,
+  soft pink-cream painted wall on left,
+  traditional Indian genda-phool style wall hanging on left wall with cream and pink and green and yellow fabric bead garland with small bell charms cascading down,
+  warm soft directional indoor lighting from front-left with gentle key light, cosy festive mood,
+  shot on Sony A7IV 50mm,
+  authentic skin texture with visible pores, natural skin imperfections, no plasticky skin,
+  asymmetric facial features, slightly off-center composition, candid moment not posed

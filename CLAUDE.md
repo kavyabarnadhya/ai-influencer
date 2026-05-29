@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A fully local, CLI-driven image generation pipeline for creating photorealistic, face-consistent images of virtual AI influencer personas using ComfyUI. Primary character: **Ananya** (North Indian fashion/lifestyle creator, trigger word `AnanyaAI`). Secondary/regression character: **KaviB** (trigger word `KaviB`). Face identity is locked via cloud-trained Kohya Dreambooth LoRAs.
 
-**Platform:** Windows 11, RTX 3050 6GB VRAM, ComfyUI Desktop at `C:\Users\barna\Documents\ComfyUI` (port 8000)
+**Platform:** Windows 11, RTX 3050 6GB VRAM, ComfyUI Desktop at `C:\Users\barna\Documents\ComfyUI` (default port 8000; falls back to 8001 if 8000 is held by a zombie process — `find_comfyui_port` in `scripts/comfyui_api.py` tries 8000, 8001, 8188, 8002 in that order).
 
 ## Commands
 

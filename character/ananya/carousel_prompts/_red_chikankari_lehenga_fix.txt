@@ -1,0 +1,9 @@
+# Fix file: replace slide_03 of carousel_red_chikankari_lehenga_v9d/
+# Original slide_03 had THREE hands (hair-touch + chest hand + hip hand) — third-hand artefact per §8.
+# This file generates ONE slide which we'll then copy to slide_03_cand_0.png.
+#
+# Run: python scripts/faceswap_carousel.py --prompts character/ananya/carousel_prompts/_red_chikankari_lehenga_fix.txt --name red_chikankari_lehenga_v9d_fix --anchor-config character/ananya/anchor_libraries/red_chikankari_lehenga_festive.yaml --flux-dev --kontext
+
+# slide_00 (in fix file) -> target slide_03 of v9d
+# Pose: leaning right shoulder against door, both arms hanging straight down at sides with hands at thigh level (NO raised arm, NO hand-to-hair, NO hand-to-chest, NO third arm), head turned looking off-camera left
+anchor=default | same woman in same fitted deep red sleeveless deep bandeau-neckline choli with plain solid red fabric and matching plain solid red low-rise flared lehenga skirt leaning right shoulder lightly against carved teak wooden door panel, BOTH arms hanging straight down at sides with both hands relaxed at thigh level, NO raised arms NO hands near hair NO hands near chest NO third arm anywhere, head turned looking off-camera to the left with soft contemplative expression and parted lips, dark wavy hair flowing back over shoulder, sheer plain solid red chiffon dupatta draped over left shoulder falling along left side of body, warm directional festive light on face from left, genda-phool wall hanging visible on left, keeping exact same deep low bandeau tube-band horizontal neckline with cropped shoulder straps on top, plain solid red fabric with tiny scattered white pearl-bead mukaish dot speckles only, bare midriff with low-rise waistband, gold jhumka tassel earrings, gold watch and bangles on right wrist, only two hands visible total
