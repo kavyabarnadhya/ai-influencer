@@ -1,3 +1,44 @@
+# Guidelines for future Bolt PRs (locked 2026-05-29)
+
+**Read this section before proposing any new PR.** After 30 merged Bolt PRs Apr-May 2026, an audit found that ~5-6 PRs moved real wall-clock time; the other ~24 were micro-optimisations on already-fast Python paths that get dwarfed by GPU-bound FLUX inference (~120s/slide on RTX 3050 6GB, ~95% of total time). Future PRs must clear a higher bar.
+
+## Required in every PR description
+
+- **Before/after benchmark numbers** on a real workflow that the user actually runs (carousel generation, batch_generate, reprocess_carousel_post). Synthetic 10k-node micro-benchmarks do not count.
+- **Wall-clock impact** at the user's hardware tier (RTX 3050 6GB, 16GB RAM) — state how many seconds the change saves per carousel slide / per batch.
+- **Risk note** on any function this PR has touched ≥3 times before.
+
+## Hands-off zones
+
+- **`scripts/skin_color_match.py`** — active development this session (in-slide target sampling, face-inclusion lift, σ feather, _MAX_L_SHIFT tuning). Do not touch until 2026-06-15 to avoid merge conflicts. Skin matching optimisations (#60 vectorised, #62 selective pixel conversion) were the legitimate hot-path wins — keep them but do not stack more on top.
+- **`workflows/*.json`** — these are exported ComfyUI graphs with `_claude_inject_*` sentinel titles that scripts depend on (CLAUDE.md "Workflow Injection System"). Do not refactor, rename, or "optimise" workflow JSON.
+- **GPU-bound paths** — anything inside FLUX inference, ReActor face swap, or hand detail SDXL inpaint. The Python wrapper is not the bottleneck.
+- **Character / output data** — `character/ananya/**`, `output/**`, `setup/**` — these are user-curated assets, not code to optimise.
+
+## Paused clusters (converged or low-value)
+
+- **`inject_workflow_values` and its helpers** — touched 10+ times by Bolt (#5, #7, #19, #21, #26, #29, #33, #43, #47, #49, plus #35 which fixed cache poisoning a prior Bolt PR introduced). Function is converged. New PRs targeting this function require explicit owner approval before opening — do not auto-open.
+- **MCP server discovery / scandir** (#37, #38, #41, #52, #54) — not on the user's critical path; per memory `feedback_image_review.md` the user avoids `mcp__ananya__review_carousel`. No more MCP optimisation PRs unless there's a documented user complaint.
+- **Florence-2 captioning** (#63) — one-time use during LoRA training data prep, not a recurring hot path. No more captioning optimisations until next training cycle starts.
+
+## Kept clusters (real wins, keep optimising)
+
+- **Skin matching vectorisation** (subject to the hands-off window above) — genuine hot path during `reprocess_carousel_post.py`.
+- **Caching** (workflow load, path resolution, LLM responses, preset loading) — meaningful cold-start savings on every script invocation.
+- **Batch / connection pooling** (`requests.Session`, async queueing) — helps when the user runs `batch_generate.py` or `faceswap_stock.py`.
+
+## Anti-patterns Bolt has fallen into
+
+1. **Bolt-fixing-Bolt** (#35 fixed cache poisoning introduced by an earlier Bolt PR). Do not introduce new caching layers without verifying every prior Bolt cache it interacts with.
+2. **Repeated touches on the same function** without convergence. If a function has 5+ prior Bolt PRs, the next PR has to demonstrate why this one is structurally different, not just a smaller constant-factor win.
+3. **No regression test added when removing code paths** — high deletion-to-addition ratios (#38: +79/-179, #43: +85/-68) need explicit before/after correctness verification, not just performance numbers.
+
+## Default behaviour
+
+If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all hands-off / paused-cluster checks above, do not open it. Park the idea in a `## Parked` subsection below this header for the human to triage.
+
+---
+
 ## 2025-01-24 - Selective Deep-Copying for Workflow Injection
 
 **Learning:** In Python, `json.loads(json.dumps(obj))` is often faster than `copy.deepcopy(obj)`, but it still has O(N) complexity where N is the size of the entire object. In ComfyUI workflows, which can be large, deep-copying the entire workflow to change only a few nodes is inefficient.

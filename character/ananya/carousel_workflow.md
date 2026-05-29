@@ -1,6 +1,8 @@
 # Ananya Carousel Workflow — Canonical Reference
 
-**Last updated: 2026-05-27 — §11 review checklist adds hand realism criterion (Stage 3.5 occasionally misses on cup-grip / on-railing / fingers-spread poses); §11 documented exception section adds failure-resolution modes (drop-slide ship 5, reroll post-process, partial rerun) with guidance on when to pick which. Validated 2026-05-27 on black puff crop haveli v1 (slide_00 hand deformity → dropped, shipped 5-slide carousel).
+**Last updated: 2026-05-29 — skin lock Stage 3.6 now applies LAB shift to BOTH face and body skin (no face exclusion), `_MAX_L_SHIFT` raised back to 25.0 / `_MAX_AB_SHIFT` to 12.0. Warm-cast scenes (festive red, golden hour, indoor incandescent) were leaving the rendered face darker than face_ref_v2 baseline via ReActor blend bleed-through; lifting face+body together unifies the whole subject to the fair reference tone (validated on red chikankari lehenga festive v9d). `scripts/comfyui_api.py` discovery sweep now includes port 8001 (ComfyUI Desktop fallback when 8000 is held by a zombie process). §11 hand realism criterion gains an explicit third-hand check (slide_03 of v9d had hair-touch+chest+hip = 3 hands; partial rerun with strict 2-hand prompt fixed it).
+
+Prior 2026-05-27 — §11 review checklist adds hand realism criterion (Stage 3.5 occasionally misses on cup-grip / on-railing / fingers-spread poses); §11 documented exception section adds failure-resolution modes (drop-slide ship 5, reroll post-process, partial rerun) with guidance on when to pick which. Validated 2026-05-27 on black puff crop haveli v1 (slide_00 hand deformity → dropped, shipped 5-slide carousel).
 
 Prior 2026-05-26 — body push formula now fabric-aware (§2: slimming fabrics like leather need a softer push; voluminous fabrics need none). §5 BG rules add floor cleanliness override + event-installation wall-floor colour match. Added black strapless leather maxi event v5 worked example (§12). Validated skin lock feather patch in production (orange tank cafe v3 + black leather event v5, ΔL up to 13.7 with no burn).
 
@@ -265,6 +267,7 @@ Apply to every slide. Fail if any criterion fails on any slide (with documented 
 | Hair | Long dark loose wavy on every slide | Hair length, color, or style changed |
 | Pose variance | 6 distinct compositions (not 6 variants of same pose) | Two or more slides have visually-similar pose |
 | Hand realism | All visible hands have 5 fingers, natural joint geometry, no fused fingers, no extra thumbs | Visible 6-finger, fused, or warped hand — Stage 3.5 hand detail occasionally misses on cup-grip / on-railing / fingers-spread poses |
+| Hand count | Exactly 2 hands visible per full-body slide (0-2 in closeups) | More than 2 hands — Kontext-hallucinated third arm/hand. Common triggers: raised arm + hand-at-hip + dupatta-drape combos; lean-against-object poses where prompt names two hand positions but Kontext adds a hair-touch (validated red chikankari lehenga v9d slide_03: 3 hands = hair-touch + chest + hip). Mitigation: write the prompt with explicit `BOTH arms hanging straight at sides, NO raised arms, NO hands at chest, NO third arm, only two hands visible total` |
 
 ### Documented exception
 
@@ -283,6 +286,33 @@ Validated 2026-05-27 on black puff crop haveli v1: slide_00 had hand deformity, 
 ---
 
 ## 12. Worked examples
+
+### Red bandeau choli + lehenga, indoor festive carved-door v9d (2026-05-29)
+
+- **Anchor YAML:** `character/ananya/anchor_libraries/red_chikankari_lehenga_festive.yaml`
+- **Prompt file:** `character/ananya/carousel_prompts/red_chikankari_lehenga_festive.txt`
+- **Caption file:** `character/ananya/captions/red_chikankari_lehenga_festive.txt`
+- **Output:** `output/2026-05-29/ananya/carousel_red_chikankari_lehenga_v9d/` (slide_03 replaced from `_v9d_fix/` per §9)
+
+**Recipe:** Body LoRA 0.5, seed 334521876, face_ref_v2, `--flux-dev --kontext`, premium tier (deep cleavage + bare midriff), face+body skin lock auto-applied.
+
+**Outfit:** plain solid red sleeveless deep bandeau-neckline choli with cropped shoulder straps and tiny scattered white mukaish pearl-dot speckles, plain solid red low-rise flared lehenga skirt, sheer plain solid red chiffon dupatta over left shoulder, large gold jhumka tassel earrings with pearl drops, gold watch + bangles on right wrist.
+
+**BG:** indoor festive setting with dark carved teak wooden door panel + soft pink-cream wall + traditional genda-phool wall hanging on left (cream/pink/green/yellow fabric beads + bells).
+
+**Neckline iteration (9 anchor rounds before landing):** the carousel exposed a hard FLUX tradeoff between cleavage depth and shape geometry. Square + modest cleavage works (v5). Deep + V-cut works (v6). Deep + true square does NOT — FLUX biases toward V/sweetheart at deep cuts because that's the training distribution. The landing recipe was a low underbust bandeau-strip framing: `narrow thin underbust bandeau strip wrapped horizontally low under the breasts with shoulder straps stitched on top, the band top edge cuts across at low bust apex level exposing both breasts mostly above the band showing extreme deep cleavage`. This produced deep cleavage with a horizontal-ish top edge.
+
+**Fabric correction:** the early "chikankari embroidered" wording rendered as large white motifs scattered across red — wrong. The refs were plain solid red satin with tiny scattered white mukaish pearl-bead dot speckles only. The fix was an explicit list of NOT clauses: `NO chikankari NO large embroidered motifs NO trim NO gold edging NO visible buttons NO button strip NO contrasting hem band`. Pattern: when refs read as "plain solid" with subtle texture, enumerate the negatives — FLUX biases toward visible embroidery on red Indian wear.
+
+**Body push:** balanced push from §2 fabric table (fitted choli + voluminous skirt mix), plus an isolated bust boost (`body is M-size everywhere EXCEPT bust which is two full cup sizes larger and heavier than the rest of the build`). Bust larger without rest of body drifting plus-size — works.
+
+**Skin lock face-inclusion fix (script patched mid-run):** warm festive lighting was making the rendered face darker than face_ref_v2 baseline (via ReActor blend bleed-through). With face previously excluded from the LAB shift, the body got lifted +12-18 L to match face_ref while the face stayed at the warm-cast tone → visible face/body mismatch. Patched `scripts/skin_color_match.py` to apply the LAB shift to the FULL skin mask (face + body) so both unify to the fair face_ref tone. Cap raised back to `_MAX_L_SHIFT = 25.0` / `_MAX_AB_SHIFT = 12.0` since the inclusion absorbs the larger lift cleanly. Rule: warm-cast scenes (festive, golden hour, indoor incandescent) need face-inclusion lift, not face-exclusion preservation.
+
+**Three-hand fail and partial rerun:** v9d slide_03 prompt was `leaning shoulder against door + right hand on hip + left arm against column`, but Kontext hallucinated a raised hair-touch arm (likely bleed from slide_02's hair-push prompt) → rendered 3 hands (hair-touch + chest grip + hip). Fixed via partial rerun (`_red_chikankari_lehenga_fix.txt`) with explicit `BOTH arms hanging straight at sides, NO raised arms, NO hands at chest, NO third arm, only two hands visible total` and copied to `slide_03_cand_0.png`. New §11 hand-count criterion captures this failure mode for future review.
+
+**ComfyUI port fallback:** during this session ComfyUI Desktop fell back to port 8001 because port 8000 was held by a zombie process. Updated `scripts/comfyui_api.py:find_comfyui_port` candidate list to include 8001. Rule: if a script reports "ComfyUI not running" but a port-8000 listener exists, check process age + restart ComfyUI; the script now also tries 8001 as fallback.
+
+**Final state:** all 7 review criteria pass + hand realism + hand count + skin lock seam pass. slide_02 has partial back-to-camera (Kontext interpreted "head over shoulder toward camera" as side-profile away) but accepted as artsy variation. Carousel approved for posting.
 
 ### Black strapless bandeau + leather pencil maxi, event launch backdrop v5 (2026-05-26)
 
