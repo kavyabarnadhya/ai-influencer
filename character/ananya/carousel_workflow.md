@@ -1,6 +1,8 @@
 # Ananya Carousel Workflow — Canonical Reference
 
-**Last updated: 2026-05-24 — added hand realism Stage 3.5 (flux_hand_detail.json) + "walking from static anchor" + "hair-push while holding object" to forbidden patterns (grey tank indoor stress test)**
+**Last updated: 2026-05-30 — §8 + §11: hands resting on a white/light skirt fuse every time (low contrast → YOLO hand-detect misses → Stage 3.5 hand inpaint never fires). `behind back` does not fix it. Only reliable fix = both hands above the bust on skin/hair/darker drape. Validated white off-shoulder lace corset v1 after 3 failed reruns.**
+
+Prior 2026-05-24 — added hand realism Stage 3.5 (flux_hand_detail.json) + "walking from static anchor" + "hair-push while holding object" to forbidden patterns (grey tank indoor stress test).
 
 This is the **single source of truth** for generating any Ananya OOTD/lifestyle carousel. Read this end-to-end before starting a new carousel. CLAUDE.md contains the short pre-flight gate; this doc contains the full reference and worked examples.
 
@@ -153,6 +155,7 @@ The benchmark order. Every new carousel should follow this unless there's a docu
 | `change to waist-up portrait framing` | Kontext ignores waist-up cue, stays full-body | `change to chest-up portrait framing showing face neck shoulders and neckline only` |
 | `mid-stride walking toward camera` / any motion verb from a static anchor | Kontext preserves anchor composition — motion instruction silently ignored → slide becomes near-duplicate of anchor pose | Use static-friendly action: `stepping forward with one foot ahead`, `cup raised to lips taking a sip`, `head tilted to one side looking off-camera` |
 | `hand raised through/pushing hair` combined with `holding object in other hand` | Three-hand artefact — Kontext renders the raised arm but also keeps an "expected" hand at the side, producing extra limb | Pick one: either hair-push (both hands free from objects) OR holding object (no hair-push). If both poses needed, split across two slides. |
+| `hand at hip` / `hand on skirt` / `hands holding skirt` on a **white or light-coloured skirt** | Low contrast — FLUX fuses the fingers into the pale fabric (clawed/webbed/fused hand). YOLO hand-detect (`hand_yolov8s.pt`) finds no clear hand bbox against white, so Stage 3.5 hand inpaint never fires → ships broken. `behind back` does NOT fix it: Kontext ignores the instruction and keeps a hand on the skirt anyway. | Keep BOTH hands **above the bust** on a high-contrast surface: fingertips at cheek/jaw, hand at collarbone (skin), hand in dark hair, or flat against a darker drape. Explicit tokens: `both hands held high above the bust, NO hand below the bust, NO hand on the skirt, NO hand on the hips`. Validated white off-shoulder lace corset v1 (2026-05-30) after 3 failed reruns — only hands-above-bust landed clean. |
 
 ### Concrete before/after examples
 
@@ -216,6 +219,7 @@ Apply to every slide. Fail if any criterion fails on any slide (with documented 
 | Accessories | Earrings/bracelet present on most slides; outfit core hold all | Outfit core changed (neckline, strap detail, color) |
 | Hair | Long dark loose wavy on every slide | Hair length, color, or style changed |
 | Pose variance | 6 distinct compositions (not 6 variants of same pose) | Two or more slides have visually-similar pose |
+| Hand realism | All visible hands have 5 natural separated fingers, no fused/clawed/webbed fingers, no extra thumbs | Visible fused/clawed/6-finger hand — Stage 3.5 hand detail misses on low-contrast placements. **Hands resting on a white/light skirt fuse every time** (low contrast → YOLO `hand_yolov8s.pt` finds no bbox → Stage 3.5 never fires; `behind back` does NOT fix it, Kontext keeps a hand on the skirt). Fix by re-posing both hands ABOVE the bust on skin/hair/darker drape and regenerating the slide — re-running post-process alone cannot repair a fused hand. See §8 row. Validated white off-shoulder lace corset v1 (2026-05-30) after 3 failed reruns. |
 
 ### Documented exception
 
