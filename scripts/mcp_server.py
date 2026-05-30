@@ -256,7 +256,7 @@ def _find_recent_images(output_dir: Path, character: str, subdir_name: str, limi
 
         for dname in date_dirs:
             char_dir = output_dir / dname / subdir_name
-            if char_dir.exists() and char_dir.is_dir():
+            try:
                 # Find images in this specific directory
                 # Optimization: Sort by name (descending) instead of mtime.
                 # Use scandir to avoid Path object overhead in hot discovery loops.
@@ -270,6 +270,8 @@ def _find_recent_images(output_dir: Path, character: str, subdir_name: str, limi
                 recent_images.extend([char_dir / name for name in day_images[:needed]])
                 if len(recent_images) >= limit:
                     break
+            except OSError:
+                continue
     except OSError:
         pass
     return recent_images[:limit]
@@ -337,6 +339,23 @@ Pass criteria:
 - Fail if: deformed hands, missing face on model slide, person visible on ambient slide, severe artifacts"""
 
 
+_anthropic_client = None
+
+
+def _get_anthropic_client():
+    """
+    Lazily initialize the Anthropic client.
+    Reusing the client enables connection pooling (via httpx) across multiple tool calls.
+    """
+    global _anthropic_client
+    if _anthropic_client is None:
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if not api_key:
+            raise RuntimeError("ANTHROPIC_API_KEY environment variable not set")
+        _anthropic_client = anthropic.Anthropic(api_key=api_key)
+    return _anthropic_client
+
+
 @mcp.tool()
 def review_carousel(carousel_path: str) -> str:
     """Review all slides in a carousel folder using Claude vision. Scores each slide and saves review.json and review.txt.
@@ -361,11 +380,11 @@ def review_carousel(carousel_path: str) -> str:
     if not slides:
         return f"ERROR: No slide_*.png files found in {folder}"
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        return "ERROR: ANTHROPIC_API_KEY environment variable not set"
+    try:
+        client = _get_anthropic_client()
+    except RuntimeError as e:
+        return f"ERROR: {e}"
 
-    client = anthropic.Anthropic(api_key=api_key)
     results = []
 
     for slide_path in slides:
@@ -481,11 +500,10 @@ def draft_caption(carousel_path: str, platform: str = "instagram") -> str:
         if review_data.get("carousel_overall") == "fail":
             return f"WARNING: Carousel failed review. Fix issues before drafting caption.\nReview:\n{(folder / 'review.txt').read_text(encoding='utf-8')}"
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        return "ERROR: ANTHROPIC_API_KEY environment variable not set"
-
-    client = anthropic.Anthropic(api_key=api_key)
+    try:
+        client = _get_anthropic_client()
+    except RuntimeError as e:
+        return f"ERROR: {e}"
 
     try:
         response = client.messages.create(
@@ -509,7 +527,7 @@ def draft_caption(carousel_path: str, platform: str = "instagram") -> str:
     return f"Caption saved to {caption_path}\n\n{caption}"
 
 
-def _find_all_carousels(output_dir: Path, subdir_name: str) -> list[Path]:
+def _find_all_carousels(output_dir: Path, subdir_name: str, limit: int | None = None) -> list[Path]:
     """
     Helper to find all carousel directories using date-based traversal.
     Optimization: Traverse date-based directories in reverse order using os.scandir.
@@ -524,7 +542,7 @@ def _find_all_carousels(output_dir: Path, subdir_name: str) -> list[Path]:
 
         for dname in date_dirs:
             char_dir = output_dir / dname / subdir_name
-            if char_dir.exists() and char_dir.is_dir():
+            try:
                 # Optimization: Sort by name (descending) instead of mtime.
                 # Use scandir to avoid Path object overhead in large directories.
                 with os.scandir(char_dir) as it:
@@ -532,18 +550,29 @@ def _find_all_carousels(output_dir: Path, subdir_name: str) -> list[Path]:
                         [entry.name for entry in it if entry.is_dir() and entry.name.startswith("carousel_")],
                         reverse=True
                     )
-                carousel_dirs.extend([char_dir / name for name in day_carousels])
+
+                # Optimization: Early exit if limit reached
+                if limit is not None:
+                    needed = limit - len(carousel_dirs)
+                    carousel_dirs.extend([char_dir / name for name in day_carousels[:needed]])
+                    if len(carousel_dirs) >= limit:
+                        break
+                else:
+                    carousel_dirs.extend([char_dir / name for name in day_carousels])
+            except OSError:
+                continue
     except OSError:
         pass
     return carousel_dirs
 
 
 @mcp.tool()
-def content_readiness_report(character: str = "ananya") -> str:
-    """Scan all carousel output folders and report review + caption status for each.
+def content_readiness_report(character: str = "ananya", limit: int = 50) -> str:
+    """Scan carousel output folders and report review + caption status for each.
 
     Args:
         character: Character name (default: ananya)
+        limit: Max number of recent carousels to report (default 50)
     """
     cfg = _load_config()
     output_dir = ROOT / cfg["paths"]["output_dir"]
@@ -554,23 +583,35 @@ def content_readiness_report(character: str = "ananya") -> str:
     char_cfg = cfg.get("characters", {}).get(character, {})
     subdir_name = char_cfg.get("output_subdir", character)
 
-    carousel_dirs = _find_all_carousels(output_dir, subdir_name)
+    carousel_dirs = _find_all_carousels(output_dir, subdir_name, limit=limit)
 
     if not carousel_dirs:
         return f"No carousel folders found for {character} under {output_dir}"
 
     rows = []
     for d in carousel_dirs:
-        # Optimization: Use scandir to count slides without creating Path objects
+        # Optimization: Use a single scandir pass to count slides and detect review/caption files.
+        # This avoids multiple exists() calls and redundant directory iterations.
+        slide_count = 0
+        has_review = False
+        has_caption = False
         try:
             with os.scandir(d) as it:
-                slide_count = sum(1 for entry in it if entry.is_file() and entry.name.startswith("slide_") and entry.name.endswith(".png"))
+                for entry in it:
+                    if entry.is_file():
+                        name = entry.name
+                        if name.startswith("slide_") and name.endswith(".png"):
+                            slide_count += 1
+                        elif name == "review.json":
+                            has_review = True
+                        elif name == "caption.txt":
+                            has_caption = True
         except OSError:
-            slide_count = 0
+            pass
 
         review_status = "not reviewed"
         carousel_pass = None
-        if (d / "review.json").exists():
+        if has_review:
             try:
                 rd = json.loads((d / "review.json").read_text(encoding="utf-8"))
                 carousel_pass = rd.get("carousel_overall") == "pass"
@@ -578,8 +619,8 @@ def content_readiness_report(character: str = "ananya") -> str:
             except Exception:
                 review_status = "review.json unreadable"
 
-        caption_status = "✅" if (d / "caption.txt").exists() else "—"
-        postable = "✅ ready" if carousel_pass and (d / "caption.txt").exists() else ("⚠️ needs caption" if carousel_pass else "❌ not ready")
+        caption_status = "✅" if has_caption else "—"
+        postable = "✅ ready" if carousel_pass and has_caption else ("⚠️ needs caption" if carousel_pass else "❌ not ready")
 
         rows.append((d.name, slide_count, review_status, caption_status, postable))
 

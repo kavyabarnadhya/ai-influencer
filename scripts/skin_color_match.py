@@ -2,9 +2,10 @@
 Post-process body skin tone lock for Ananya carousel pipeline.
 
 Runs after ReActor faceswap, before 1080x1920 resize.
-Shifts body skin pixels (arms, legs, neck-below-blend, décolletage) in LAB space
-to match face_ref skin tone. Face region (from YOLO face bbox) is untouched so
-ReActor output is fully preserved.
+Shifts skin pixels (face + arms, legs, neck-below-blend, décolletage) in LAB space
+to match face_ref skin tone. As of 2026-05-29 the LAB shift is applied to BOTH
+face and body skin (face-inclusion) so warm-cast scenes do not leave the
+rendered face darker than the face_ref baseline via ReActor blend bleed-through.
 
 Usage:
     match_body_skin_to_face_ref(slide_path, face_ref_path, out_path)

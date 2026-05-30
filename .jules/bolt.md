@@ -143,6 +143,32 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 **Learning:** Sorting files by modification time (`st_mtime`) in a directory with hundreds or thousands of files is extremely expensive because it triggers a `stat()` syscall for every entry. In this application, image and carousel filenames contain timestamps or are created sequentially, meaning alphabetical sorting is chronologically equivalent to `mtime` sorting.
 **Action:** Replace `key=lambda p: p.stat().st_mtime` with default name-based sorting in discovery helpers. Combine this with early slicing of the result set to minimize memory overhead when satisfied by the first few days of output.
 
+## 2026-05-21 - MCP Connection Pooling and Single-Pass Discovery
+
+**Learning:** MCP server tools that make sequential LLM calls (like reviewing carousels) suffer from repeated client instantiation overhead. Furthermore, generating readiness reports across thousands of directories becomes a bottleneck when using multiple `exists()` calls per directory.
+
+**Action:** Implement lazy global initialization for heavy API clients (like `anthropic.Anthropic`) to enable connection pooling across tool calls. Consolidate all file presence and metadata checks into a single `os.scandir` loop per directory in report generation logic. Use a `limit` parameter to bound discovery time as the output history grows.
+
 ## 2026-05-20 - Scandir for Faster Discovery and Reduced Path Overhead
 **Learning:** `pathlib.Path.glob` and `Path.iterdir` are significantly slower than `os.scandir` in large directories because they instantiate `Path` objects for every entry and may trigger redundant `stat()` calls. In hot discovery loops (like those in MCP servers), using `os.scandir` with string-based prefix/suffix matching provides a measurable speedup (approx 2-4x) by avoiding object allocation overhead and leveraging cached entry metadata.
 **Action:** Replace `Path.glob` and `Path.iterdir` with `os.scandir` in hot-loop discovery helpers. Perform filtering using `entry.name.startswith` and `entry.name.endswith` to keep discovery as close to the kernel as possible.
+
+## 2026-05-22 - Preset Loading Optimization and Deep Copy Isolation
+**Learning:** Repeatedly parsing the same YAML configuration file (e.g., ) in batch loops or interactive tools adds significant latency (~7.5ms per call). Caching the parsed object is a major win, but requires isolation to prevent state leakage.
+**Action:** Use `@functools.lru_cache` to cache raw YAML loads. Return a deep copy of the specific entry using `json.loads(json.dumps())`, which provides a ~125x speedup over repeated I/O while ensuring callers can't corrupt the internal cache.
+
+## 2026-05-22 - Preset Loading Optimization and Deep Copy Isolation
+**Learning:** Repeatedly parsing the same YAML configuration file (e.g., presets.yaml) in batch loops or interactive tools adds significant latency (~7.5ms per call). Caching the parsed object is a major win, but requires isolation to prevent state leakage.
+**Action:** Use `@functools.lru_cache` to cache raw YAML loads. Return a deep copy of the specific entry using `json.loads(json.dumps())`, which provides a ~125x speedup over repeated I/O while ensuring callers can't corrupt the internal cache.
+
+## 2026-05-23 - Vectorized NumPy Operations for Skin Tone Matching
+
+**Learning:** Repeatedly using the same boolean mask to index different channels of a large image (e.g., `lab[:, :, 0][mask]`) triggers multiple redundant memory allocations and scans in NumPy. Extracting the masked pixels once into a temporary array (`skin_pixels = lab[mask]`) and using vectorized multi-channel operations (like `mean(axis=0)`) is significantly more efficient.
+
+**Action:** In image processing loops, avoid channel-by-channel boolean indexing. Extract the relevant pixels once and use NumPy's vectorized axis-aware functions to perform operations across all channels simultaneously. This provides a ~15-20% speedup for high-resolution image post-processing.
+
+## 2026-05-24 - Selective Pixel Color Conversion for Skin Matching
+
+**Learning:** Transcendental operations like BGR to LAB color space conversion are expensive. Performing them on an entire high-resolution image (e.g. 2048x1024) when only a small fraction (~20%) of the pixels (skin) are actually being processed is a significant waste of CPU and memory.
+
+**Action:** Extract the masked BGR pixels into a compact 1xNx3 array before conversion. Perform all LAB shifts on this subset, convert the result back to BGR, and then patch the original image. Benchmarks show this provides a ~2.85x speedup for the core color shift logic by avoiding O(TotalPixels) transcendental math.

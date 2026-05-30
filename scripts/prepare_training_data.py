@@ -27,12 +27,12 @@ MODE_CAPTION_PREFIX = {
 }
 
 FLUX_FORBIDDEN_PATTERNS = {
-    "age": r"\b(teen|teenager|young girl|minor|23\s*years?\s*old|twenty[- ]three)\b",
-    "ethnicity": r"\b(north indian|south indian|indian|south asian|asian|desi|punjabi|delhi girl)\b",
-    "skin tone": r"\b(skin tone|fair skin|brown skin|dark skin|dusky|wheatish|tan skin|olive skin|complexion)\b",
-    "eye identity": r"\b(dark eyes|brown eyes|black eyes|almond eyes|eye color|eye colour)\b",
-    "face shape": r"\b(oval face|round face|heart-shaped face|sharp jawline|jawline|cheekbones|nose shape|full lips)\b",
-    "body identity": r"\b(body shape|slim body|curvy body|petite|tall woman|short woman)\b",
+    "age": re.compile(r"\b(teen|teenager|young girl|minor|23\s*years?\s*old|twenty[- ]three)\b", re.IGNORECASE),
+    "ethnicity": re.compile(r"\b(north indian|south indian|indian|south asian|asian|desi|punjabi|delhi girl)\b", re.IGNORECASE),
+    "skin tone": re.compile(r"\b(skin tone|fair skin|brown skin|dark skin|dusky|wheatish|tan skin|olive skin|complexion)\b", re.IGNORECASE),
+    "eye identity": re.compile(r"\b(dark eyes|brown eyes|black eyes|almond eyes|eye color|eye colour)\b", re.IGNORECASE),
+    "face shape": re.compile(r"\b(oval face|round face|heart-shaped face|sharp jawline|jawline|cheekbones|nose shape|full lips)\b", re.IGNORECASE),
+    "body identity": re.compile(r"\b(body shape|slim body|curvy body|petite|tall woman|short woman)\b", re.IGNORECASE),
 }
 
 FLUX_CAPTION_TEMPLATE = (
@@ -108,9 +108,8 @@ def normalize_duplicate_key(path: Path) -> str:
 
 def find_forbidden_caption_terms(caption: str) -> list[str]:
     found = []
-    lowered = caption.lower()
     for label, pattern in FLUX_FORBIDDEN_PATTERNS.items():
-        if re.search(pattern, lowered):
+        if pattern.search(caption):
             found.append(label)
     return found
 
