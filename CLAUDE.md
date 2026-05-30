@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A fully local, CLI-driven image generation pipeline for creating photorealistic, face-consistent images of virtual AI influencer personas using ComfyUI. Primary character: **Ananya** (North Indian fashion/lifestyle creator, trigger word `AnanyaAI`). Secondary/regression character: **KaviB** (trigger word `KaviB`). Face identity is locked via cloud-trained Kohya Dreambooth LoRAs.
 
-**Platform:** Windows 11, RTX 3050 6GB VRAM, ComfyUI Desktop at `C:\Users\barna\Documents\ComfyUI` (port 8000)
+**Platform:** Windows 11, RTX 3050 6GB VRAM, ComfyUI Desktop at `C:\Users\barna\Documents\ComfyUI` (default port 8000; falls back to 8001 if 8000 is held by a zombie process — `find_comfyui_port` in `scripts/comfyui_api.py` tries 8000, 8001, 8188, 8002 in that order).
 
 ## Commands
 
@@ -205,3 +205,10 @@ Target hardware: RTX 3050 6GB VRAM + 16GB system RAM.
 - `config.yaml` flags: `use_lowvram: true`, `tile_vae: true`
 - `--rescue` flag on `generate.py`: drops to 768×1152, 24 steps, disables FaceDetailer
 - FLUX models available: `flux1-schnell-Q4_K_S.gguf` (6.3GB, preferred) and `flux1-schnell-Q3_K_S.gguf` (4.85GB fallback if OOM) — both in `Documents\ComfyUI\models\unet\`
+
+## Reels / Video
+
+- **Local AI video is deferred** on RTX 3050 6GB — all paths (Wan, SVD, LTX, Hunyuan) marginal or OOM. Full research, decision tree, and revisit triggers in `character/ananya/reels_deferred.md`.
+- **`scripts/reel_parallax.py`** — CV-only Ken Burns push generator. **IG Stories scope only** (PPT-tier on grid Reels). Identity-safe, ~5-10s render per clip on CPU. Defaults: pure zoom-in, no parallax (no silhouette wobble).
+- **`scripts/debug_extract_frames.py`** — extracts sample PNG frames from any mp4 for Read-tool inspection (since Read cannot watch video).
+- **Before suggesting any AI video pipeline** (Wan, SVD, fal.ai, Sora, Veo), read `reels_deferred.md` first — it captures dead ends already explored.

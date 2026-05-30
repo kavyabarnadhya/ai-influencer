@@ -1,0 +1,26 @@
+# Anchor: black strapless bandeau top + high-waisted black leather pencil maxi skirt + burgundy pouch handbag + black ankle-strap heels, indoor event launch backdrop with terracotta-red wall + illuminated white neon retail logo.
+# Premium tier — strapless bandeau with visible cleavage. Event launch / store opening aesthetic.
+# Used with: --flux-dev --kontext flags (MANDATORY — do not run without these)
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/black_strapless_leather_maxi_event.yaml --prompts character/ananya/carousel_prompts/black_strapless_leather_maxi_event.txt --name black_leather_maxi_event_vN --flux-dev --kontext
+
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
+
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure,
+  pronounced hourglass with hips noticeably wider than waist, fuller chest and décolletage, defined cinched narrow waist with soft curves at hips and bust, healthy curvy M-size Indian woman build, NOT slim editorial NOT model-thin NOT plus-size NOT oversized, balanced M-size proportions like a real event-goer with natural feminine curves not exaggerated,
+  wearing fitted black stretch jersey strapless bandeau tube top with straight horizontal neckline across décolletage and bare shoulders and bare collarbones and visible cleavage,
+  paired with high-waisted black faux leather pencil maxi skirt with smooth glossy leather sheen falling straight from waist to ankles in a sleek narrow column silhouette, no slit visible, hem grazing ankle just above strap of heel,
+  long dark wavy hair loose falling past shoulders to mid-back,
+  small burgundy oxblood leather pouch handbag with gold knot clasp held in left hand at hip,
+  thin gold watch on right wrist, small gold hoop earrings, single thin gold ring on right hand,
+  black leather ankle-strap stiletto heels with thin straps and pointed toe,
+  standing facing camera with weight shifted slightly on right leg and left hand holding pouch at hip,
+  in indoor event launch space with smooth painted deep terracotta-red wall behind as backdrop,
+  large illuminated white neon-tube generic retail logo sign mounted on wall behind glowing softly,
+  clean spotless smooth polished terracotta-red floor underfoot painted same deep terracotta-red as the wall behind so wall and floor blend into one continuous uniform red event installation surface, soft subtle mirror reflection of figure on floor, no stains no scuffs no dirt no marks no tile grout lines,
+  soft directional studio event lighting from front-left, gentle key light no harsh shadows, warm tone,
+  shot on Sony A7IV 50mm,
+  authentic skin texture with visible pores, natural skin imperfections, no plasticky skin,
+  asymmetric facial features, slightly off-center composition, candid moment not posed

@@ -157,7 +157,9 @@ class ComfyUIClient:
 def find_comfyui_port(host: str = "127.0.0.1", candidates: list[int] | None = None) -> int | None:
     """Try candidate ports and return the first one where ComfyUI responds."""
     if candidates is None:
-        candidates = [8000, 8188, 8002]
+        # ComfyUI Desktop falls back to 8001 when 8000 is occupied by a zombie
+        # process; include the fallback in the discovery sweep.
+        candidates = [8000, 8001, 8188, 8002]
     for port in candidates:
         if ComfyUIClient(host, port).is_running():
             return port

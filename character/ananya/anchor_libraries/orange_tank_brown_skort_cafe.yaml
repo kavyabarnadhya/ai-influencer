@@ -1,0 +1,26 @@
+# Anchor: orange ribbed tank top + brown skort with side ribbon-tie + white baseball cap, outdoor café veranda with greenery + painted red wall.
+# Premium tier — low scoop neckline with editorial cleavage. South Mumbai / Bandra café aesthetic.
+# Used with: --flux-dev --kontext flags (MANDATORY — do not run without these)
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/orange_tank_brown_skort_cafe.yaml --prompts character/ananya/carousel_prompts/orange_tank_brown_skort_cafe.txt --name orange_tank_skort_cafe_vN --flux-dev --kontext
+
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
+
+anchor_prompt: >
+  23-year-old South Asian woman size 12 curvy body with full M-size hourglass figure,
+  fuller heavier curvier build with soft visible belly midsection, wide hips noticeably wider than waist, thick fuller thighs touching, fuller décolletage, defined cinched waist with curves above and below, distinctly NOT slim NOT editorial NOT model-thin, average everyday curvy Indian woman build like a real café-goer not a runway model,
+  wearing fitted bright orange ribbed cotton tank top bodysuit with deep low scoop neckline and very thin string-like delicate spaghetti shoulder straps thin as cords on each shoulder showing visible décolletage and cleavage,
+  paired with chocolate brown high-waisted cotton A-line mini wrap skirt with smooth solid front skirt panel falling unbroken to mid-thigh and NO shorts underneath, single decorative ribbon lace-up corset-tie detail only on left hip side seam, hem at mid-thigh well above knee, bare full thighs from mid-thigh to feet,
+  white cotton baseball cap worn forward on head over long dark auburn-tinted hair loose and wavy falling past shoulders,
+  small brown leather crossbody bag with thin strap across torso,
+  thin gold cuff bangle on right wrist,
+  standing facing camera with weight shifted on right leg and left arm relaxed at side,
+  on outdoor café veranda with painted deep terracotta-red wall and low building behind,
+  lush dense glossy green tropical foliage hedge wall filling middle ground,
+  white iron café chairs and round marble bistro table visible on right,
+  patterned blue and white mosaic tile floor underfoot,
+  bright overcast tropical daylight, soft even light no harsh shadows,
+  shot on Sony A7IV 50mm,
+  authentic skin texture with visible pores, natural skin imperfections, no plasticky skin,
+  asymmetric facial features, slightly off-center composition, candid moment not posed

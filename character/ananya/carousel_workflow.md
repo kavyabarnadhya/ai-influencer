@@ -1,8 +1,14 @@
 # Ananya Carousel Workflow — Canonical Reference
 
-**Last updated: 2026-05-30 — §8 + §11: hands resting on a white/light skirt fuse every time (low contrast → YOLO hand-detect misses → Stage 3.5 hand inpaint never fires). `behind back` does not fix it. Only reliable fix = both hands above the bust on skin/hair/darker drape. Validated white off-shoulder lace corset v1 after 3 failed reruns.**
+**Last updated: 2026-05-30 — §8 + §11: hands resting on a white/light skirt fuse every time (low contrast → YOLO hand-detect misses → Stage 3.5 never fires; `behind back` does not fix it). Only reliable fix = both hands above the bust on skin/hair/darker drape + regenerate the slide. Validated white off-shoulder lace corset v1.**
 
-Prior 2026-05-24 — added hand realism Stage 3.5 (flux_hand_detail.json) + "walking from static anchor" + "hair-push while holding object" to forbidden patterns (grey tank indoor stress test).
+Prior 2026-05-29 — skin lock Stage 3.6 now applies LAB shift to BOTH face and body skin (no face exclusion), `_MAX_L_SHIFT` raised back to 25.0 / `_MAX_AB_SHIFT` to 12.0. Warm-cast scenes (festive red, golden hour, indoor incandescent) were leaving the rendered face darker than face_ref_v2 baseline via ReActor blend bleed-through; lifting face+body together unifies the whole subject to the fair reference tone (validated on red chikankari lehenga festive v9d). `scripts/comfyui_api.py` discovery sweep now includes port 8001 (ComfyUI Desktop fallback when 8000 is held by a zombie process). §11 hand realism criterion gains an explicit third-hand check (slide_03 of v9d had hair-touch+chest+hip = 3 hands; partial rerun with strict 2-hand prompt fixed it).
+
+Prior 2026-05-27 — §11 review checklist adds hand realism criterion (Stage 3.5 occasionally misses on cup-grip / on-railing / fingers-spread poses); §11 documented exception section adds failure-resolution modes (drop-slide ship 5, reroll post-process, partial rerun) with guidance on when to pick which. Validated 2026-05-27 on black puff crop haveli v1 (slide_00 hand deformity → dropped, shipped 5-slide carousel).
+
+Prior 2026-05-26 — body push formula now fabric-aware (§2: slimming fabrics like leather need a softer push; voluminous fabrics need none). §5 BG rules add floor cleanliness override + event-installation wall-floor colour match. Added black strapless leather maxi event v5 worked example (§12). Validated skin lock feather patch in production (orange tank cafe v3 + black leather event v5, ΔL up to 13.7 with no burn).
+
+Prior 2026-05-25: skin lock Stage 3.6 Gaussian-feathers body skin mask (σ=8px) before LAB shift, eliminates seam halo when ΔL > 10. Added `scripts/reprocess_carousel_post.py` (deterministic hand seed, `--seed-base N` to reroll). Body push prompt formula, slide-vs-anchor vocab lock rule, ribbed bodysuit + wrap skirt outfit-type rules, reprocess-script subsection.**
 
 This is the **single source of truth** for generating any Ananya OOTD/lifestyle carousel. Read this end-to-end before starting a new carousel. CLAUDE.md contains the short pre-flight gate; this doc contains the full reference and worked examples.
 
@@ -37,13 +43,33 @@ These never change across any Ananya carousel. They are the foundation of cross-
 | Body LoRA strength | `0.5` universal | `anchor_body_lora_strength:` in anchor YAML | Exceptions: `0.0` for headshot (no body) or flowy/loose linen (LoRA amplifies fabric volume). |
 | Realism LoRA | `0.5` baked into workflow node 15 | `workflows/flux_dev.json` | Do not change. |
 | Hand realism post-process | Auto-applied | `workflows/flux_hand_detail.json` | Runs as Stage 3.5 after ReActor — SDXL FaceDetailer inpaint on `hand_yolov8s.pt` bbox using Juggernaut XL. Fixes FLUX 6-finger / deformed-hand artefacts (especially cup-grip poses). Sweet-spot tuned: denoise 0.50, cycle 1, bbox_dilation 15, feather 8. Higher denoise (0.65+) makes hands look heavy/uncanny. ~10-15s/slide. ORDER: must run BEFORE skin lock — hand inpaint may shift hand skin tone; subsequent skin lock unifies whole body to face_ref. |
-| Skin tone post-process | Auto-applied | `scripts/skin_color_match.py` | Runs after hand detail. Locks body skin to face_ref cheek LAB. No prompt action needed. |
+| Skin tone post-process | Auto-applied | `scripts/skin_color_match.py` | Runs after hand detail. Locks body skin to face_ref cheek LAB. Mask Gaussian-feathered σ=8px before LAB shift — required to avoid seam halo at body silhouette when ΔL > 10 (validated on orange tank cafe v3). No prompt action needed. |
 
 ### Hard NEVER rules
 
 - **NEVER add explicit skin tone tokens** (`warm medium-brown`, `tan complexion`, `olive`, `medium South Asian skin`). The seed + `South Asian woman` derives the correct tone. Adding tokens overrides the seed → wrong/darker tone.
 - **NEVER re-prompt anatomy** (face shape, eye color, hair color, ethnicity, age beyond `23-year-old`). The seed + ReActor handle these. Re-prompting causes "double-baking" → distorted face.
 - **NEVER swap the body seed** mid-project. `334521876` is the validated reference. Other seeds (`837492016`, `112847593`) produced wrong body types and are blocklisted.
+
+### Body push prompt formula (when FLUX drifts slim editorial)
+
+Seed 334521876 + body LoRA 0.5 + `South Asian woman with M-size hourglass figure` is the baseline. On form-fitting bodysuits, ribbed tanks, and tight-bodice outfits FLUX still drifts slim/editorial. When that happens, add to the anchor_prompt:
+
+> `size 12 curvy body with full M-size hourglass figure, fuller heavier curvier build with soft visible belly midsection, wide hips noticeably wider than waist, thick fuller thighs touching, fuller décolletage, defined cinched waist with curves above and below, distinctly NOT slim NOT editorial NOT model-thin, average everyday curvy Indian woman build`
+
+Key tokens that landed it (validated orange tank cafe v3, 2026-05-25): concrete size (`size 12`), negative comparisons (`NOT slim NOT editorial NOT model-thin`), and body-part-specific cues (`wide hips noticeably wider than waist`, `thick fuller thighs touching`, `soft visible belly midsection`). Weaker phrasing (`fuller curvier body`, `soft natural curves`) alone is not enough — FLUX bias is strong.
+
+**Fabric-aware calibration — use a softer push on slimming fabrics.** The full body push above is calibrated for light/airy fabrics (cotton ribbed tanks, mini frocks) where FLUX defaults to slim editorial. **On slimming fabrics (black leather, dark sheath, structured bodice) the full push over-corrects to plus-size.** Validated on black strapless leather maxi event v5 (2026-05-26): the full push produced plus-size; the slim-default push produced slim editorial; the balanced middle landed M-size hourglass:
+
+> `M-size hourglass figure, pronounced hourglass with hips noticeably wider than waist, fuller chest and décolletage, defined cinched narrow waist with soft curves at hips and bust, healthy curvy M-size Indian woman build, NOT slim editorial NOT model-thin NOT plus-size NOT oversized, balanced M-size proportions like a real event-goer with natural feminine curves not exaggerated`
+
+Key difference: drop `size 12`, drop `thick fuller thighs touching`, drop `fuller heavier curvier build`. Keep `hips noticeably wider than waist` + `fuller chest`. Add `NOT plus-size NOT oversized` as a brake. Add `not exaggerated` qualifier.
+
+| Fabric / outfit weight | Push to use |
+|---|---|
+| Light/airy: cotton tank, ribbed bodysuit, mini frock, chiffon slip | Full push (size 12 + fuller heavier + thick thighs) |
+| Slimming: leather, dark sheath, structured pencil maxi, tight knit | Balanced push (drop size 12 + fuller heavier; keep hips>waist + fuller chest; add NOT plus-size NOT oversized) |
+| Voluminous: lehenga, A-line, layered, draped | Minimal push (baseline `M-size hourglass with defined waist` may be enough; the fabric carries the visual volume) |
 
 ---
 
@@ -91,6 +117,7 @@ The anchor describes the outfit physically (geometry, fabric, color) **once** in
 - **No contradictory neckline descriptors in one prompt.** Pick one neckline (halter / bandeau / V-neck / off-shoulder) and stick to it. See Rule 14 in `flux_dev_rulebook.md`.
 - **Fabric weight cue required** for any draped element: `soft chiffon`, `starched cotton`, `heavy silk`, `crinkle viscose`.
 - **Every slide's `keeping exact same` block** should repeat at minimum: neckline geometry, strap/sleeve detail, waist detail, hem detail.
+- **Slide-prompt vocabulary MUST match anchor YAML vocabulary.** If anchor says `wrap mini skirt with smooth front panel and no shorts underneath` and slides say `mini skort`, Kontext will drift toward the slide's vocabulary on regen → outfit changes mid-carousel. Use the same garment noun and the same defining clauses in both files. Validated fail: orange tank cafe v3 — anchor said wrap skirt, slides said `skort` → first render came back as cuffed shorts with lace-up on both sides.
 
 ### Per-outfit-type rules
 
@@ -98,6 +125,8 @@ The anchor describes the outfit physically (geometry, fabric, color) **once** in
 |---|---|
 | Ethnic (kurta, saree, lehenga) | `fitted/tailored/cinched` — NEVER `flowing/loose`. Dupatta needs contrasting color + named shoulder. Pallu pinned at left shoulder + falling behind. |
 | Form-fitting western (slip, bodycon, mini frock) | Add `fabric shows soft midsection` to avoid slim-editorial default. |
+| Ribbed bodysuit / fitted tank | Use `very thin string-like delicate spaghetti shoulder straps thin as cords` if straps are meant to read as spaghetti. Default `thin spaghetti straps` reads as full ~1cm webbing. |
+| Wrap mini skirt with side tie | `wrap mini skirt with smooth solid front skirt panel falling unbroken to mid-thigh and NO shorts underneath, single decorative ribbon lace-up corset-tie detail only on left hip side seam`. Without `NO shorts underneath` + `single ... only on left hip` the render comes back as cuffed shorts with lace-up on both sides. |
 | Layered western (overshirt, jacket) | `unbuttoned worn OPEN, sleeves rolled` + `fitted ribbed tank underneath`. |
 | Corset/bodice mini | Repeat `structured fitted bodice, thick wide shoulder straps` if straps are visual hero. Thin straps drift if not enforced. |
 
@@ -111,6 +140,8 @@ The anchor describes the outfit physically (geometry, fabric, color) **once** in
   > `ornate white iron arch behind, colorful mosaic tile column on left, white iron café chairs on right, lush green foliage`
 - **Failure mode:** if a slide prompt says "rooftop golden hour" while the anchor was "balcony daylight" → BG diverges. Both must match.
 - **Indoor BG quirk:** indoor flat light renders body skin darker. The skin lock corrects this post-process, no prompt fix needed (validated on sequin mesh ΔL=+13.1).
+- **Floor cleanliness:** FLUX defaults "polished floor" / "marble floor" / "concrete floor" to scuffed-and-stained textures. Add explicit `clean spotless ... no stains no scuffs no dirt no marks no tile grout lines` to enforce a clean surface. Validated on black leather maxi event v5 (2026-05-26): bare `polished concrete or marble floor` produced visible dirt; `clean spotless ... no stains no scuffs no dirt no marks` rendered a clean glossy surface.
+- **Event-installation BG (wall-floor color match):** for store launches, brand activations, step-and-repeats where the floor is painted/carpeted to match the wall, use `clean polished <colour> floor underfoot painted same <colour> as the wall behind so wall and floor blend into one continuous uniform <colour> event installation surface`. Without this, FLUX renders a contrasting grey concrete/marble floor that breaks the immersive backdrop. Validated on black leather maxi event v5 with `terracotta-red wall + terracotta-red floor`.
 
 ---
 
@@ -193,6 +224,24 @@ When only 1-2 slides fail review. The danger here is off-by-one indexing — ove
 
 **Common failure mode (this session):** writing "slide_03 replacement" and "slide_04 replacement" in the fix file when the actual problem slides were 04 and 05 → off-by-one. Always cross-reference the source folder, not the fix file's comments.
 
+### Post-process-only rerun (skip FLUX, replay ReActor + hand + skin lock)
+
+When the issue is in the post-process pipeline (skin lock burn, hand artefact, etc.) and the FLUX renders themselves are good, use `scripts/reprocess_carousel_post.py` instead of full Stage B. It reads the pre-faceswap base files from `_intermediate/` and re-applies Stages 3 → 3.5 → 3.6 in place.
+
+```powershell
+python scripts/reprocess_carousel_post.py `
+  --carousel-dir output/YYYY-MM-DD/ananya/carousel_<name>/
+# optional flags:
+#   --face-ref <path>   (default: character/ananya/seeds_v2/face_ref_v2.png)
+#   --cand N            (candidate index, default 0)
+#   --seed-base N       (reroll hands without renaming files; default 0 = deterministic)
+```
+
+- ~5-8 min for 6 slides vs ~12-15 min for full Stage B.
+- Hand-detail seed is deterministic (`sha256(base_filename) + seed_base mod 2^31-1`). Same carousel reprocessed twice produces identical hands. Bump `--seed-base 1` to reroll without renaming files.
+- **In-place overwrite of slide_*.png** — if you need to keep the original, copy the carousel folder first (`cp -r <folder> <folder>_backup`).
+- Validated 2026-05-25 on orange tank cafe v3 (skin lock feather patch reroll) and pink corset cafe v3 (smoke test, no regression on low ΔL).
+
 ---
 
 ## 10. Caption workflow
@@ -215,36 +264,108 @@ Apply to every slide. Fail if any criterion fails on any slide (with documented 
 | Face vs face_ref_v2.png | Same facial structure, warm tone, dark eyes, full lips — recognizable as same person | Face shape changed, eye color shifted, wrong skin tone |
 | Body M-size hourglass | Defined waist + natural curves, not slim editorial, not plus-size | Slim-editorial drift, plus-size rendering |
 | Skin tone | Body skin matches face_ref cheek tone (ΔE < 5 after lock) | Visible mismatch between face and arms/legs/décolletage |
+| Skin lock seam | Body silhouette blends smoothly into BG with no edge halo | Visible bright halo / chromatic ring along arm/shoulder/leg silhouette — check post-process log: if ΔL > 10 and burn visible, feather may have failed (verify `_MASK_FEATHER_SIGMA = 8.0` in `scripts/skin_color_match.py`); reprocess via `scripts/reprocess_carousel_post.py` |
 | BG consistency | Same scene tokens as anchor (arch, column, foliage etc) across all slides | New scene invented on any slide |
 | Accessories | Earrings/bracelet present on most slides; outfit core hold all | Outfit core changed (neckline, strap detail, color) |
 | Hair | Long dark loose wavy on every slide | Hair length, color, or style changed |
 | Pose variance | 6 distinct compositions (not 6 variants of same pose) | Two or more slides have visually-similar pose |
-| Hand realism | All visible hands have 5 natural separated fingers, no fused/clawed/webbed fingers, no extra thumbs | Visible fused/clawed/6-finger hand — Stage 3.5 hand detail misses on low-contrast placements. **Hands resting on a white/light skirt fuse every time** (low contrast → YOLO `hand_yolov8s.pt` finds no bbox → Stage 3.5 never fires; `behind back` does NOT fix it, Kontext keeps a hand on the skirt). Fix by re-posing both hands ABOVE the bust on skin/hair/darker drape and regenerating the slide — re-running post-process alone cannot repair a fused hand. See §8 row. Validated white off-shoulder lace corset v1 (2026-05-30) after 3 failed reruns. |
+| Hand realism | All visible hands have 5 fingers, natural joint geometry, no fused fingers, no extra thumbs | Visible 6-finger, fused, or warped hand — Stage 3.5 hand detail occasionally misses on cup-grip / on-railing / fingers-spread poses. **Hands resting on a white/light skirt fuse every time** (low contrast → YOLO finds no bbox → Stage 3.5 never fires; `behind back` does NOT fix it). Fix by re-posing both hands above the bust on skin/hair/darker drape and regenerating the slide — post-process alone cannot repair a fused hand. See §8 row. Validated white off-shoulder lace corset v1 (2026-05-30). |
+| Hand count | Exactly 2 hands visible per full-body slide (0-2 in closeups) | More than 2 hands — Kontext-hallucinated third arm/hand. Common triggers: raised arm + hand-at-hip + dupatta-drape combos; lean-against-object poses where prompt names two hand positions but Kontext adds a hair-touch (validated red chikankari lehenga v9d slide_03: 3 hands = hair-touch + chest + hip). Mitigation: write the prompt with explicit `BOTH arms hanging straight at sides, NO raised arms, NO hands at chest, NO third arm, only two hands visible total` |
 
 ### Documented exception
 
 - Accessories (specifically bracelets, rings, footwear) may drop in/out across slides — Kontext limitation. Acceptable as long as the outfit core (neckline, fit, color, fabric) holds across all 6.
 
+### Failure-resolution modes (when 1 slide fails)
+
+When 1 slide fails review (hand deformity, pose duplicate, etc.) and other 5 pass, pick the cheapest fix:
+
+1. **Drop the slide, ship 5-slide carousel.** Instagram carousels accept 2-10 slides. Often the simplest path — note dropped slide in the caption file header. Use when the dropped slide doesn't carry a critical pose (hook / closeup).
+2. **Reroll only the post-process** (`scripts/reprocess_carousel_post.py --seed-base 1` → bumps deterministic hand seed). Use when failure is in Stage 3.5 hand detail or Stage 3.6 skin lock and the FLUX render itself is fine. ~5-8 min for all 6 slides (overwrites all but result for unaffected slides should be identical).
+3. **Partial rerun with `_<name>_fix.txt`** (per §9 partial rerun procedure). Use when the FLUX render itself is bad (pose duplicate, BG drift). ~3 min per slide. Copy with explicit destination filename.
+
+Validated 2026-05-27 on black puff crop haveli v1: slide_00 had hand deformity, user shipped 5 slides (option 1) — accepted as cheapest fix when the hook slide had a usable alternative in slide_04.
+
 ---
 
-## 12. Worked example — pink corset café v3 (2026-05-24)
+## 12. Worked examples
 
-- **Anchor YAML:** `character/ananya/anchor_libraries/pink_corset_mini_cafe.yaml`
-- **Prompt file:** `character/ananya/carousel_prompts/pink_corset_mini_cafe.txt`
-- **Caption file:** `character/ananya/captions/pink_corset_mini_cafe.txt`
-- **Output:** `output/2026-05-24/ananya/carousel_pink_corset_cafe_v3/`
+### Red bandeau choli + lehenga, indoor festive carved-door v9d (2026-05-29)
 
-**Recipe:** Body LoRA 0.5, seed 334521876, face_ref_v2, `--flux-dev --kontext`, skin lock auto-applied.
+- **Anchor YAML:** `character/ananya/anchor_libraries/red_chikankari_lehenga_festive.yaml`
+- **Prompt file:** `character/ananya/carousel_prompts/red_chikankari_lehenga_festive.txt`
+- **Caption file:** `character/ananya/captions/red_chikankari_lehenga_festive.txt`
+- **Output:** `output/2026-05-29/ananya/carousel_red_chikankari_lehenga_v9d/` (slide_03 replaced from `_v9d_fix/` per §9)
 
-**What worked:** Hand-on-hip slide_00 hook, 2 chest-up closeups (slide_01 direct gaze + slide_05 hand-to-chin), walking slide_02, three-quarter hair-push slide_03, off-camera relaxed slide_04.
+**Recipe:** Body LoRA 0.5, seed 334521876, face_ref_v2, `--flux-dev --kontext`, premium tier (deep cleavage + bare midriff), face+body skin lock auto-applied.
 
-**What was fixed mid-run:**
-- v1 attempt: ran without `--kontext` → all 6 slides same neutral stand. Fixed by adding `--flux-dev --kontext` and rewriting prompts with explicit pose variety.
-- v3 slide_04 first attempt: `body turned away from camera` → invented dark gate + hedge wall BG. Fixed by changing to "three-quarter facing toward camera".
-- v3 slide_05 first attempt: `hand touching ribbon tie` → looked like she was opening the dress. Fixed by changing to `hand to cheek with fingers near jawline`.
-- Slide_03 / slide_04 ended up identical after a partial-rerun off-by-one error. Fixed by generating a third distinct slide (full body off-camera candid) and copying to slide_04 with explicit filename mapping.
+**Outfit:** plain solid red sleeveless deep bandeau-neckline choli with cropped shoulder straps and tiny scattered white mukaish pearl-dot speckles, plain solid red low-rise flared lehenga skirt, sheer plain solid red chiffon dupatta over left shoulder, large gold jhumka tassel earrings with pearl drops, gold watch + bangles on right wrist.
+
+**BG:** indoor festive setting with dark carved teak wooden door panel + soft pink-cream wall + traditional genda-phool wall hanging on left (cream/pink/green/yellow fabric beads + bells).
+
+**Neckline iteration (9 anchor rounds before landing):** the carousel exposed a hard FLUX tradeoff between cleavage depth and shape geometry. Square + modest cleavage works (v5). Deep + V-cut works (v6). Deep + true square does NOT — FLUX biases toward V/sweetheart at deep cuts because that's the training distribution. The landing recipe was a low underbust bandeau-strip framing: `narrow thin underbust bandeau strip wrapped horizontally low under the breasts with shoulder straps stitched on top, the band top edge cuts across at low bust apex level exposing both breasts mostly above the band showing extreme deep cleavage`. This produced deep cleavage with a horizontal-ish top edge.
+
+**Fabric correction:** the early "chikankari embroidered" wording rendered as large white motifs scattered across red — wrong. The refs were plain solid red satin with tiny scattered white mukaish pearl-bead dot speckles only. The fix was an explicit list of NOT clauses: `NO chikankari NO large embroidered motifs NO trim NO gold edging NO visible buttons NO button strip NO contrasting hem band`. Pattern: when refs read as "plain solid" with subtle texture, enumerate the negatives — FLUX biases toward visible embroidery on red Indian wear.
+
+**Body push:** balanced push from §2 fabric table (fitted choli + voluminous skirt mix), plus an isolated bust boost (`body is M-size everywhere EXCEPT bust which is two full cup sizes larger and heavier than the rest of the build`). Bust larger without rest of body drifting plus-size — works.
+
+**Skin lock face-inclusion fix (script patched mid-run):** warm festive lighting was making the rendered face darker than face_ref_v2 baseline (via ReActor blend bleed-through). With face previously excluded from the LAB shift, the body got lifted +12-18 L to match face_ref while the face stayed at the warm-cast tone → visible face/body mismatch. Patched `scripts/skin_color_match.py` to apply the LAB shift to the FULL skin mask (face + body) so both unify to the fair face_ref tone. Cap raised back to `_MAX_L_SHIFT = 25.0` / `_MAX_AB_SHIFT = 12.0` since the inclusion absorbs the larger lift cleanly. Rule: warm-cast scenes (festive, golden hour, indoor incandescent) need face-inclusion lift, not face-exclusion preservation.
+
+**Three-hand fail and partial rerun:** v9d slide_03 prompt was `leaning shoulder against door + right hand on hip + left arm against column`, but Kontext hallucinated a raised hair-touch arm (likely bleed from slide_02's hair-push prompt) → rendered 3 hands (hair-touch + chest grip + hip). Fixed via partial rerun (`_red_chikankari_lehenga_fix.txt`) with explicit `BOTH arms hanging straight at sides, NO raised arms, NO hands at chest, NO third arm, only two hands visible total` and copied to `slide_03_cand_0.png`. New §11 hand-count criterion captures this failure mode for future review.
+
+**ComfyUI port fallback:** during this session ComfyUI Desktop fell back to port 8001 because port 8000 was held by a zombie process. Updated `scripts/comfyui_api.py:find_comfyui_port` candidate list to include 8001. Rule: if a script reports "ComfyUI not running" but a port-8000 listener exists, check process age + restart ComfyUI; the script now also tries 8001 as fallback.
+
+**Final state:** all 7 review criteria pass + hand realism + hand count + skin lock seam pass. slide_02 has partial back-to-camera (Kontext interpreted "head over shoulder toward camera" as side-profile away) but accepted as artsy variation. Carousel approved for posting.
+
+### Black strapless bandeau + leather pencil maxi, event launch backdrop v5 (2026-05-26)
+
+- **Anchor YAML:** `character/ananya/anchor_libraries/black_strapless_leather_maxi_event.yaml`
+- **Prompt file:** `character/ananya/carousel_prompts/black_strapless_leather_maxi_event.txt`
+- **Caption file:** `character/ananya/captions/black_strapless_leather_maxi_event.txt`
+- **Output:** `output/2026-05-26/ananya/carousel_black_leather_maxi_event_v5/`
+
+**Recipe:** Body LoRA 0.5, seed 334521876, face_ref_v2, `--flux-dev --kontext`, premium tier (strapless cleavage), patched feather skin lock auto-applied.
+
+**Outfit:** fitted black stretch jersey strapless bandeau tube top, high-waisted black faux leather pencil maxi skirt (no slit, ankle-grazing), burgundy oxblood leather pouch with gold knot clasp, gold watch + small gold hoop earrings, black ankle-strap stiletto heels.
+
+**BG:** indoor event launch backdrop, terracotta-red wall + matching terracotta-red floor (continuous installation), large illuminated white neon-tube generic retail logo sign on wall (illegible script avoids real-brand trademark risk).
+
+**Body push iteration (5 anchor rounds before landing M-size hourglass):**
+- v1 — full orange-tank push (`size 12 curvy ... fuller heavier ... thick fuller thighs touching`) → plus-size. Leather is slimming so push over-corrected.
+- v2 — backed off to slim-default baseline (`M-size hourglass ... soft natural curves`) → slim editorial.
+- v3 — balanced middle (`M-size hourglass with hips noticeably wider than waist + fuller chest + NOT slim NOT plus-size NOT oversized`) → landed M-size hourglass. New §2 fabric-aware table captures this rule for next time.
+
+**Floor cleanliness iteration (v3 → v4):** bare `polished concrete or marble floor` rendered scuffed and stained. Adding `clean spotless ... no stains no scuffs no dirt no marks` enforced a clean glossy surface. New §5 floor cleanliness rule.
+
+**Wall-floor colour match (v4 → v5):** v4 had grey marble floor that broke the immersive red event installation. Adding `painted same terracotta-red as the wall behind so wall and floor blend into one continuous uniform red event installation surface` rendered a red floor matching the wall. New §5 event-installation rule.
+
+**Skin lock burn check:** ΔL reached 13.7 on slide_04. **No burn visible on any slide** — feather patch (σ=8) validated in production. Closeups + full-body all clean.
+
+**Trademark note:** prompt requested `illuminated white neon-tube generic retail logo sign`. FLUX rendered illegible script (`Juime`, `Awive`, etc.) across slides — exactly the desired safe behaviour, no real brand reproduced.
+
+**Final state:** all 7 review criteria pass + skin lock seam criterion (new §11 row) passes. Carousel approved for posting.
+
+### Orange tank + brown wrap mini skort café v3 (2026-05-25)
+
+- **Anchor YAML:** `character/ananya/anchor_libraries/orange_tank_brown_skort_cafe.yaml`
+- **Prompt file:** `character/ananya/carousel_prompts/orange_tank_brown_skort_cafe.txt`
+- **Caption file:** `character/ananya/captions/orange_tank_brown_skort_cafe.txt`
+- **Output:** `output/2026-05-25/ananya/carousel_orange_tank_skort_cafe_v3/`
+
+**Recipe:** Body LoRA 0.5, seed 334521876, face_ref_v2, `--flux-dev --kontext`, premium tier (low scoop), skin lock (patched feather) auto-applied.
+
+**Outfit:** fitted orange ribbed tank bodysuit, thin string spaghetti straps, deep scoop neckline, chocolate brown high-waisted A-line mini wrap skirt with single left-hip lace-up corset tie, white baseball cap, brown leather crossbody.
+
+**Body push that finally landed M-size hourglass on FLUX:** `size 12 curvy body with full M-size hourglass, fuller heavier curvier build with soft visible belly midsection, wide hips noticeably wider than waist, thick fuller thighs touching, distinctly NOT slim NOT editorial NOT model-thin`. Earlier v1/v2 attempts using only `fuller curvier body with soft visible midsection` produced slim-editorial drift. FLUX bias is strong — push the negative comparison hard (`NOT slim NOT editorial NOT model-thin`) and add concrete size token (`size 12`).
+
+**Skort vs shorts fix:** `cotton A-line mini wrap skirt with smooth solid front skirt panel falling unbroken to mid-thigh and NO shorts underneath, single decorative ribbon lace-up corset-tie detail only on left hip side seam`. Earlier `mini skort with side ribbon lace-up tie` rendered as cuffed shorts with lace-up on both sides. Naming `wrap skirt` + `no shorts underneath` + `single side seam` flipped it.
+
+**Skin lock burn fix (skin_color_match.py patched mid-run):** Stage 3.6 was producing visible halo at body silhouette on full-body slides (00, 02, 04) when ΔL > 10. Root cause: hard bool mask + flat LAB shift = seam at mask edge. Patched: feather mask with Gaussian blur σ=8px, alpha-blend the LAB shift. Reprocessed 6 slides via `scripts/reprocess_carousel_post.py` (reads `_intermediate/*_base.png`, redoes ReActor + hand + patched skin lock, ~5-8 min, skips expensive FLUX). Closeups (01, 05) were unaffected before patch — burn only visible on large-area body shots.
 
 **Final state:** all 7 review criteria pass. Carousel approved for posting.
+
+<!-- Pink corset café v3 (2026-05-24) pruned 2026-05-29 per §13 ≤3-most-recent rule.
+     Summary preserved in flux_dev_rulebook.md Validated Results (RULE 15). -->
 
 ---
 

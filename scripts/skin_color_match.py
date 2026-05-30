@@ -2,9 +2,10 @@
 Post-process body skin tone lock for Ananya carousel pipeline.
 
 Runs after ReActor faceswap, before 1080x1920 resize.
-Shifts body skin pixels (arms, legs, neck-below-blend, décolletage) in LAB space
-to match face_ref skin tone. Face region (from YOLO face bbox) is untouched so
-ReActor output is fully preserved.
+Shifts skin pixels (face + arms, legs, neck-below-blend, décolletage) in LAB space
+to match face_ref skin tone. As of 2026-05-29 the LAB shift is applied to BOTH
+face and body skin (face-inclusion) so warm-cast scenes do not leave the
+rendered face darker than the face_ref baseline via ReActor blend bleed-through.
 
 Usage:
     match_body_skin_to_face_ref(slide_path, face_ref_path, out_path)
@@ -53,15 +54,23 @@ _CHEEK_BOT_FRAC = 0.75
 _CHEEK_LEFT_FRAC = 0.25
 _CHEEK_RIGHT_FRAC = 0.75
 
-# Dilation radius for face mask exclusion zone (pixels at native res ~750px wide)
-_FACE_EXCLUSION_DILATE = 10
 
-# Maximum LAB channel shift magnitude — clamp to avoid over-correction
-_MAX_L_SHIFT = 30.0
-_MAX_AB_SHIFT = 15.0
+# Maximum LAB channel shift magnitude — clamp to avoid over-correction.
+# Restored to 25.0 / 12.0 on 2026-05-29 after red lehenga festive: warm-cast
+# scenes need a strong lift to bring rendered skin to face_ref_v2 fair tone.
+# The 8.0 trial was too soft. Pairs with face-inclusion (apply lift to face
+# too) so both face and body get unified to face_ref tone, neutralising the
+# scene's ambient warm/red cast that was making faces read as "darker".
+_MAX_L_SHIFT = 25.0
+_MAX_AB_SHIFT = 12.0
 
 # Minimum body skin pixel count to attempt correction (skip if too few exposed pixels)
 _MIN_SKIN_PIXELS = 200
+
+# Gaussian sigma (px) for soft-feathering the skin mask before applying LAB delta.
+# Hard binary mask + large delta L caused visible seam halos at body silhouette
+# (orange tank carousel v3, 2026-05-25). Feather blends shift smoothly across edge.
+_MASK_FEATHER_SIGMA = 8.0
 
 
 @lru_cache(maxsize=1)
@@ -91,48 +100,58 @@ def _lab_to_bgr(lab: np.ndarray) -> np.ndarray:
     return np.clip(bgr * 255.0, 0, 255).astype(np.uint8)
 
 
-def _sample_face_skin_lab(face_ref_path: Path) -> tuple[float, float, float]:
-    """Sample target skin tone from lower-cheek ROI of face_ref (avoids eyes/lips/hair)."""
-    bgr = cv2.imread(str(face_ref_path))
-    if bgr is None:
-        raise FileNotFoundError(f"face_ref not found: {face_ref_path}")
-    h, w = bgr.shape[:2]
+def _sample_cheek_lab_from_bgr(
+    bgr: np.ndarray,
+    bbox: tuple[int, int, int, int] | None,
+) -> tuple[float, float, float]:
+    """Sample skin tone from lower-cheek ROI of an in-memory image given an optional face bbox.
 
-    # Detect face bbox in the reference image
-    model = _load_face_model()
-    results = model(bgr, verbose=False)
-    if results and results[0].boxes is not None and len(results[0].boxes.xyxy) > 0:
-        x1, y1, x2, y2 = results[0].boxes.xyxy[0].cpu().numpy().astype(int)
-        # Clamp to image bounds
+    Shared core used by both the face_ref sampler and the in-slide sampler.
+    """
+    h, w = bgr.shape[:2]
+    if bbox is not None:
+        x1, y1, x2, y2 = bbox
         x1, y1, x2, y2 = max(0, x1), max(0, y1), min(w, x2), min(h, y2)
         bh, bw = y2 - y1, x2 - x1
-        # Cheek ROI: central horizontal strip, lower half of face
         ry1 = y1 + int(bh * _CHEEK_TOP_FRAC)
         ry2 = y1 + int(bh * _CHEEK_BOT_FRAC)
         rx1 = x1 + int(bw * _CHEEK_LEFT_FRAC)
         rx2 = x1 + int(bw * _CHEEK_RIGHT_FRAC)
     else:
-        # Fallback: centre crop of the image (assumes face is centred in face_ref)
         ry1, ry2 = int(h * 0.35), int(h * 0.65)
         rx1, rx2 = int(w * 0.3), int(w * 0.7)
 
     roi_bgr = bgr[ry1:ry2, rx1:rx2]
+    roi_lab = _bgr_to_lab(roi_bgr)
 
-    # Filter to skin pixels in the ROI
     roi_hsv = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2HSV)
     m1 = cv2.inRange(roi_hsv, _SKIN_HSV_LOWER1, _SKIN_HSV_UPPER1)
     m2 = cv2.inRange(roi_hsv, _SKIN_HSV_LOWER2, _SKIN_HSV_UPPER2)
     skin_mask = cv2.bitwise_or(m1, m2).astype(bool)
 
     if skin_mask.sum() < 50:
-        # Not enough skin pixels — use entire ROI mean
         skin_mask = np.ones(roi_bgr.shape[:2], dtype=bool)
 
-    # Optimization: Only convert skin pixels to LAB (much faster than full ROI conversion)
-    skin_pixels_bgr = roi_bgr[skin_mask].reshape(1, -1, 3)
-    skin_pixels_lab = _bgr_to_lab(skin_pixels_bgr).reshape(-1, 3)
+    L = float(roi_lab[:, :, 0][skin_mask].mean())
+    a = float(roi_lab[:, :, 1][skin_mask].mean())
+    b = float(roi_lab[:, :, 2][skin_mask].mean())
+    return L, a, b
 
-    return tuple(skin_pixels_lab.mean(axis=0))
+
+def _sample_face_skin_lab(face_ref_path: Path) -> tuple[float, float, float]:
+    """Sample target skin tone from lower-cheek ROI of face_ref (avoids eyes/lips/hair)."""
+    bgr = cv2.imread(str(face_ref_path))
+    if bgr is None:
+        raise FileNotFoundError(f"face_ref not found: {face_ref_path}")
+
+    model = _load_face_model()
+    results = model(bgr, verbose=False)
+    bbox = None
+    if results and results[0].boxes is not None and len(results[0].boxes.xyxy) > 0:
+        x1, y1, x2, y2 = results[0].boxes.xyxy[0].cpu().numpy().astype(int)
+        bbox = (int(x1), int(y1), int(x2), int(y2))
+
+    return _sample_cheek_lab_from_bgr(bgr, bbox)
 
 
 def _detect_face_bbox(img_bgr: np.ndarray) -> tuple[int, int, int, int] | None:
@@ -181,21 +200,11 @@ def _hsv_skin_filter(img_bgr: np.ndarray, person_mask: np.ndarray) -> np.ndarray
     return skin & person_mask
 
 
-def _face_exclusion_mask(img_bgr: np.ndarray, face_bbox: tuple[int, int, int, int] | None) -> np.ndarray:
-    """Returns boolean mask of pixels to EXCLUDE from correction (face region + dilation)."""
-    h, w = img_bgr.shape[:2]
-    mask = np.zeros((h, w), dtype=np.uint8)
-    if face_bbox is None:
-        return mask.astype(bool)
-    x1, y1, x2, y2 = face_bbox
-    mask[y1:y2, x1:x2] = 255
-    if _FACE_EXCLUSION_DILATE > 0:
-        kernel = cv2.getStructuringElement(
-            cv2.MORPH_ELLIPSE,
-            (2 * _FACE_EXCLUSION_DILATE + 1, 2 * _FACE_EXCLUSION_DILATE + 1)
-        )
-        mask = cv2.dilate(mask, kernel, iterations=1)
-    return mask.astype(bool)
+# Note: _face_exclusion_mask + _FACE_EXCLUSION_DILATE were removed 2026-05-29
+# when match_body_skin_to_face_ref switched to face+body inclusion (lift the
+# whole subject to face_ref tone, not just body). If a future scene needs to
+# preserve face pixel-identical and only correct body, restore the helper from
+# Git history (commit before bbb8e8b).
 
 
 def _apply_lab_delta(
@@ -204,45 +213,44 @@ def _apply_lab_delta(
     target_lab: tuple[float, float, float],
 ) -> np.ndarray:
     """Compute mean LAB of body_skin_mask pixels, compute delta to target, shift those pixels."""
-    num_pixels = int(body_skin_mask.sum())
-    if num_pixels < _MIN_SKIN_PIXELS:
+    if body_skin_mask.sum() < _MIN_SKIN_PIXELS:
         return img_bgr  # nothing to correct
 
-    # Optimization: Extract masked pixels ONLY and perform color conversion on them.
-    # This avoids two full-image O(N) color conversions (BGR->LAB and LAB->BGR),
-    # providing a ~5x speedup for typical carousel slides where skin is ~20% of pixels.
-    skin_pixels_bgr = img_bgr[body_skin_mask].reshape(1, -1, 3)
-    skin_pixels_lab = _bgr_to_lab(skin_pixels_bgr).reshape(-1, 3)
-    src_means = skin_pixels_lab.mean(axis=0)
+    lab = _bgr_to_lab(img_bgr)  # float32 LAB
 
-    deltas = np.clip(
-        np.array(target_lab) - src_means,
-        [-_MAX_L_SHIFT, -_MAX_AB_SHIFT, -_MAX_AB_SHIFT],
-        [_MAX_L_SHIFT, _MAX_AB_SHIFT, _MAX_AB_SHIFT]
-    )
-    dL, da, db = deltas
+    L_vals = lab[:, :, 0][body_skin_mask]
+    a_vals = lab[:, :, 1][body_skin_mask]
+    b_vals = lab[:, :, 2][body_skin_mask]
 
-    print(f"  [skin_color_match] src LAB ({src_means[0]:.1f}, {src_means[1]:.1f}, {src_means[2]:.1f}) "
+    src_L = float(L_vals.mean())
+    src_a = float(a_vals.mean())
+    src_b = float(b_vals.mean())
+
+    dL = float(np.clip(target_lab[0] - src_L, -_MAX_L_SHIFT, _MAX_L_SHIFT))
+    da = float(np.clip(target_lab[1] - src_a, -_MAX_AB_SHIFT, _MAX_AB_SHIFT))
+    db = float(np.clip(target_lab[2] - src_b, -_MAX_AB_SHIFT, _MAX_AB_SHIFT))
+
+    print(f"  [skin_color_match] src LAB ({src_L:.1f}, {src_a:.1f}, {src_b:.1f}) "
           f"→ target ({target_lab[0]:.1f}, {target_lab[1]:.1f}, {target_lab[2]:.1f}) "
           f"delta ({dL:+.1f}, {da:+.1f}, {db:+.1f}) "
-          f"pixels={num_pixels}")
+          f"pixels={int(body_skin_mask.sum())}")
 
-    # Apply shift in LAB space and clip to valid ranges
-    skin_pixels_lab += deltas
-    np.clip(
-        skin_pixels_lab,
-        [0, -128, -128],
-        [100, 127, 127],
-        out=skin_pixels_lab
+    # Soft-feather mask: hard bool edges produce visible seam at silhouette when delta L is large.
+    # Gaussian-blur a float [0,1] mask, then alpha-blend the LAB shift.
+    mask_f = body_skin_mask.astype(np.float32)
+    mask_blur = cv2.GaussianBlur(
+        mask_f, (0, 0),
+        sigmaX=_MASK_FEATHER_SIGMA, sigmaY=_MASK_FEATHER_SIGMA,
     )
+    alpha = mask_blur[..., None]  # (H, W, 1) broadcasts over LAB channels
 
-    # Convert corrected skin pixels back to BGR
-    res_skin_bgr = _lab_to_bgr(skin_pixels_lab.reshape(1, -1, 3)).reshape(-1, 3)
+    shift = np.array([dL, da, db], dtype=np.float32)
+    result_lab = lab + alpha * shift
+    result_lab[..., 0] = np.clip(result_lab[..., 0], 0.0, 100.0)
+    result_lab[..., 1] = np.clip(result_lab[..., 1], -128.0, 127.0)
+    result_lab[..., 2] = np.clip(result_lab[..., 2], -128.0, 127.0)
 
-    # Write corrected pixels back into the original image
-    result = img_bgr.copy()
-    result[body_skin_mask] = res_skin_bgr
-    return result
+    return _lab_to_bgr(result_lab)
 
 
 def match_body_skin_to_face_ref(
@@ -251,8 +259,15 @@ def match_body_skin_to_face_ref(
     out_path: Path,
 ) -> None:
     """
-    Main pipeline: detect face → person mask → HSV skin filter → exclude face → LAB shift body.
-    Face region is pixel-identical to input (ReActor output preserved).
+    Main pipeline: detect face → person mask → HSV skin filter → LAB shift face+body.
+
+    Both face skin and body skin get the same uniform LAB shift toward face_ref_v2
+    cheek tone (sampled from the static reference). This neutralises warm/cool
+    ambient casts (festive red, golden hour, indoor incandescent) that would
+    otherwise leave the rendered face darker than the body once body alone gets
+    lifted. Facial structure (eyes, lips, nose) is preserved by the LAB delta
+    being uniform and tone-only — only colour shifts, never geometry.
+
     Saves corrected image to out_path (may be same as slide_path for in-place).
     """
     slide_path = Path(slide_path)
@@ -263,7 +278,10 @@ def match_body_skin_to_face_ref(
     if img_bgr is None:
         raise FileNotFoundError(f"Slide not found: {slide_path}")
 
-    # Cache target LAB by (path, mtime) — avoids re-sampling face_ref on every slide
+    # Target LAB: always face_ref_v2 cheek (fair, neutral-lit reference). Body +
+    # face both get pulled toward this. The in-slide sampling option (tried on
+    # 2026-05-29 v9c) was wrong-direction: it locked body to the dark-rendered
+    # face, but the user actually wants both to be at the fair face_ref tone.
     face_ref_resolved = face_ref_path.resolve()
     target_lab = _sample_face_skin_lab_cached(
         str(face_ref_resolved),
@@ -273,11 +291,16 @@ def match_body_skin_to_face_ref(
     face_bbox = _detect_face_bbox(img_bgr)
     pmask = _person_mask(img_bgr)
     skin_mask = _hsv_skin_filter(img_bgr, pmask)
-    face_excl = _face_exclusion_mask(img_bgr, face_bbox)
 
-    body_skin_mask = skin_mask & ~face_excl
+    # Apply LAB delta to BOTH face and body skin (no face exclusion). Reason:
+    # warm-cast scenes (festive red, golden hour, indoor incandescent) darken
+    # the rendered face away from face_ref_v2 tone via ReActor blend; lifting
+    # face along with body unifies the whole subject to the fair reference.
+    # This is a uniform LAB shift, not pixel substitution — facial structure
+    # (eyes, lips, nose) is preserved; only tone shifts.
+    full_skin_mask = skin_mask  # includes face skin
 
-    corrected = _apply_lab_delta(img_bgr, body_skin_mask, target_lab)
+    corrected = _apply_lab_delta(img_bgr, full_skin_mask, target_lab)
     cv2.imwrite(str(out_path), corrected)
 
 
