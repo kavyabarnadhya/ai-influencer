@@ -173,28 +173,68 @@ def _person_mask(img_bgr: np.ndarray) -> np.ndarray:
 
 
 def _hsv_skin_filter(img_bgr: np.ndarray, person_mask: np.ndarray) -> np.ndarray:
-    """Restrict to person_mask pixels that also match HSV skin range."""
-    hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
-    m1 = cv2.inRange(hsv, _SKIN_HSV_LOWER1, _SKIN_HSV_UPPER1)
-    m2 = cv2.inRange(hsv, _SKIN_HSV_LOWER2, _SKIN_HSV_UPPER2)
-    skin = cv2.bitwise_or(m1, m2).astype(bool)
-    return skin & person_mask
+    """
+    Restrict to person_mask pixels that also match HSV skin range.
+    Optimization: Perform HSV conversion only on the bounding box of person_mask
+    to avoid O(TotalPixels) overhead.
+    """
+    # Get bounding box of person_mask
+    rows = np.any(person_mask, axis=1)
+    cols = np.any(person_mask, axis=0)
+    if not np.any(rows) or not np.any(cols):
+        return np.zeros_like(person_mask)
+
+    ymin, ymax = np.where(rows)[0][[0, -1]]
+    xmin, xmax = np.where(cols)[0][[0, -1]]
+    ymax += 1
+    xmax += 1
+
+    roi_bgr = img_bgr[ymin:ymax, xmin:xmax]
+    roi_hsv = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2HSV)
+    m1 = cv2.inRange(roi_hsv, _SKIN_HSV_LOWER1, _SKIN_HSV_UPPER1)
+    m2 = cv2.inRange(roi_hsv, _SKIN_HSV_LOWER2, _SKIN_HSV_UPPER2)
+    roi_skin = cv2.bitwise_or(m1, m2).astype(bool)
+
+    full_skin = np.zeros(person_mask.shape, dtype=bool)
+    full_skin[ymin:ymax, xmin:xmax] = roi_skin
+    return full_skin & person_mask
 
 
 def _face_exclusion_mask(img_bgr: np.ndarray, face_bbox: tuple[int, int, int, int] | None) -> np.ndarray:
-    """Returns boolean mask of pixels to EXCLUDE from correction (face region + dilation)."""
+    """
+    Returns boolean mask of pixels to EXCLUDE from correction (face region + dilation).
+    Optimization: Perform dilation only on a small ROI surrounding the face
+    bounding box to avoid O(TotalPixels) morphological overhead.
+    """
     h, w = img_bgr.shape[:2]
     mask = np.zeros((h, w), dtype=np.uint8)
     if face_bbox is None:
         return mask.astype(bool)
+
     x1, y1, x2, y2 = face_bbox
-    mask[y1:y2, x1:x2] = 255
     if _FACE_EXCLUSION_DILATE > 0:
+        d = _FACE_EXCLUSION_DILATE
+        # Define ROI including the dilation padding
+        ex1, ey1 = max(0, x1 - d), max(0, y1 - d)
+        ex2, ey2 = min(w, x2 + d), min(h, y2 + d)
+
+        roi_h, roi_w = ey2 - ey1, ex2 - ex1
+        roi_mask = np.zeros((roi_h, roi_w), dtype=np.uint8)
+
+        # Map original face_bbox to ROI coordinates
+        rx1, ry1 = x1 - ex1, y1 - ey1
+        rx2, ry2 = x2 - ex1, y2 - ey1
+        roi_mask[ry1:ry2, rx1:rx2] = 255
+
         kernel = cv2.getStructuringElement(
             cv2.MORPH_ELLIPSE,
-            (2 * _FACE_EXCLUSION_DILATE + 1, 2 * _FACE_EXCLUSION_DILATE + 1)
+            (2 * d + 1, 2 * d + 1)
         )
-        mask = cv2.dilate(mask, kernel, iterations=1)
+        roi_mask = cv2.dilate(roi_mask, kernel, iterations=1)
+        mask[ey1:ey2, ex1:ex2] = roi_mask
+    else:
+        mask[y1:y2, x1:x2] = 255
+
     return mask.astype(bool)
 
 

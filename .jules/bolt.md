@@ -131,3 +131,7 @@
 **Learning:** Transcendental operations like BGR to LAB color space conversion are expensive. Performing them on an entire high-resolution image (e.g. 2048x1024) when only a small fraction (~20%) of the pixels (skin) are actually being processed is a significant waste of CPU and memory.
 
 **Action:** Extract the masked BGR pixels into a compact 1xNx3 array before conversion. Perform all LAB shifts on this subset, convert the result back to BGR, and then patch the original image. Benchmarks show this provides a ~2.85x speedup for the core color shift logic by avoiding O(TotalPixels) transcendental math.
+
+## 2026-05-25 - ROI-Based Optimization for Global Image Filters
+**Learning:** In image processing pipelines (NumPy/OpenCV), using boolean masks for selective pixel processing (e.g., `img[mask]`) is efficient for heavy transcendental math (like LAB conversion), but can be slower than simple ROI cropping for lighter operations (like HSV conversion or morphological dilation). Cropping to a bounding box maintains spatial locality and avoids the overhead of indexing and flattening/reshaping large arrays.
+**Action:** Use ROI-based processing for spatial operations like dilation or lightweight color conversions. Benchmark against boolean masking to find the cross-over point where masking overhead is lower than the cost of processing unused pixels in the ROI.
