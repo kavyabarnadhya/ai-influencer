@@ -1,0 +1,141 @@
+"""
+Unit tests for the GPU-free pure logic in scripts/faceswap_carousel.py:
+anchor-config validation, FLUX-Kontext prompt injection (incl BG-lock
+auto-append), and slide prompt-file parsing. No ComfyUI / GPU / models.
+
+These guard the spots that have produced real carousel failures: anchor YAML
+schema mistakes, a missing BG-lock token, and slide-line parsing drift.
+"""
+import sys
+from pathlib import Path
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+import faceswap_carousel as fc  # noqa: E402
+
+_BG_LOCK = ", same background, same scene, unchanged environment"
+
+
+def _write(tmp_path, text):
+    p = tmp_path / "anchor.yaml"
+    p.write_text(text, encoding="utf-8")
+    return p
+
+
+# --- load_anchor_config ---
+
+def test_anchor_config_single_valid(tmp_path):
+    cfg = fc.load_anchor_config(_write(tmp_path, "anchor_prompt: a woman in a red dress\nanchor_seed: 334521876\n"))
+    assert cfg["mode"] == "single"
+    assert cfg["anchor_prompt"].startswith("a woman")
+    assert cfg["anchor_seed"] == 334521876
+
+
+def test_anchor_config_multi_valid(tmp_path):
+    cfg = fc.load_anchor_config(_write(
+        tmp_path,
+        "shared_tail: in a red silk dress on a balcony\n"
+        "anchors:\n  standing:\n    prompt: a woman standing\n  sitting:\n    prompt: a woman sitting\n",
+    ))
+    assert cfg["mode"] == "multi"
+    assert set(cfg["anchors"]) == {"standing", "sitting"}
+
+
+def test_anchor_config_rejects_both_schemas(tmp_path):
+    with pytest.raises(ValueError, match="cannot have both"):
+        fc.load_anchor_config(_write(tmp_path, "anchor_prompt: x\nanchors:\n  g:\n    prompt: y\n"))
+
+
+def test_anchor_config_rejects_neither_schema(tmp_path):
+    with pytest.raises(ValueError, match="must have either"):
+        fc.load_anchor_config(_write(tmp_path, "anchor_seed: 1\n"))
+
+
+def test_anchor_config_rejects_empty_prompt(tmp_path):
+    with pytest.raises(ValueError, match="non-empty"):
+        fc.load_anchor_config(_write(tmp_path, "anchor_prompt: '   '\n"))
+
+
+def test_anchor_config_rejects_non_int_seed(tmp_path):
+    with pytest.raises(ValueError, match="anchor_seed.*integer"):
+        fc.load_anchor_config(_write(tmp_path, "anchor_prompt: x\nanchor_seed: not_a_number\n"))
+
+
+def test_anchor_config_body_lora_strength_range(tmp_path):
+    # valid
+    cfg = fc.load_anchor_config(_write(tmp_path, "anchor_prompt: x\nanchor_body_lora_strength: 0.5\n"))
+    assert cfg["anchor_body_lora_strength"] == 0.5
+    # out of range
+    with pytest.raises(ValueError, match="between 0.0 and 1.0"):
+        fc.load_anchor_config(_write(tmp_path, "anchor_prompt: x\nanchor_body_lora_strength: 1.5\n"))
+
+
+def test_anchor_config_multi_group_missing_prompt(tmp_path):
+    with pytest.raises(ValueError, match="missing required 'prompt'"):
+        fc.load_anchor_config(_write(tmp_path, "anchors:\n  g:\n    seed: 1\n"))
+
+
+# --- _inject_flux_kontext (BG-lock auto-append) ---
+
+def _kontext_wf():
+    return {
+        "1": {"_meta": {"title": "_claude_inject_prompt"}, "inputs": {"text": ""}},
+        "2": {"_meta": {"title": "_claude_inject_init_image"}, "inputs": {"image": ""}},
+        "3": {"_meta": {"title": "_claude_inject_seed"}, "inputs": {"seed": 0}},
+    }
+
+
+def test_kontext_bg_lock_appended_by_default():
+    wf = fc._inject_flux_kontext(_kontext_wf(), "woman in red dress", "anchor.png", 42)
+    assert wf["1"]["inputs"]["text"] == "woman in red dress" + _BG_LOCK
+
+
+def test_kontext_bg_lock_can_be_disabled():
+    wf = fc._inject_flux_kontext(_kontext_wf(), "woman in red dress", "anchor.png", 42, bg_lock=False)
+    assert wf["1"]["inputs"]["text"] == "woman in red dress"
+    assert _BG_LOCK not in wf["1"]["inputs"]["text"]
+
+
+def test_kontext_injects_image_and_seed():
+    wf = fc._inject_flux_kontext(_kontext_wf(), "p", "slide_init.png", 1234)
+    assert wf["2"]["inputs"]["image"] == "slide_init.png"
+    assert wf["3"]["inputs"]["seed"] == 1234
+
+
+# --- parse_prompts_file ---
+
+def _prompts(tmp_path, text):
+    p = tmp_path / "slides.txt"
+    p.write_text(text, encoding="utf-8")
+    return fc.parse_prompts_file(p, default_denoise=0.6)
+
+
+def test_parse_skips_blank_and_comment_lines(tmp_path):
+    rows = _prompts(tmp_path, "# header comment\n\n   \nanchor=default | a real slide\n")
+    assert len(rows) == 1
+    assert rows[0]["prompt"] == "a real slide"
+
+
+def test_parse_extracts_anchor_token_and_strips_it(tmp_path):
+    rows = _prompts(tmp_path, "anchor=standing | woman walking\n")
+    assert rows[0]["anchor"] == "standing"
+    assert rows[0]["prompt"] == "woman walking"
+    assert "anchor=" not in rows[0]["prompt"]
+
+
+def test_parse_denoise_token_and_default(tmp_path):
+    rows = _prompts(tmp_path, "denoise=0.85 | a\nanchor=default | b\n")
+    assert rows[0]["denoise"] == 0.85
+    assert rows[1]["denoise"] == 0.6  # falls back to default
+
+
+def test_parse_malformed_denoise_falls_back(tmp_path):
+    rows = _prompts(tmp_path, "denoise=notafloat | a\n")
+    assert rows[0]["denoise"] == 0.6  # no crash, default used
+
+
+def test_parse_plain_line_no_tokens(tmp_path):
+    rows = _prompts(tmp_path, "just a plain prompt line\n")
+    assert rows[0]["prompt"] == "just a plain prompt line"
+    assert rows[0]["anchor"] is None
