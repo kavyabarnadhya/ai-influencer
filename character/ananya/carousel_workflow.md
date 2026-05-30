@@ -219,7 +219,7 @@ Apply to every slide. Fail if any criterion fails on any slide (with documented 
 | Accessories | Earrings/bracelet present on most slides; outfit core hold all | Outfit core changed (neckline, strap detail, color) |
 | Hair | Long dark loose wavy on every slide | Hair length, color, or style changed |
 | Pose variance | 6 distinct compositions (not 6 variants of same pose) | Two or more slides have visually-similar pose |
-| Hand realism | All visible hands have 5 natural separated fingers, no fused/clawed/webbed fingers, no extra thumbs | Visible fused/clawed/6-finger hand — Stage 3.5 hand detail misses on low-contrast placements. **Hands resting on a white/light skirt fuse every time** (low contrast → YOLO `hand_yolov8s.pt` finds no bbox → Stage 3.5 never fires; `behind back` does NOT fix it, Kontext keeps a hand on the skirt). Fix by re-posing both hands ABOVE the bust on skin/hair/darker drape — not by reprocess. See §8 row. Validated white off-shoulder lace corset v1 (2026-05-30) after 3 failed reruns. |
+| Hand realism | All visible hands have 5 natural separated fingers, no fused/clawed/webbed fingers, no extra thumbs | Visible fused/clawed/6-finger hand — Stage 3.5 hand detail misses on low-contrast placements. **Hands resting on a white/light skirt fuse every time** (low contrast → YOLO `hand_yolov8s.pt` finds no bbox → Stage 3.5 never fires; `behind back` does NOT fix it, Kontext keeps a hand on the skirt). Fix by re-posing both hands ABOVE the bust on skin/hair/darker drape and regenerating the slide — re-running post-process alone cannot repair a fused hand. See §8 row. Validated white off-shoulder lace corset v1 (2026-05-30) after 3 failed reruns. |
 
 ### Documented exception
 
