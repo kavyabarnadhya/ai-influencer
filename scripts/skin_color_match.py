@@ -56,11 +56,14 @@ _CHEEK_RIGHT_FRAC = 0.75
 
 
 # Maximum LAB channel shift magnitude — clamp to avoid over-correction.
-# Restored to 25.0 / 12.0 on 2026-05-29 after red lehenga festive: warm-cast
-# scenes need a strong lift to bring rendered skin to face_ref_v2 fair tone.
-# The 8.0 trial was too soft. Pairs with face-inclusion (apply lift to face
-# too) so both face and body get unified to face_ref tone, neutralising the
-# scene's ambient warm/red cast that was making faces read as "darker".
+# History: 30/15 → 25/12 (2026-05-29, warm scenes needed strong lift) → 10/8 (2026-05-31).
+# The 25/12 caps OVER-corrected warm-cast indoor scenes: face_ref_v2 cheek L≈61 vs
+# warm-tungsten-rendered skin L≈49 = +12 L lift bleached skin to a plastic foundation
+# look (red halter vanity carousel). L capped at 10 keeps a natural warm-lit tone.
+# AB lowered 12→8 in step: the large a*/b* pull was scrubbing the scene's warm ambient
+# cast off the skin (part of the same plastic look) — a gentler AB cap lets some warm
+# ambience read through so skin sits in the scene instead of looking colour-corrected.
+# Pairs with face-inclusion (lift applied to face + body together).
 _MAX_L_SHIFT = 10.0
 _MAX_AB_SHIFT = 8.0
 
