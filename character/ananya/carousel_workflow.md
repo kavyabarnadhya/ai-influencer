@@ -1,6 +1,8 @@
 # Ananya Carousel Workflow — Canonical Reference
 
-**Last updated: 2026-05-30 — §8 + §11: hands resting on a white/light skirt fuse every time (low contrast → YOLO hand-detect misses → Stage 3.5 never fires; `behind back` does not fix it). Only reliable fix = both hands above the bust on skin/hair/darker drape + regenerate the slide. Validated white off-shoulder lace corset v1.**
+**Last updated: 2026-05-31 — §7 faceless/off-camera slide vocabulary + `faceswap=false` token (skip ReActor for zero-face slides); §8 new forbidden patterns (mirror BG → portal artefact, hair-flip → rubbery hair, straight-overhead arms); §2 hair-color lock (warm scenes drift lighter) + skin caps lowered to 10/8 (25/12 over-bleached warm scenes). Validated red halter vanity v1.**
+
+Prior 2026-05-30 — §8 + §11: hands resting on a white/light skirt fuse every time (low contrast → YOLO hand-detect misses → Stage 3.5 never fires; `behind back` does not fix it). Only reliable fix = both hands above the bust on skin/hair/darker drape + regenerate the slide. Validated white off-shoulder lace corset v1.
 
 Prior 2026-05-29 — skin lock Stage 3.6 now applies LAB shift to BOTH face and body skin (no face exclusion), `_MAX_L_SHIFT` raised back to 25.0 / `_MAX_AB_SHIFT` to 12.0. Warm-cast scenes (festive red, golden hour, indoor incandescent) were leaving the rendered face darker than face_ref_v2 baseline via ReActor blend bleed-through; lifting face+body together unifies the whole subject to the fair reference tone (validated on red chikankari lehenga festive v9d). `scripts/comfyui_api.py` discovery sweep now includes port 8001 (ComfyUI Desktop fallback when 8000 is held by a zombie process). §11 hand realism criterion gains an explicit third-hand check (slide_03 of v9d had hair-touch+chest+hip = 3 hands; partial rerun with strict 2-hand prompt fixed it).
 
@@ -43,7 +45,8 @@ These never change across any Ananya carousel. They are the foundation of cross-
 | Body LoRA strength | `0.5` universal | `anchor_body_lora_strength:` in anchor YAML | Exceptions: `0.0` for headshot (no body) or flowy/loose linen (LoRA amplifies fabric volume). |
 | Realism LoRA | `0.5` baked into workflow node 15 | `workflows/flux_dev.json` | Do not change. |
 | Hand realism post-process | Auto-applied | `workflows/flux_hand_detail.json` | Runs as Stage 3.5 after ReActor — SDXL FaceDetailer inpaint on `hand_yolov8s.pt` bbox using Juggernaut XL. Fixes FLUX 6-finger / deformed-hand artefacts (especially cup-grip poses). Sweet-spot tuned: denoise 0.50, cycle 1, bbox_dilation 15, feather 8. Higher denoise (0.65+) makes hands look heavy/uncanny. ~10-15s/slide. ORDER: must run BEFORE skin lock — hand inpaint may shift hand skin tone; subsequent skin lock unifies whole body to face_ref. |
-| Skin tone post-process | Auto-applied | `scripts/skin_color_match.py` | Runs after hand detail. Locks body skin to face_ref cheek LAB. Mask Gaussian-feathered σ=8px before LAB shift — required to avoid seam halo at body silhouette when ΔL > 10 (validated on orange tank cafe v3). No prompt action needed. |
+| Skin tone post-process | Auto-applied | `scripts/skin_color_match.py` | Runs after hand detail. Locks body skin to face_ref cheek LAB. Mask Gaussian-feathered σ=8px before LAB shift — required to avoid seam halo at body silhouette when ΔL > 10 (validated on orange tank cafe v3). LAB shift caps `_MAX_L_SHIFT=10`, `_MAX_AB_SHIFT=8` (lowered 2026-05-31): the old 25/12 over-corrected warm-tungsten indoor scenes to a plastic foundation-pale look. No prompt action needed. |
+| Hair color | `long dark brown hair` in anchor + every slide vocab lock | anchor `anchor_prompt` / `shared_tail` + slide `keeping exact same` | Warm-tungsten / amber-sconce scenes drift hair lighter (renders auburn/caramel/blonde). Lock explicitly: `long dark brown hair NOT auburn NOT blonde NOT highlighted`. Validated red halter vanity v1 (2026-05-31). |
 
 ### Hard NEVER rules
 
@@ -172,7 +175,24 @@ The benchmark order. Every new carousel should follow this unless there's a docu
 - **Each slide must have a uniquely identifiable composition.** Two slides with the same pose = failure (the user will spot it).
 - **Closeups must use** the exact framing instruction: `change to chest-up portrait framing showing face neck shoulders and neckline only`. Variants like "waist-up" do NOT work — Kontext stays full-body.
 - **All standing**, no mixing sitting in the same carousel. Sitting = separate post.
-- **All toward-camera** body angles (full or three-quarter). Body turned away (180° flip) breaks BG.
+- **Hand-zone diversity:** vary hand placement across slides (at sides / in hair / at collarbone / one arm wide / raised overhead). Repeating "hand at collar/chest" on 4+ slides reads monotone. For an arms-raised/armpit slide, bake the raised pose into a **separate anchor group** (`armsup:`) — Kontext will NOT raise arms from a relaxed-arm anchor.
+- Arms-raised should read sensual/languid (soft bent elbows, head tilt, heavy-lidded), NOT straight-overhead (reads as "police surrender").
+
+### Faceless / off-camera slides (validated 2026-05-31, red halter vanity)
+
+Candid faceless shots add editorial variety. Research-backed poses that work in Kontext:
+
+| Faceless pose | Prompt approach | faceswap |
+|---|---|---|
+| Walking away toward a feature (sconce/window) | `from behind walking slowly away toward the [light], mid-stride, face NOT visible` | `faceswap=false` |
+| Side profile holding a prop (bouquet) | `strict side profile facing left, both arms cradling a bouquet in front, head tilted up, face in profile not at camera` | keep ON (side face visible) |
+| Bare back over-shoulder | `body turned three-quarter (~120°) away, bare back visible, head over shoulder` | keep ON (side face) |
+| Looking down, hair forward | `chin to chest, hair falling forward over face, eyes NOT visible` | keep ON (side face) |
+| Cropped torso / back of head | `cropped at collarbone, NO face in frame` or `180° back, only hair + bare back` | `faceswap=false` |
+
+**Rule — faceswap toggle:** add `faceswap=false |` token (slide line) ONLY when **zero** Ananya face is visible (back of head, walking away, cropped torso). Skips ReActor → avoids it distorting hands/body near a non-existent face; hand detail + skin lock still run. If ANY side of the face shows (profile, looking-down), KEEP faceswap on — else FLUX's base (non-Ananya) face ships.
+
+**Avoid:** the **hair-flip-across-face** pose — FLUX renders the flung hair artificially (rubbery strands, gaps showing face). Use walking-away or bouquet-profile for hidden-face instead.
 
 ---
 
@@ -180,13 +200,16 @@ The benchmark order. Every new carousel should follow this unless there's a docu
 
 | Pattern | Why it breaks | Replacement |
 |---|---|---|
-| `body turned away from camera` / `back to camera` | Full 180° flip → Kontext repaints scene geometry → BG collapses, invents new scene | `three-quarter angle facing slightly left/right toward camera, head turned to camera` |
+| `body turned away from camera` / `back to camera` | Full 180° flip → Kontext repaints scene geometry → BG collapses, invents new scene | `three-quarter angle facing slightly left/right toward camera, head turned to camera`. **Exception:** an intentional faceless slide (back of head / walking away) is fine — pair with `faceswap=false` and accept the BG may shift slightly; see §7 faceless table. |
 | `hand touching ribbon tie` / `fingers on lace` / `hand on button/zipper/strings` | Kontext reads as untying/opening the garment | `hand to cheek with fingers near jawline`, `fingertips lightly at collarbone`, `hand raised near shoulder` |
 | `sitting` in a standing carousel | Structural pose change → BG + outfit drift; Kontext fights its own preservation logic | Separate carousel entirely; sitting = standalone post |
 | `change to waist-up portrait framing` | Kontext ignores waist-up cue, stays full-body | `change to chest-up portrait framing showing face neck shoulders and neckline only` |
 | `mid-stride walking toward camera` / any motion verb from a static anchor | Kontext preserves anchor composition — motion instruction silently ignored → slide becomes near-duplicate of anchor pose | Use static-friendly action: `stepping forward with one foot ahead`, `cup raised to lips taking a sip`, `head tilted to one side looking off-camera` |
 | `hand raised through/pushing hair` combined with `holding object in other hand` | Three-hand artefact — Kontext renders the raised arm but also keeps an "expected" hand at the side, producing extra limb | Pick one: either hair-push (both hands free from objects) OR holding object (no hair-push). If both poses needed, split across two slides. |
 | `hand at hip` / `hand on skirt` / `hands holding skirt` on a **white or light-coloured skirt** | Low contrast — FLUX fuses the fingers into the pale fabric (clawed/webbed/fused hand). YOLO hand-detect (`hand_yolov8s.pt`) finds no clear hand bbox against white, so Stage 3.5 hand inpaint never fires → ships broken. `behind back` does NOT fix it: Kontext ignores the instruction and keeps a hand on the skirt anyway. | Keep BOTH hands **above the bust** on a high-contrast surface: fingertips at cheek/jaw, hand at collarbone (skin), hand in dark hair, or flat against a darker drape. Explicit tokens: `both hands held high above the bust, NO hand below the bust, NO hand on the skirt, NO hand on the hips`. Validated white off-shoulder lace corset v1 (2026-05-30) after 3 failed reruns — only hands-above-bust landed clean. |
+| `mirror` / `gold-framed mirror` / any reflective surface in the BG | Kontext treats the mirror as a portal — renders the figure half-emerging from inside the mirror frame, or a garbled reflection. Even as a static anchor element it corrupts. | Use a non-reflective BG: `smooth cream-white textured wall`, `wall sconce`, `decorative wall panel`. No mirrors, ever (despite mirror-selfie being the common IG reference look). Validated red halter vanity v1 (2026-05-31). |
+| `hair flip` / `hair flung across face` / hair in motion hiding face | FLUX renders flung hair as rubbery artificial strands with gaps that still show the face → looks fake. | For hidden-face use walking-away or side-profile-with-prop (see §7 faceless table). |
+| `both arms raised straight overhead` (from a relaxed anchor) | Kontext won't raise arms from a relaxed-arm anchor (keeps anchor pose); when forced via a baked anchor, straight-up reads stiff/"surrender". | Bake an `armsup:` anchor group with a **languid sensual** stretch (soft bent elbows, head tilt). |
 
 ### Concrete before/after examples
 

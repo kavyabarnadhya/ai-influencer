@@ -139,3 +139,12 @@ def test_parse_plain_line_no_tokens(tmp_path):
     rows = _prompts(tmp_path, "just a plain prompt line\n")
     assert rows[0]["prompt"] == "just a plain prompt line"
     assert rows[0]["anchor"] is None
+    assert rows[0]["faceswap"] is True  # default: faceswap on
+
+
+def test_parse_faceswap_false_token(tmp_path):
+    rows = _prompts(tmp_path, "faceswap=false | back of head shot\nanchor=default | normal slide\n")
+    assert rows[0]["faceswap"] is False
+    assert rows[0]["prompt"] == "back of head shot"
+    assert "faceswap=" not in rows[0]["prompt"]
+    assert rows[1]["faceswap"] is True  # absent token defaults to True

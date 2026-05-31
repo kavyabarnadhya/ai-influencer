@@ -1,0 +1,52 @@
+# Anchor: red satin halter-neck A-line mini dress, warm boutique hotel room interior.
+# MULTI-ANCHOR MODE: 'default' = arms down standard. 'armsup' = arms raised sensual stretch baked in.
+# Body: balanced slim. Hair: dark brown only. No mirror. No bindi.
+# Used with: --flux-dev --kontext flags (MANDATORY)
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/red_halter_mini_vanity.yaml --prompts character/ananya/carousel_prompts/red_halter_mini_vanity.txt --name red_halter_mini_vanity_v1 --flux-dev --kontext
+
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
+
+shared_tail: >
+  wearing a deep red satin halter-neck A-line mini dress,
+  the neckline is a deep V-shaped halter with a single neck strap looping behind the neck and tying at the nape,
+  bare shoulders and bare upper back visible above the dress,
+  ruched gathered smocked horizontal band of fabric running across the bust just below the neckline creating soft fabric folds across the chest,
+  fitted smooth bodice from under the bust cinching the waist,
+  full voluminous A-line skirt flaring out from the waist and hips falling to mid-thigh,
+  fabric is smooth satin with a soft sheen, solid deep red colour, no print no embroidery no trim,
+  gold ring on right hand, no bracelet, small hoop earrings,
+  long dark brown hair NOT auburn NOT blonde NOT highlighted, loose wavy falling past shoulders,
+  in a warm boutique hotel room interior,
+  smooth cream-white textured wall behind as backdrop with no mirror no reflective surface,
+  warm amber wall sconce light mounted on the cream wall casting soft flattering glow,
+  cream marble floor underfoot,
+  shot on Sony A7IV 35mm editorial fashion photograph,
+  authentic skin texture with visible pores, natural skin imperfections, no plasticky skin,
+  asymmetric facial features, slightly off-center composition
+
+anchors:
+  default:
+    prompt: >
+      23-year-old South Asian woman with M-size hourglass figure,
+      pronounced hourglass with hips noticeably wider than waist, fuller chest and décolletage,
+      defined cinched narrow waist with soft curves at hips and bust, healthy curvy M-size Indian woman build,
+      NOT slim editorial NOT model-thin NOT plus-size NOT oversized,
+      balanced M-size proportions with natural feminine curves not exaggerated,
+      bare smooth forehead with no bindi no forehead dot no tikka no forehead mark,
+      three-quarter body shot head to skirt hem, head fully visible,
+      standing three-quarter to camera with weight shifted onto right hip, both arms relaxed down at sides with space between arms and torso
+
+  armsup:
+    prompt: >
+      23-year-old South Asian woman with M-size hourglass figure,
+      pronounced hourglass with hips noticeably wider than waist, fuller chest and décolletage,
+      defined cinched narrow waist with soft curves at hips and bust, healthy curvy M-size Indian woman build,
+      NOT slim editorial NOT model-thin NOT plus-size NOT oversized,
+      balanced M-size proportions with natural feminine curves not exaggerated,
+      bare smooth forehead with no bindi no forehead dot no tikka no forehead mark,
+      full body head to feet visible,
+      both arms raised in a slow languid sensual stretch with elbows softly bent and wrists loose and relaxed,
+      armpits fully visible, head tilted gently to the right, heavy-lidded half-closed eyes, parted lips,
+      languid sensual mood NOT celebratory NOT stiff NOT athletic
