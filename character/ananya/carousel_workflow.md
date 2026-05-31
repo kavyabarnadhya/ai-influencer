@@ -200,7 +200,7 @@ Candid faceless shots add editorial variety. Research-backed poses that work in 
 
 | Pattern | Why it breaks | Replacement |
 |---|---|---|
-| `body turned away from camera` / `back to camera` | Full 180° flip → Kontext repaints scene geometry → BG collapses, invents new scene | `three-quarter angle facing slightly left/right toward camera, head turned to camera` |
+| `body turned away from camera` / `back to camera` | Full 180° flip → Kontext repaints scene geometry → BG collapses, invents new scene | `three-quarter angle facing slightly left/right toward camera, head turned to camera`. **Exception:** an intentional faceless slide (back of head / walking away) is fine — pair with `faceswap=false` and accept the BG may shift slightly; see §7 faceless table. |
 | `hand touching ribbon tie` / `fingers on lace` / `hand on button/zipper/strings` | Kontext reads as untying/opening the garment | `hand to cheek with fingers near jawline`, `fingertips lightly at collarbone`, `hand raised near shoulder` |
 | `sitting` in a standing carousel | Structural pose change → BG + outfit drift; Kontext fights its own preservation logic | Separate carousel entirely; sitting = standalone post |
 | `change to waist-up portrait framing` | Kontext ignores waist-up cue, stays full-body | `change to chest-up portrait framing showing face neck shoulders and neckline only` |
