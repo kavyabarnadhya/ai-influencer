@@ -153,8 +153,12 @@ def _run_and_save(client: ComfyUIClient, wf: dict, out_path: Path,
 
 def parse_prompts_file(path: Path, default_denoise: float) -> list[dict]:
     """Parse prompt lines. Tokens (any order, all optional):
-        denoise=0.85 | anchor=standing | pose=path | cn=0.65 | <prompt>
-    Returns list of dicts: {denoise, anchor, pose, cn_strength, prompt}
+        denoise=0.85 | anchor=standing | pose=path | cn=0.65 | faceswap=false | <prompt>
+    Returns list of dicts: {denoise, anchor, pose, cn_strength, faceswap, prompt}
+
+    faceswap=false skips the ReActor stage for that slide (use for zero-face shots
+    — back of head, cropped torso, body-only — where no Ananya face is visible, so a
+    swap would only risk distortion). Hand detail + skin lock still run.
     """
     out = []
     for raw in path.read_text(encoding="utf-8").splitlines():
@@ -165,6 +169,7 @@ def parse_prompts_file(path: Path, default_denoise: float) -> list[dict]:
         anchor = None
         pose = None
         cn_strength = 0.65
+        faceswap = True
         parts = [p.strip() for p in line.split("|")]
         remaining = []
         for part in parts:
@@ -183,13 +188,15 @@ def parse_prompts_file(path: Path, default_denoise: float) -> list[dict]:
                     cn_strength = float(part.split("=", 1)[1])
                 except (ValueError, IndexError):
                     pass
+            elif low.startswith("faceswap="):
+                faceswap = part.split("=", 1)[1].strip().lower() not in ("false", "no", "0", "off")
             elif low.startswith("kontext_strength="):
                 pass  # FluxKontextImageScale has no strength input — token accepted but ignored
             else:
                 remaining.append(part)
         text = " ".join(remaining).strip() if remaining else line
         out.append({"denoise": denoise, "anchor": anchor, "pose": pose,
-                    "cn_strength": cn_strength, "prompt": text})
+                    "cn_strength": cn_strength, "faceswap": faceswap, "prompt": text})
     return out
 
 
@@ -570,15 +577,21 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                     )
                 _run_and_save(client, wf2, base_path, timeout=flux_timeout)
 
-                # Stage 3: ReActor face swap
-                uploaded_target = client.upload_image(str(base_path))
-                # Optimization: Skip cache propagation on final injection to avoid extra dict copy in submit_workflow
-                wf3 = _inject_faceswap(
-                    faceswap_template,
-                    uploaded_face, uploaded_target,
-                    propagate_cache=False
-                )
-                _run_and_save(client, wf3, final_path, timeout=180)
+                # Stage 3: ReActor face swap — skipped for zero-face slides (faceswap=false).
+                # No Ananya face is visible (back of head / cropped torso / body-only), so a
+                # swap would only risk distortion. Copy base → final so Stage 3.5/3.6 still run.
+                if slide.get("faceswap", True):
+                    uploaded_target = client.upload_image(str(base_path))
+                    # Optimization: Skip cache propagation on final injection to avoid extra dict copy in submit_workflow
+                    wf3 = _inject_faceswap(
+                        faceswap_template,
+                        uploaded_face, uploaded_target,
+                        propagate_cache=False
+                    )
+                    _run_and_save(client, wf3, final_path, timeout=180)
+                else:
+                    console.print("  [cyan]faceswap=false — skipping ReActor (zero-face slide)[/cyan]")
+                    shutil.copy(base_path, final_path)
 
                 # Stage 3.5: Hand realism — SDXL inpaint on YOLO-detected hand bboxes.
                 # Fixes FLUX 6-finger / deformed-hand artefacts. Failures degrade gracefully

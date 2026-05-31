@@ -1,0 +1,44 @@
+# Carousel: deep red satin halter-neck A-line mini dress, warm boutique hotel room (cream wall + amber sconce — NO mirror)
+# Anchor YAML: character/ananya/anchor_libraries/red_halter_mini_vanity.yaml
+# Run: python scripts/faceswap_carousel.py --prompts character/ananya/carousel_prompts/red_halter_mini_vanity.txt --name red_halter_mini_vanity_v1 --anchor-config character/ananya/anchor_libraries/red_halter_mini_vanity.yaml --flux-dev --kontext
+#
+# FORMAT RULE: one line per slide — anchor=default | [full prompt on one line]
+# BG lock auto-appended: ", same background, same scene, unchanged environment"
+# VOCAB LOCK every slide: "deep red satin halter-neck A-line mini dress with deep V halter neckline ruched smocked bust band and full A-line skirt" + "cream-white wall" + "warm amber wall sconce light" + "cream marble floor" + "long dark brown hair NOT auburn NOT blonde"
+# HAND RULE: NO hand on skirt NO hand at hip — only safe zones: face/hair/collar/raised-overhead/arms-down
+
+# ── DIRECT GAZE (editorial) ──────────────────────────────────────────────────
+
+# slide_00: full body, arms fully relaxed at sides, direct gaze — clean minimal pose
+anchor=default | same woman in same deep red satin halter-neck A-line mini dress with deep V halter neckline ruched smocked bust band and full A-line skirt, standing facing camera with weight on right hip, BOTH ARMS HANGING STRAIGHT DOWN relaxed at sides with clear space between arms and torso, hands open and natural with no hands touching the skirt, direct confident gaze at camera with soft lips, full body head to skirt hem visible, cream-white wall behind, warm amber wall sconce light, cream marble floor, long dark brown wavy hair NOT auburn NOT blonde loose falling past shoulders, small hoop earrings, gold ring on right hand
+
+# slide_01: full body, arms raised languid sensual stretch baked in armsup anchor, keep pose
+anchor=armsup | same woman in same deep red satin halter-neck A-line mini dress with deep V halter neckline ruched smocked bust band and full A-line skirt, keeping the same languid arms-raised sensual stretch with soft bent elbows and relaxed wrists, armpits visible, head tilted gently, heavy-lidded eyes parted lips, full body head to feet visible, cream-white wall behind, warm amber wall sconce light, cream marble floor, long dark brown wavy hair NOT auburn NOT blonde, small hoop earrings, only two arms visible total no third arm
+
+# slide_02: full body, left hand running through hair at crown, right arm relaxed down
+anchor=default | same woman in same deep red satin halter-neck A-line mini dress with deep V halter neckline ruched smocked bust band and full A-line skirt, left hand raised with fingers running slowly through hair at the crown pushing hair back, right arm hanging relaxed straight down at side with hand open, weight on left hip, body facing camera with soft confident expression, full body head to skirt hem, cream-white wall behind, warm amber wall sconce light, cream marble floor, long dark brown wavy hair NOT auburn NOT blonde, small hoop earrings, gold ring on right hand, only two hands visible total no third arm, NO hands on skirt
+
+# slide_03: chest-up closeup, single hand raised with one finger touching chin thoughtfully
+anchor=default | change to chest-up portrait framing showing face neck shoulders and neckline only, same woman in same deep red satin halter-neck A-line mini dress with deep V halter neckline ruched smocked bust band, right hand raised with single index finger touching chin lightly in thoughtful expression, left arm relaxed out of frame, direct gaze with intense expression, soft bokeh of cream-white wall and amber sconce behind, long dark brown wavy hair NOT auburn NOT blonde loose falling past shoulders, small hoop earrings
+
+# ── CANDID / FACE HIDDEN ─────────────────────────────────────────────────────
+
+# slide_04: candid — body turned away three-quarter back to camera, face NOT visible, looking at wall
+anchor=default | same woman in same deep red satin halter-neck A-line mini dress with deep V halter neckline ruched smocked bust band and full A-line skirt, body turned away from camera showing mostly her bare back, head turned slightly but face NOT visible to camera, right hand raised lightly touching the cream wall in front of her, left arm relaxed at side, full body visible showing bare back shoulders and skirt from behind, cream-white wall in front of her, warm amber wall sconce light visible on wall, cream marble floor, long dark brown wavy hair NOT auburn NOT blonde seen from behind, only two arms visible total
+
+# slide_05: face hidden — both hands raised covering face completely, fingers spread, only eyes peeking or fully hidden
+anchor=default | same woman in same deep red satin halter-neck A-line mini dress with deep V halter neckline ruched smocked bust band and full A-line skirt, both hands raised with palms pressed flat over her face completely hiding her face, fingers spread naturally over face, face entirely hidden behind both hands, only her dark hair visible above and her dress below, body facing camera, full body head to skirt hem, cream-white wall behind, warm amber wall sconce light, cream marble floor, long dark brown wavy hair NOT auburn NOT blonde, only two hands visible total no third arm, both hands held high at face level well above bust NO hands on skirt
+
+# slide_06: body turned back to camera, bare open back fully exposed, halter strap at nape only, face NOT visible
+anchor=default | same woman in same deep red satin halter-neck A-line mini dress, body fully turned away from camera showing her entirely bare open back, the dress is backless with only the thin halter neck strap visible tied at the nape of the neck, entire bare back skin exposed from nape to waist, no fabric on the back, head turned slightly to the side but face NOT visible to camera, left arm relaxed at side, right arm slightly away from body, full body visible from behind, cream-white wall in front of her, warm amber wall sconce light, cream marble floor, long dark brown wavy hair NOT auburn NOT blonde seen from behind, only two arms visible total
+
+# slide_07: looking down deep, chin on chest, hair falling forward covering face partially
+anchor=default | same woman in same deep red satin halter-neck A-line mini dress with deep V halter neckline ruched smocked bust band and full A-line skirt, chin dropped low toward chest, head bowed down with hair falling forward partially covering and hiding her face, eyes NOT visible, NOT looking at camera, both arms hanging relaxed at sides, soft introspective mood, three-quarter body shot, cream-white wall behind, warm amber wall sconce light, cream marble floor, long dark brown wavy hair NOT auburn NOT blonde falling forward over face
+
+# ── AMBIANCE / MOOD (no person) ──────────────────────────────────────────────
+
+# slide_08: ambiance — wall sconce close-up, warm glow, perfume bottle on marble ledge
+anchor=default | empty boutique hotel room detail shot with no person no woman no figure, close-up of warm amber wall sconce glowing on cream-white wall, small marble ledge below the sconce with a glass perfume bottle and single fresh red rose resting on it, warm intimate amber light, shallow depth of field, editorial interior detail photography, luxury mood, no human figure
+
+# slide_09: ambiance — full room corner, sconce + roses vase + deep red fabric accent
+anchor=default | empty boutique hotel room corner with no person no woman no figure present, cream-white wall with warm amber wall sconce casting golden glow, marble side table with pink roses in a clear glass vase and a small perfume bottle, corner of a deep red fabric draped at the edge of the frame as colour accent, cream marble floor, warm intimate moody atmosphere, editorial interior photography, luxury hotel ambiance, no human figure

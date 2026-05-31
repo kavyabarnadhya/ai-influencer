@@ -61,8 +61,8 @@ _CHEEK_RIGHT_FRAC = 0.75
 # The 8.0 trial was too soft. Pairs with face-inclusion (apply lift to face
 # too) so both face and body get unified to face_ref tone, neutralising the
 # scene's ambient warm/red cast that was making faces read as "darker".
-_MAX_L_SHIFT = 25.0
-_MAX_AB_SHIFT = 12.0
+_MAX_L_SHIFT = 10.0
+_MAX_AB_SHIFT = 8.0
 
 # Minimum body skin pixel count to attempt correction (skip if too few exposed pixels)
 _MIN_SKIN_PIXELS = 200
