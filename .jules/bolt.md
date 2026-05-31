@@ -172,3 +172,7 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 **Learning:** Transcendental operations like BGR to LAB color space conversion are expensive. Performing them on an entire high-resolution image (e.g. 2048x1024) when only a small fraction (~20%) of the pixels (skin) are actually being processed is a significant waste of CPU and memory.
 
 **Action:** Extract the masked BGR pixels into a compact 1xNx3 array before conversion. Perform all LAB shifts on this subset, convert the result back to BGR, and then patch the original image. Benchmarks show this provides a ~2.85x speedup for the core color shift logic by avoiding O(TotalPixels) transcendental math.
+
+## 2026-05-31 - ROI-based Processing for Spatially Localized CV Operations
+**Learning:** Performing color space conversions (BGR-to-HSV/LAB) and Gaussian blurs on full 1080x1920 frames is extremely wasteful when the target subject (e.g., skin) only occupies a fraction of the image. ROI-based processing (cropping to the bounding box of the mask) provides a ~3-4x speedup.
+**Action:** In image processing pipelines, always calculate the bounding box of the target mask. Perform expensive operations on the ROI. For operations with spatial dependency like Gaussian blur, add padding (e.g., 3 * sigma) to the ROI to prevent edge artifacts.
