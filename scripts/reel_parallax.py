@@ -49,6 +49,9 @@ from rich.console import Console
 
 console = Console()
 
+# Cache for meshgrid to avoid redundant allocations across frames
+_GRID_CACHE: dict[tuple[int, int], tuple[np.ndarray, np.ndarray]] = {}
+
 
 @lru_cache(maxsize=1)
 def _load_midas():
@@ -120,8 +123,23 @@ def render_parallax_frame(
 
     Construct a sampling grid where near pixels (depth high) shift by the full camera delta
     and far pixels (depth low) shift less. Zoom is applied uniformly (camera dolly-in).
+
+    Performance Optimization:
+    1. Reuse meshgrid via _GRID_CACHE to avoid O(H*W) allocations per frame.
+    2. Consolidate coordinate arithmetic to minimize intermediate array objects.
     """
     h, w = img_bgr.shape[:2]
+
+    # Optimization: Reuse grid to avoid redundant allocations across video frames
+    cache_key = (h, w)
+    if cache_key in _GRID_CACHE:
+        grid_x, grid_y = _GRID_CACHE[cache_key]
+    else:
+        xs = np.arange(w, dtype=np.float32)
+        ys = np.arange(h, dtype=np.float32)
+        grid_x, grid_y = np.meshgrid(xs, ys)
+        _GRID_CACHE[cache_key] = (grid_x, grid_y)
+
     cx, cy = w / 2.0, h / 2.0
 
     # Per-pixel shift factor in [1-depth_scale, 1].
@@ -130,19 +148,10 @@ def render_parallax_frame(
     # depth_scale=0.6 -> blend (near pixels shift ~full, far ~40%)
     parallax = (1.0 - depth_scale) + depth_scale * depth
 
-    # Base grid in source coords
-    xs = np.arange(w, dtype=np.float32)
-    ys = np.arange(h, dtype=np.float32)
-    grid_x, grid_y = np.meshgrid(xs, ys)
-
-    # Zoom: sample from (1/zoom) * (pixel - center) + center
+    # Zoom and Parallax: combined into a single vectorized pass to reduce memory pressure
     inv_z = 1.0 / zoom
-    src_x = (grid_x - cx) * inv_z + cx
-    src_y = (grid_y - cy) * inv_z + cy
-
-    # Parallax shift: near pixels move opposite to camera, scaled by depth
-    src_x = src_x - dx_px * parallax
-    src_y = src_y - dy_px * parallax
+    src_x = (grid_x - cx) * inv_z + (cx - dx_px * parallax)
+    src_y = (grid_y - cy) * inv_z + (cy - dy_px * parallax)
 
     return cv2.remap(
         img_bgr, src_x, src_y,
