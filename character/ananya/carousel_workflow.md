@@ -1,6 +1,8 @@
 # Ananya Carousel Workflow — Canonical Reference
 
-**Last updated: 2026-05-31 — §7 faceless/off-camera slide vocabulary + `faceswap=false` token (skip ReActor for zero-face slides); §8 new forbidden patterns (mirror BG → portal artefact, hair-flip → rubbery hair, straight-overhead arms); §2 hair-color lock (warm scenes drift lighter) + skin caps lowered to 10/8 (25/12 over-bleached warm scenes). Validated red halter vanity v1.**
+**Last updated: 2026-06-03 — §8 new forbidden patterns from black cowl NYE v1: object duplication on close detail shots (force "ONE single"); `faceswap=false` does NOT guarantee faceless (crop head out of frame); open-back drifts to racerback on back/walk-away views (re-specify single nape tie); side-profile bag-arm bends backward (pose arm forward natural).**
+
+Prior 2026-05-31 — §7 faceless/off-camera slide vocabulary + `faceswap=false` token (skip ReActor for zero-face slides); §8 new forbidden patterns (mirror BG → portal artefact, hair-flip → rubbery hair, straight-overhead arms); §2 hair-color lock (warm scenes drift lighter) + skin caps lowered to 10/8 (25/12 over-bleached warm scenes). Validated red halter vanity v1.
 
 Prior 2026-05-30 — §8 + §11: hands resting on a white/light skirt fuse every time (low contrast → YOLO hand-detect misses → Stage 3.5 never fires; `behind back` does not fix it). Only reliable fix = both hands above the bust on skin/hair/darker drape + regenerate the slide. Validated white off-shoulder lace corset v1.
 
@@ -210,6 +212,9 @@ Candid faceless shots add editorial variety. Research-backed poses that work in 
 | `mirror` / `gold-framed mirror` / any reflective surface in the BG | Kontext treats the mirror as a portal — renders the figure half-emerging from inside the mirror frame, or a garbled reflection. Even as a static anchor element it corrupts. | Use a non-reflective BG: `smooth cream-white textured wall`, `wall sconce`, `decorative wall panel`. No mirrors, ever (despite mirror-selfie being the common IG reference look). Validated red halter vanity v1 (2026-05-31). |
 | `hair flip` / `hair flung across face` / hair in motion hiding face | FLUX renders flung hair as rubbery artificial strands with gaps that still show the face → looks fake. | For hidden-face use walking-away or side-profile-with-prop (see §7 faceless table). |
 | `both arms raised straight overhead` (from a relaxed anchor) | Kontext won't raise arms from a relaxed-arm anchor (keeps anchor pose); when forced via a baked anchor, straight-up reads stiff/"surrender". | Bake an `armsup:` anchor group with a **languid sensual** stretch (soft bent elbows, head tilt). |
+| `close detail shot of [handbag/object]` | FLUX duplicates the object — renders TWO handbags. Also `faceswap=false` does NOT guarantee faceless: FLUX still paints a (non-Ananya) face into the frame, which then ships unswapped. | Force singular: `ONE SINGLE bag, exactly one, NOT two NOT duplicate`. For truly faceless, crop the head OUT: `framed from the collarbone DOWN, entire head and face OUT of frame above, NO face NO chin visible` — don't rely on `faceswap=false` alone. Validated black cowl NYE v1 (2026-06-03). |
+| open-back / halter top on a **back-view or walking-away** slide | Kontext re-invents the back as a `racerback` / `scoop-back` / crossed-straps — loses the open-back design. | Re-specify the exact back: `completely open bare back with only a single thin halter strap to a tie-neck knotted at the nape, NOT racerback NOT scoop-back NOT crossed straps`. |
+| side-profile holding a bag/prop with the near arm | Arm bends backward / wrist twists unnaturally (broken elbow-to-hand line) to keep the prop in frame. | Pose the arm `hanging straight down and slightly FORWARD in front of the thigh, natural straight elbow, forearm and wrist in a natural anatomical line NOT twisted NOT bent backward`. Validated black cowl NYE v1 (2026-06-03). |
 
 ### Concrete before/after examples
 
