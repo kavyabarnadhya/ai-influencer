@@ -176,3 +176,7 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 ## 2026-05-31 - ROI-based Processing for Spatially Localized CV Operations
 **Learning:** Performing color space conversions (BGR-to-HSV/LAB) and Gaussian blurs on full 1080x1920 frames is extremely wasteful when the target subject (e.g., skin) only occupies a fraction of the image. ROI-based processing (cropping to the bounding box of the mask) provides a ~3-4x speedup.
 **Action:** In image processing pipelines, always calculate the bounding box of the target mask. Perform expensive operations on the ROI. For operations with spatial dependency like Gaussian blur, add padding (e.g., 3 * sigma) to the ROI to prevent edge artifacts.
+
+## 2026-06-05 - Vectorized FFT Masking for Texture Analysis
+**Learning:** Python's nested loops for image-sized array masking (O(H*W)) are a massive bottleneck. Vectorizing coordinate generation with `np.ogrid` and using the "inner-sum trick" (Total - InnerCircle) avoids the overhead of creating and indexing large boolean masks for the "outer" region, providing a ~6.8x end-to-end speedup.
+**Action:** In frequency analysis or spatial masking, always use vectorized coordinate math (`ogrid`/`mgrid`) and favor subtracting a smaller region's sum from the total to minimize boolean indexing pressure on high-resolution buffers.

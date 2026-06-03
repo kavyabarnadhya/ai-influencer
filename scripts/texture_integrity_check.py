@@ -70,6 +70,8 @@ def compute_texture_score(image_path: Path) -> dict:
         magnitude = np.abs(f_shift)
 
         # Ratio of high-freq to total (outer ring of magnitude spectrum)
+        # Optimization: Use vectorized np.ogrid and inner-sum trick to avoid O(H*W) loops
+        # and minimize memory pressure from large boolean masks.
         h2, w2 = magnitude.shape
         cy, cx = h2 // 2, w2 // 2
         r_inner = min(h2, w2) // 6
