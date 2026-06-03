@@ -20,6 +20,9 @@ import sys
 from pathlib import Path
 
 import click
+import cv2
+import numpy as np
+from PIL import Image
 from rich.console import Console
 from rich.table import Table
 
@@ -38,10 +41,6 @@ def compute_texture_score(image_path: Path) -> dict:
     face_region_var: same metric but on center crop (approximate face region)
     """
     try:
-        import cv2
-        import numpy as np
-        from PIL import Image
-
         img = Image.open(image_path).convert("RGB")
         img_np = np.array(img)
 
@@ -64,16 +63,20 @@ def compute_texture_score(image_path: Path) -> dict:
         f_transform = np.fft.fft2(gray)
         f_shift = np.fft.fftshift(f_transform)
         magnitude = np.abs(f_shift)
+
         # Ratio of high-freq to total (outer ring of magnitude spectrum)
+        # Optimization: Use vectorized np.ogrid and inner-sum trick to avoid O(H*W) loops
+        # and minimize memory pressure from large boolean masks.
         h2, w2 = magnitude.shape
         cy, cx = h2 // 2, w2 // 2
         r_inner = min(h2, w2) // 6
-        mask = np.ones((h2, w2), dtype=bool)
-        for i in range(h2):
-            for j in range(w2):
-                if (i - cy) ** 2 + (j - cx) ** 2 < r_inner ** 2:
-                    mask[i, j] = False
-        hf_ratio = float(magnitude[mask].sum() / (magnitude.sum() + 1e-8))
+
+        y, x = np.ogrid[:h2, :w2]
+        inner_mask = (x - cx)**2 + (y - cy)**2 < r_inner**2
+
+        total_sum = magnitude.sum()
+        inner_sum = magnitude[inner_mask].sum()
+        hf_ratio = float((total_sum - inner_sum) / (total_sum + 1e-8))
 
         return {
             "laplacian_var": lap_var,
@@ -104,14 +107,6 @@ def compute_texture_score(image_path: Path) -> dict:
 def main(input_dir: str, threshold: float, face_threshold: float,
          save_report: bool, move_flagged: str | None, dry_run: bool):
     """Flag over-smooth / waxy-skin images in seed dataset."""
-
-    try:
-        import cv2
-        import numpy  # noqa
-    except ImportError:
-        console.print("[red]opencv-python or numpy not installed.[/red]")
-        console.print("Install: pip install opencv-python numpy pillow")
-        raise SystemExit(1)
 
     input_path = Path(input_dir)
     images = sorted([p for p in input_path.iterdir() if p.suffix.lower() in SUPPORTED_EXTS])
