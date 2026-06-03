@@ -1,0 +1,38 @@
+# Anchor: black satin cowl-neck halter top (deep draped cowl front, fully open back, tie-neck closure) + high-waist textured metallic black mini skirt (side-ruching + front-right knot detail), NYE party look. Pink bow handbag with gold circular top handle. Mezzanine/hallway interior.
+# Premium tier — open back, bare shoulders/back, deep cowl neckline.
+# Body push: balanced slim (slim editorial hourglass — user-preferred standard).
+# BG: bright mezzanine interior — dark wood railing with glass panel, white pillars, neutral architecture. NO mirror (portal artefact). NO reflective surfaces.
+# HAIR LOCK: sleek straight long dark brown hair NOT auburn NOT blonde NOT highlighted NOT wavy.
+# Makeup: sharp black winged eyeliner + bold red lip.
+# No bindi. No forehead mark.
+# Used with: --flux-dev --kontext flags (MANDATORY)
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/black_cowl_halter_metallic_mini_mezzanine.yaml --prompts character/ananya/carousel_prompts/black_cowl_halter_metallic_mini_mezzanine.txt --name black_cowl_nye_v1 --flux-dev --kontext
+
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
+
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure,
+  pronounced hourglass with hips noticeably wider than waist, fuller chest and décolletage,
+  defined cinched narrow waist with soft curves at hips and bust, healthy curvy M-size Indian woman build,
+  NOT slim editorial NOT model-thin NOT plus-size NOT oversized,
+  balanced M-size proportions with natural feminine curves not exaggerated,
+  bare smooth forehead with no bindi no forehead dot no tikka no forehead mark,
+  sharp black winged eyeliner and bold classic red lipstick,
+  wearing a black satin halter top with a deep draped cowl neckline that drapes softly across the bust,
+  the top has a completely open bare back secured by a halter tie-neck closure tied at the nape with ties hanging down the bare back,
+  bare shoulders and bare upper back,
+  paired with a high-waisted textured metallic black mini skirt with subtle metallic sheen,
+  the skirt has gathered side-ruching and a prominent twisted knot detail at the front-right of the waist,
+  holding a vibrant hot-pink fuchsia structured handbag with a large decorative bow on the front and a metallic gold circular top handle,
+  sleek straight long dark brown hair NOT auburn NOT blonde NOT highlighted, smooth and straight falling past shoulders,
+  three-quarter body shot head to skirt hem, head fully visible,
+  standing three-quarter to camera leaning right elbow lightly on a dark wood railing, weight on right hip,
+  in a bright spacious mezzanine hallway interior,
+  dark wooden handrail with glass panel running horizontally behind her, white pillars and neutral-toned architecture,
+  no mirror no reflective surface,
+  bright even daylight interior lighting,
+  shot on Sony A7IV 35mm editorial fashion photograph,
+  authentic skin texture with visible pores, natural skin imperfections, no plasticky skin,
+  asymmetric facial features, slightly off-center composition, candid moment not posed

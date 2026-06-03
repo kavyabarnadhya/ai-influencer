@@ -1,0 +1,43 @@
+# Carousel: black satin cowl-neck halter (open back) + metallic black mini, NYE look, mezzanine hallway. Pink bow handbag.
+# Anchor YAML: character/ananya/anchor_libraries/black_cowl_halter_metallic_mini_mezzanine.yaml
+# Run: python scripts/faceswap_carousel.py --prompts character/ananya/carousel_prompts/black_cowl_halter_metallic_mini_mezzanine.txt --name black_cowl_nye_v1 --anchor-config character/ananya/anchor_libraries/black_cowl_halter_metallic_mini_mezzanine.yaml --flux-dev --kontext
+#
+# FORMAT: one line per slide — anchor=default | [full prompt]. faceswap=false only on ZERO-face slides.
+# VOCAB LOCK every slide: "black satin cowl-neck halter top with open back and tie-neck" + "high-waist textured metallic black mini skirt with side-ruching and front-right knot" + "dark wood railing with glass panel" + "white pillars" + "sleek straight dark brown hair" + "red lip winged liner"
+# HAND/BG RULES: no mirror; hands not fused into dark skirt (skirt is dark — lower fusion risk than white, but keep hands off skirt where possible); handbag is a held prop, watch hand.
+
+# slide_00: hero full body, leaning elbow on railing, holding pink bag, direct gaze
+anchor=default | same woman in same black satin cowl-neck halter top with open back and tie-neck and high-waist textured metallic black mini skirt with side-ruching and front-right knot, leaning right elbow lightly on the dark wood railing with glass panel, holding the hot-pink bow handbag with gold circular handle in right hand, left hand resting on thigh, weight on right hip, direct confident gaze at camera, white pillars and bright mezzanine hallway behind, sleek straight dark brown hair, bold red lip and winged eyeliner, full body head to skirt hem
+
+# slide_01: chest-up closeup, cowl neckline + red lip hero
+anchor=default | change to chest-up portrait framing showing face neck shoulders and neckline only, same woman in same black satin cowl-neck halter top with deep draped cowl neckline, direct camera gaze with soft confident expression, bold red lip and sharp winged eyeliner, soft bokeh of mezzanine hallway and white pillars behind, sleek straight dark brown hair falling past shoulders, keeping exact same black satin cowl-neck halter top with deep cowl neckline and tie-neck
+
+# slide_02: side profile looking back over left shoulder, open back emphasized
+anchor=default | same woman in same black satin cowl-neck halter top with completely open bare back and tie-neck closure and high-waist metallic black mini skirt, body in side profile facing left looking back over her left shoulder toward camera, open bare back fully visible with halter tie hanging down the back, right hand resting on the dark wood railing, left hand loosely holding the pink bow handbag down at her side, white pillars behind, sleek straight dark brown hair, bold red lip, full body, keeping exact same open back halter and metallic mini with front knot
+
+# slide_03: rear three-quarter facing away, arms on railing, full open back hero, looking over shoulder
+anchor=default | same woman in same black satin cowl-neck halter top with completely open bare back and high-waist metallic black mini skirt, rear three-quarter view facing slightly away from camera with both forearms resting forward on the dark wood railing, looking back over her left shoulder at camera with a slight smile, entire open bare back and halter tie-neck details fully visible, white pillars and bright hallway ahead, sleek straight dark brown hair, full body, keeping exact same open back tie-neck halter and textured metallic mini
+
+# slide_04: full body candid, one hand adjusting hair, bag on forearm, glancing off-camera
+anchor=default | same woman in same black satin cowl-neck halter top with open back and tie-neck and high-waist textured metallic black mini skirt with side-ruching and front-right knot, standing facing camera with right hand raised lightly touching the side of her sleek straight hair, pink bow handbag hanging on her left forearm, glancing slightly off-camera to the right with soft expression, bright mezzanine hallway with white pillars behind, bold red lip and winged liner, both hands above the waist, full body, keeping exact same cowl halter and metallic mini
+
+# slide_05: chest-up closing closeup, chin slightly lowered, hand near collarbone
+anchor=default | change to chest-up portrait framing showing face neck shoulders and neckline only, same woman in same black satin cowl-neck halter top with deep cowl neckline, chin slightly lowered looking up at camera with confident expression, right hand raised with fingertips lightly at collarbone, bold red lip and sharp winged eyeliner, soft bokeh of white pillars and hallway behind, sleek straight dark brown hair, keeping exact same black cowl halter with tie-neck
+
+# slide_06: candid faceless — side profile looking down the hallway away from camera, holding bag
+anchor=default | same woman in same black satin cowl-neck halter top with open back and high-waist metallic black mini skirt, standing in side profile facing left looking down the hallway away from camera, face turned away in profile not at camera, holding the pink bow handbag in left hand at her side, right arm relaxed, white pillars and dark wood railing along the hallway, sleek straight dark brown hair, full body, keeping exact same open back cowl halter and metallic mini with front knot
+
+# slide_07: candid faceless — walking away down the mezzanine, back view, open back + bag, faceswap off
+anchor=default | faceswap=false | same woman in same black satin cowl-neck halter top with completely open bare back and high-waist metallic black mini skirt, captured from behind walking slowly away down the bright mezzanine hallway, mid-stride with one foot forward, body and head facing away from camera, face NOT visible only back of sleek straight dark brown hair and open bare back visible, pink bow handbag held in right hand at her side, white pillars and dark wood railing along the hallway, bright daylight, keeping exact same open back tie-neck halter and textured metallic mini
+
+# slide_08: detail / faceless — bag held in hands, HEAD FULLY OUT of frame, exactly ONE bag, no face
+anchor=default | faceswap=false | tight cropped accessory shot framed from the collarbone DOWN with the entire head and face completely OUT of the frame above, absolutely NO face NO chin visible, showing the black satin halter top torso and both hands holding ONE SINGLE vibrant hot-pink fuchsia bow handbag with one metallic gold circular handle, exactly one handbag only NOT two bags NOT duplicate bags, held at waist level, both hands natural relaxed fingers correct anatomy five fingers each, dark wood railing and white pillar softly blurred behind, bright daylight, editorial single-accessory detail shot, head cropped out of frame
+
+# slide_09: ambiance — empty mezzanine hallway, NO bag, no person
+anchor=default | empty bright mezzanine hallway interior with no person no woman no figure and no handbag, dark wooden handrail with glass panel running along the walkway, white pillars and neutral-toned architecture, bright even daylight streaming in, clean uncluttered space, editorial interior photography, spacious luxury mood, no human figure no person no bag
+
+# slide_10: ambiance — low wide-angle looking down the pillared walkway, no person
+anchor=default | empty bright mezzanine walkway interior with no person no woman no figure, low wide-angle perspective looking down the long corridor between a row of tall white pillars on one side and the dark wooden glass-panel railing on the other, polished floor receding into bright daylight, neutral luxury architecture, atmospheric editorial interior photography, spacious airy mood, no human figure no person
+
+# slide_11: ambiance — aesthetic golden-hour railing with peonies + champagne, NYE mood, no person
+anchor=default | aesthetic editorial ambiance interior shot with no person no woman no figure, the polished dark wooden handrail with glass balustrade catching warm golden-hour light streaming through tall windows, a small elegant vase of soft pink peonies and a fluted champagne glass resting on a marble ledge beside the railing, warm bokeh and lens flare from the window light, white pillars softly out of focus, shallow depth of field, dreamy luxurious New Year eve mood, warm tones, editorial interior styling photography, no human figure no person
