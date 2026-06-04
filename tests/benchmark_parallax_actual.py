@@ -20,12 +20,15 @@ def benchmark():
 
     iters = 50
 
+    # Pre-calculate parallax map
+    parallax = (1.0 - depth_scale) + depth_scale * depth
+
     # Warmup
-    _ = render_parallax_frame(img, depth, zoom, dx_px, dy_px, depth_scale)
+    _ = render_parallax_frame(img, parallax, zoom, dx_px, dy_px)
 
     start = time.time()
     for _ in range(iters):
-        _ = render_parallax_frame(img, depth, zoom, dx_px, dy_px, depth_scale)
+        _ = render_parallax_frame(img, parallax, zoom, dx_px, dy_px)
     total_time = time.time() - start
 
     print(f"Average time per frame (actual code): {total_time/iters*1000:.2f} ms")
