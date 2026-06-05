@@ -47,8 +47,11 @@ def test_render_parallax_frame_correctness():
     # Clear cache to ensure we test the grid creation too
     _GRID_CACHE.clear()
 
+    # Pre-calculate parallax map for optimized version
+    parallax = (1.0 - depth_scale) + depth_scale * depth
+
     # Call optimized
-    optimized_out = render_parallax_frame(img, depth, zoom, dx_px, dy_px, depth_scale)
+    optimized_out = render_parallax_frame(img, parallax, zoom, dx_px, dy_px)
 
     # Check that grid was cached
     assert (h, w) in _GRID_CACHE
@@ -66,7 +69,7 @@ def test_render_parallax_frame_correctness():
 
     # Second call should use cache
     # Verify that it produces the same result as the first optimized call
-    cached_out = render_parallax_frame(img, depth, zoom, dx_px, dy_px, depth_scale)
+    cached_out = render_parallax_frame(img, parallax, zoom, dx_px, dy_px)
     assert np.array_equal(cached_out, optimized_out)
 
     print("Correctness test passed.")
