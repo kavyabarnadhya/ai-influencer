@@ -136,6 +136,18 @@ def _inject_hand_detail(wf: dict, input_image_name: str, seed: int, propagate_ca
     return inject_workflow_values(wf, overrides, propagate_cache=propagate_cache)
 
 
+def _inject_realism(wf: dict, input_image_name: str, propagate_cache: bool = True) -> dict:
+    """
+    Inject input image into the selective realism workflow (workflows/realism_selective.json):
+    person-SEGS subject detail (skin/hair/fabric) over an SDXL realism checkpoint, background untouched.
+    Runs BEFORE ReActor so the final face is always face_ref (ReActor applies last). --ultra only.
+    """
+    return inject_workflow_values(
+        wf, {"_claude_inject_input_image": {"inputs.image": input_image_name}},
+        propagate_cache=propagate_cache,
+    )
+
+
 def _run_and_save(client: ComfyUIClient, wf: dict, out_path: Path,
                   timeout: int = 300) -> Path:
     prompt_id = client.submit_workflow(wf)
@@ -151,10 +163,10 @@ def _run_and_save(client: ComfyUIClient, wf: dict, out_path: Path,
     return out_path
 
 
-def parse_prompts_file(path: Path, default_denoise: float) -> list[dict]:
+def parse_prompts_file(path: Path, default_denoise: float, default_ultra: bool = False) -> list[dict]:
     """Parse prompt lines. Tokens (any order, all optional):
-        denoise=0.85 | anchor=standing | pose=path | cn=0.65 | faceswap=false | <prompt>
-    Returns list of dicts: {denoise, anchor, pose, cn_strength, faceswap, prompt}
+        denoise=0.85 | anchor=standing | pose=path | cn=0.65 | faceswap=false | ultra=true | <prompt>
+    Returns list of dicts: {denoise, anchor, pose, cn_strength, faceswap, ultra, prompt}
 
     faceswap=false skips the ReActor stage for that slide (use for zero-face shots
     — back of head, cropped torso, body-only — where no Ananya face is visible, so a
@@ -170,6 +182,7 @@ def parse_prompts_file(path: Path, default_denoise: float) -> list[dict]:
         pose = None
         cn_strength = 0.65
         faceswap = True
+        ultra = default_ultra
         parts = [p.strip() for p in line.split("|")]
         remaining = []
         for part in parts:
@@ -190,13 +203,15 @@ def parse_prompts_file(path: Path, default_denoise: float) -> list[dict]:
                     pass
             elif low.startswith("faceswap="):
                 faceswap = part.split("=", 1)[1].strip().lower() not in ("false", "no", "0", "off")
+            elif low.startswith("ultra="):
+                ultra = part.split("=", 1)[1].strip().lower() in ("true", "yes", "1", "on")
             elif low.startswith("kontext_strength="):
                 pass  # FluxKontextImageScale has no strength input — token accepted but ignored
             else:
                 remaining.append(part)
         text = " ".join(remaining).strip() if remaining else line
         out.append({"denoise": denoise, "anchor": anchor, "pose": pose,
-                    "cn_strength": cn_strength, "faceswap": faceswap, "prompt": text})
+                    "cn_strength": cn_strength, "faceswap": faceswap, "ultra": ultra, "prompt": text})
     return out
 
 
@@ -347,11 +362,15 @@ def _validate_multi_anchor_consistency(cfg: dict, path: Path) -> None:
 @click.option("--character", default="ananya", show_default=True)
 @click.option("--anchor-only", is_flag=True,
               help="Generate and save anchor image only — skip all slides. Use to validate body/outfit before a full run.")
+@click.option("--ultra", is_flag=True,
+              help="Ultra-realism: insert a selective skin/hair/fabric detail pass (workflows/realism_selective.json) "
+                   "BETWEEN FLUX gen and ReActor, so the face stays face_ref (ReActor applies last). Default off = "
+                   "current pipeline unchanged. Per-slide override via 'ultra=true|false' token in the prompt file.")
 def main(prompts_file: str, face_ref: str, name: str, candidates: int,
          anchor_seed: int | None, outfit_lock: bool,
          anchor_outfit_prompt: str | None, anchor_prompt: str | None,
          anchor_config: str | None, flux_dev: bool, kontext: bool, character: str,
-         anchor_only: bool):
+         anchor_only: bool, ultra: bool):
     """Carousel: FLUX img2img (person+BG together) → ReActor face swap."""
 
     if not anchor_only and not prompts_file:
@@ -402,7 +421,7 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
 
     slides = []
     if not anchor_only:
-        slides = parse_prompts_file(prompts_path, default_denoise)
+        slides = parse_prompts_file(prompts_path, default_denoise, default_ultra=ultra)
         if not slides:
             console.print(f"[red]No slides parsed from {prompts_path}[/red]")
             raise SystemExit(1)
@@ -515,6 +534,8 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
 
     faceswap_template = load_workflow(str(ROOT / "workflows" / "faceswap_reactor.json"))
     hand_detail_template = load_workflow(str(ROOT / "workflows" / "flux_hand_detail.json"))
+    # --ultra only: selective realism pass inserted between FLUX gen and ReActor
+    realism_template = load_workflow(str(ROOT / "workflows" / "realism_selective.json")) if ultra else None
 
     failed = []
     for idx, slide in enumerate(slides):
@@ -577,11 +598,28 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                     )
                 _run_and_save(client, wf2, base_path, timeout=flux_timeout)
 
+                # Stage 2.5 (--ultra): selective realism pass on the FLUX base BEFORE ReActor.
+                # Details body skin/hair/fabric (person SEGS, BG untouched). Face is left for
+                # ReActor (next stage) so identity stays exactly face_ref — ReActor applies last.
+                # Failures degrade gracefully: fall back to the plain base.
+                swap_src = base_path
+                if realism_template is not None and slide.get("ultra", False):
+                    try:
+                        realism_path = inter / f"slide_{idx:02d}_cand_{cand}_realism.png"
+                        up_base = client.upload_image(str(base_path))
+                        wf_r = _inject_realism(realism_template, up_base, propagate_cache=False)
+                        _run_and_save(client, wf_r, realism_path, timeout=600)
+                        swap_src = realism_path
+                        console.print("  [magenta]ultra: selective realism pass applied (face left for ReActor)[/magenta]")
+                    except Exception as e:
+                        console.print(f"  [yellow]ultra realism failed: {e} — using plain base[/yellow]")
+                        swap_src = base_path
+
                 # Stage 3: ReActor face swap — skipped for zero-face slides (faceswap=false).
                 # No Ananya face is visible (back of head / cropped torso / body-only), so a
-                # swap would only risk distortion. Copy base → final so Stage 3.5/3.6 still run.
+                # swap would only risk distortion. Copy source → final so Stage 3.5/3.6 still run.
                 if slide.get("faceswap", True):
-                    uploaded_target = client.upload_image(str(base_path))
+                    uploaded_target = client.upload_image(str(swap_src))
                     # Optimization: Skip cache propagation on final injection to avoid extra dict copy in submit_workflow
                     wf3 = _inject_faceswap(
                         faceswap_template,
@@ -591,7 +629,7 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                     _run_and_save(client, wf3, final_path, timeout=180)
                 else:
                     console.print("  [cyan]faceswap=false — skipping ReActor (zero-face slide)[/cyan]")
-                    shutil.copy(base_path, final_path)
+                    shutil.copy(swap_src, final_path)
 
                 # Stage 3.5: Hand realism — SDXL inpaint on YOLO-detected hand bboxes.
                 # Fixes FLUX 6-finger / deformed-hand artefacts. Failures degrade gracefully

@@ -1,0 +1,234 @@
+{
+  "1": {
+    "_meta": {
+      "title": "_claude_inject_checkpoint"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "RealVisXL_V4.0.safetensors"
+    }
+  },
+  "2": {
+    "_meta": {
+      "title": "_claude_inject_input_image"
+    },
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "input.png",
+      "upload": "image"
+    }
+  },
+  "3": {
+    "_meta": {
+      "title": "Subject positive"
+    },
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "photorealistic candid photo, natural realistic skin with visible pores and fine texture, soft peach fuzz, fine flyaway hair strands, detailed fabric weave and folds, subtle natural imperfections, realistic complexion, sharp natural detail",
+      "clip": [
+        "1",
+        1
+      ]
+    }
+  },
+  "4": {
+    "_meta": {
+      "title": "Negative"
+    },
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "plastic skin, waxy, airbrushed, oversmooth, smooth skin, doll, cgi, 3d render, blurry, makeup cake, oversaturated, deformed, grain, noise, vintage",
+      "clip": [
+        "1",
+        1
+      ]
+    }
+  },
+  "5": {
+    "_meta": {
+      "title": "Person seg detector"
+    },
+    "class_type": "UltralyticsDetectorProvider",
+    "inputs": {
+      "model_name": "segm/yolov8n-seg.pt"
+    }
+  },
+  "6": {
+    "_meta": {
+      "title": "Person SEGS"
+    },
+    "class_type": "ImpactSimpleDetectorSEGS",
+    "inputs": {
+      "bbox_detector": [
+        "5",
+        0
+      ],
+      "image": [
+        "2",
+        0
+      ],
+      "bbox_threshold": 0.5,
+      "bbox_dilation": 0,
+      "crop_factor": 3.0,
+      "drop_size": 10,
+      "sub_threshold": 0.5,
+      "sub_dilation": 0,
+      "sub_bbox_expansion": 0,
+      "sam_mask_hint_threshold": 0.7,
+      "segm_detector_opt": [
+        "5",
+        1
+      ]
+    }
+  },
+  "7": {
+    "_meta": {
+      "title": "Subject detail pass (skin/hair/fabric, BG clean)"
+    },
+    "class_type": "DetailerForEach",
+    "inputs": {
+      "image": [
+        "2",
+        0
+      ],
+      "segs": [
+        "6",
+        0
+      ],
+      "model": [
+        "1",
+        0
+      ],
+      "clip": [
+        "1",
+        1
+      ],
+      "vae": [
+        "1",
+        2
+      ],
+      "guide_size": 512,
+      "guide_size_for": true,
+      "max_size": 1024,
+      "seed": 0,
+      "steps": 20,
+      "cfg": 4.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "positive": [
+        "3",
+        0
+      ],
+      "negative": [
+        "4",
+        0
+      ],
+      "denoise": 0.38,
+      "feather": 12,
+      "noise_mask": true,
+      "force_inpaint": true,
+      "wildcard": "",
+      "cycle": 1,
+      "noise_mask_feather": 20
+    }
+  },
+  "8": {
+    "_meta": {
+      "title": "Face bbox detector"
+    },
+    "class_type": "UltralyticsDetectorProvider",
+    "inputs": {
+      "model_name": "bbox/face_yolov8m.pt"
+    }
+  },
+  "9": {
+    "_meta": {
+      "title": "Face positive"
+    },
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "photorealistic face, visible natural skin pores and fine skin texture, soft peach fuzz, subtle skin imperfections, natural under-eye texture, sharp detailed eyes, natural lips, candid unretouched portrait",
+      "clip": [
+        "1",
+        1
+      ]
+    }
+  },
+  "10": {
+    "_meta": {
+      "title": "_claude_inject_seed"
+    },
+    "class_type": "FaceDetailer",
+    "inputs": {
+      "image": [
+        "7",
+        0
+      ],
+      "model": [
+        "1",
+        0
+      ],
+      "clip": [
+        "1",
+        1
+      ],
+      "vae": [
+        "1",
+        2
+      ],
+      "positive": [
+        "9",
+        0
+      ],
+      "negative": [
+        "4",
+        0
+      ],
+      "bbox_detector": [
+        "8",
+        0
+      ],
+      "guide_size": 512,
+      "guide_size_for": true,
+      "max_size": 1024,
+      "seed": 0,
+      "steps": 22,
+      "cfg": 4.5,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 0.3,
+      "feather": 10,
+      "noise_mask": true,
+      "force_inpaint": true,
+      "bbox_threshold": 0.5,
+      "bbox_dilation": 12,
+      "bbox_crop_factor": 3.0,
+      "sam_detection_hint": "center-1",
+      "sam_dilation": 0,
+      "sam_threshold": 0.93,
+      "sam_bbox_expansion": 0,
+      "sam_mask_hint_threshold": 0.7,
+      "sam_mask_hint_use_negative": "False",
+      "drop_size": 10,
+      "wildcard": "",
+      "cycle": 1,
+      "inpaint_model": false,
+      "noise_mask_feather": 20,
+      "tiled_encode": false,
+      "tiled_decode": false
+    }
+  },
+  "11": {
+    "_meta": {
+      "title": "Save Image"
+    },
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "7",
+        0
+      ],
+      "filename_prefix": "realism_selective"
+    }
+  }
+}

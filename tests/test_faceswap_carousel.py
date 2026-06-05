@@ -148,3 +148,19 @@ def test_parse_faceswap_false_token(tmp_path):
     assert rows[0]["prompt"] == "back of head shot"
     assert "faceswap=" not in rows[0]["prompt"]
     assert rows[1]["faceswap"] is True  # absent token defaults to True
+
+
+def test_parse_ultra_token_defaults_off(tmp_path):
+    p = tmp_path / "slides.txt"
+    p.write_text("anchor=default | a\nultra=true | b\nultra=false | c\n", encoding="utf-8")
+    rows = fc.parse_prompts_file(p, default_denoise=0.6)  # default_ultra defaults False
+    assert [r["ultra"] for r in rows] == [False, True, False]
+    assert "ultra=" not in rows[1]["prompt"]
+
+
+def test_parse_ultra_token_default_on_with_override(tmp_path):
+    p = tmp_path / "slides.txt"
+    p.write_text("anchor=default | a\nultra=false | b\n", encoding="utf-8")
+    rows = fc.parse_prompts_file(p, default_denoise=0.6, default_ultra=True)
+    assert rows[0]["ultra"] is True   # inherits global --ultra
+    assert rows[1]["ultra"] is False  # per-slide override wins
