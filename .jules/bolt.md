@@ -180,3 +180,7 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 ## 2026-06-05 - Vectorized FFT Masking for Texture Analysis
 **Learning:** Python's nested loops for image-sized array masking (O(H*W)) are a massive bottleneck. Vectorizing coordinate generation with `np.ogrid` and using the "inner-sum trick" (Total - InnerCircle) avoids the overhead of creating and indexing large boolean masks for the "outer" region, providing a ~6.8x end-to-end speedup.
 **Action:** In frequency analysis or spatial masking, always use vectorized coordinate math (`ogrid`/`mgrid`) and favor subtracting a smaller region's sum from the total to minimize boolean indexing pressure on high-resolution buffers.
+
+## 2026-06-05 - Optimized Parallax Meshgrids and GPU-Accelerated Depth
+**Learning:** In video generation loops using `cv2.remap`, pre-compute and cache centered coordinates (relative meshgrids) and the mapping factor (parallax map) outside the loop to eliminate redundant O(H×W) subtractions and linear arithmetic for every frame.
+**Action:** Pre-compute everything possible outside the frame loop. For depth estimation, enable GPU acceleration (CUDA) and FP16 to reduce latency from seconds to milliseconds, but ensure conversion back to float32 before passing to OpenCV to avoid compatibility crashes.

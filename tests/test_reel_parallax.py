@@ -47,8 +47,11 @@ def test_render_parallax_frame_correctness():
     # Clear cache to ensure we test the grid creation too
     _GRID_CACHE.clear()
 
+    # Pre-compute parallax for optimized call
+    parallax = (1.0 - depth_scale) + depth_scale * depth
+
     # Call optimized
-    optimized_out = render_parallax_frame(img, depth, zoom, dx_px, dy_px, depth_scale)
+    optimized_out = render_parallax_frame(img, parallax, zoom, dx_px, dy_px)
 
     # Check that grid was cached
     assert (h, w) in _GRID_CACHE
@@ -57,7 +60,6 @@ def test_render_parallax_frame_correctness():
     reference_out = render_parallax_frame_reference(img, depth, zoom, dx_px, dy_px, depth_scale)
 
     # Compare results. INTER_LINEAR might have small differences due to floating point.
-    # Max pixel difference of 3 is actually quite small in 0-255 range.
     diff = np.abs(optimized_out.astype(np.float32) - reference_out.astype(np.float32))
     print(f"Max diff: {np.max(diff)}")
     print(f"Mean diff: {np.mean(diff)}")
@@ -66,7 +68,7 @@ def test_render_parallax_frame_correctness():
 
     # Second call should use cache
     # Verify that it produces the same result as the first optimized call
-    cached_out = render_parallax_frame(img, depth, zoom, dx_px, dy_px, depth_scale)
+    cached_out = render_parallax_frame(img, parallax, zoom, dx_px, dy_px)
     assert np.array_equal(cached_out, optimized_out)
 
     print("Correctness test passed.")
