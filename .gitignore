@@ -22,6 +22,10 @@ character/ananya/poses/extracted/
 character/ananya/poses/references/
 character/ananya/poses/carousel_production_v3/
 
+# QC model binaries (downloaded locally — see carousel_workflow.md §16)
+models/*.task
+models/*.pt
+
 # Misc
 PRD Ananya v2.docx
 

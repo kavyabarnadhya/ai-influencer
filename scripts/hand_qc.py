@@ -59,12 +59,40 @@ def _find_hand_model() -> Path | None:
     return None
 
 
-# --- optional mediapipe -----------------------------------------------------
+# --- optional mediapipe (Tasks HandLandmarker) ------------------------------
+# mediapipe 0.10.x dropped the legacy mp.solutions API; use the Tasks API, which
+# needs a hand_landmarker.task model file (downloaded to models/).
+_HAND_TASK_MODELS = [
+    ROOT / "models" / "hand_landmarker.task",
+]
 try:
-    import mediapipe as _mp  # noqa: F401
-    _HAVE_MP = True
+    import mediapipe as _mp_probe  # noqa: F401
+    _HAVE_MP = any(p.exists() for p in _HAND_TASK_MODELS)
 except Exception:
     _HAVE_MP = False
+
+_mp_detector = None
+
+
+def _mp_landmarker():
+    """Lazily build a Tasks HandLandmarker (returns None if unavailable)."""
+    global _mp_detector
+    if _mp_detector is not None:
+        return _mp_detector
+    if not _HAVE_MP:
+        return None
+    try:
+        from mediapipe.tasks import python as mp_python
+        from mediapipe.tasks.python import vision as mp_vision
+        task = next(p for p in _HAND_TASK_MODELS if p.exists())
+        opts = mp_vision.HandLandmarkerOptions(
+            base_options=mp_python.BaseOptions(model_asset_path=str(task)),
+            num_hands=6, min_hand_detection_confidence=0.4,
+        )
+        _mp_detector = mp_vision.HandLandmarker.create_from_options(opts)
+    except Exception:
+        _mp_detector = None
+    return _mp_detector
 
 
 _yolo_model = None
@@ -94,33 +122,18 @@ def count_hands_yolo(img_path: Path, conf: float = 0.40) -> list[float]:
     return out
 
 
-def _finger_anomalies_mp(img_path: Path) -> int:
-    """MediaPipe finger-landmark sanity. Returns count of anomalous hands (0 if MP absent)."""
-    if not _HAVE_MP:
+def count_hands_mp(img_path: Path) -> int:
+    """Number of hands MediaPipe can fit 21 landmarks to (0 if MP unavailable)."""
+    det = _mp_landmarker()
+    if det is None:
         return 0
-    import cv2
-    import mediapipe as mp
-    img = cv2.imread(str(img_path))
-    if img is None:
+    try:
+        import mediapipe as mp
+        image = mp.Image.create_from_file(str(img_path))
+        res = det.detect(image)
+        return len(res.hand_landmarks or [])
+    except Exception:
         return 0
-    rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    anomalies = 0
-    with mp.solutions.hands.Hands(static_image_mode=True, max_num_hands=4,
-                                  min_detection_confidence=0.4) as hands:
-        res = hands.process(rgb)
-        if not res.multi_hand_landmarks:
-            return 0
-        for lm in res.multi_hand_landmarks:
-            pts = lm.landmark
-            if len(pts) != 21:           # malformed hand
-                anomalies += 1
-                continue
-            # crude finger-spread plausibility: fingertip y-spread shouldn't collapse to ~0
-            tips = [pts[i] for i in (4, 8, 12, 16, 20)]
-            spread = max(t.x for t in tips) - min(t.x for t in tips)
-            if spread < 0.01:            # all tips stacked -> fused/claw
-                anomalies += 1
-    return anomalies
 
 
 def score_image(img_path: Path, expected_max: int = 2, expect_hands: bool = False) -> dict:
@@ -135,12 +148,18 @@ def score_image(img_path: Path, expected_max: int = 2, expect_hands: bool = Fals
     if expect_hands and n == 0:
         flags.append("NO_HANDS_DETECTED")
         score += 5
-    if _HAVE_MP:
-        a = _finger_anomalies_mp(img_path)
-        if a:
-            flags.append(f"FINGER_ANOMALY({a})")
-            score += 8 * a
-    return {"path": img_path, "n_hands": n, "confs": confs, "flags": flags, "score": score}
+    mp_n = None
+    if _HAVE_MP and n > 0:
+        # MediaPipe fits 21 landmarks ONLY to a plausible hand. If YOLO sees N hands
+        # but MediaPipe can model fewer, the unmodelled hands are likely deformed
+        # (extra/fused/clawed fingers) — the signal YOLO-count alone misses.
+        mp_n = count_hands_mp(img_path)
+        deformed = n - mp_n
+        if deformed > 0:
+            flags.append(f"LIKELY_DEFORMED_HAND({deformed})")
+            score += 8 * deformed
+    return {"path": img_path, "n_hands": n, "mp_hands": mp_n, "confs": confs,
+            "flags": flags, "score": score}
 
 
 _SLIDE_CAND = re.compile(r"slide_(\d+)_cand_(\d+)\.png$", re.I)
@@ -186,7 +205,8 @@ def main(target: Path, expected_max: int, pick: bool, strict: bool):
             status = "CLEAN" if not c["flags"] else " ".join(c["flags"])
             if c["flags"]:
                 any_flag = True
-            click.echo(f"  {c['path'].name}: hands={c['n_hands']} score={c['score']} {status}")
+            mptxt = f"/mp{c['mp_hands']}" if c.get('mp_hands') is not None else ""
+            click.echo(f"  {c['path'].name}: hands={c['n_hands']}{mptxt} score={c['score']} {status}")
 
     sys.exit(1 if (strict and any_flag) else 0)
 

@@ -108,16 +108,20 @@ Violations cause "double-baking" — the LoRA tries to overlay identity descript
 
 **Before running ANY Ananya carousel, complete this checklist. Skipping any step has produced documented failures.**
 
-### 5-step pre-flight ritual
+### Pre-flight ritual (follow the §17 MASTER RUNBOOK in carousel_workflow.md)
 
-1. **Read `character/ananya/carousel_workflow.md` in full.** Not skim — read. The canonical procedural reference. CLAUDE.md is the gate; workflow doc is the full reference with worked examples.
+1. **Read `character/ananya/carousel_workflow.md` in full, especially §17 (master runbook).** Not skim — read. CLAUDE.md is the gate; the workflow doc §17 is the single ordered end-to-end checklist — follow it step by step.
 2. **Confirm anchor YAML has identity locks:**
    - `face_ref: character/ananya/seeds_v2/face_ref_v2.png`
    - `anchor_seed: 334521876`
    - `anchor_body_lora_strength: 0.5` (or `0.0` for headshot / flowy linen)
-3. **Confirm command includes `--flux-dev --kontext`** flags. Without these, FLUX img2img locks anchor composition → all 6 slides become the same pose.
-4. **Always run `--anchor-only` first.** Wait for user approval. Then run full carousel. Never skip the gate.
-5. **Read slide prompt file end-to-end** and verify no forbidden patterns (table below) appear.
+   - Body push per fabric: bodycon/leather/sheath = minimal push (over-push → plus-size).
+3. **Build the slide file in the 11-slide format:** 6 model + 2 faceless + 1 detail (NO hands/NO prop, head out) + 2 ambiance (no person, `faceswap=false | ultra=false`). Hands only on railing/in hair/near face/straight down — NEVER at waist/hip or on light fabric. Add `cands=3` to full-body hand slides, `cands=2` to detail.
+4. **Lint BEFORE generating:** `python scripts/lint_carousel_prompts.py character/ananya/carousel_prompts/<name>.txt` — fix every ERROR.
+5. **Confirm command includes `--flux-dev --kontext`** (and `--ultra` for realism). Without flux-dev/kontext, all slides become the same pose.
+6. **Always run `--anchor-only` first.** Wait for user approval. Never skip the gate.
+7. **After generating, QC hands:** `python scripts/hand_qc.py <carousel_dir> --pick`, THEN **human-zoom EVERY visible hand** (Read each slide). Auto-QC (YOLO+mediapipe) MISSES finger defects and false-positives on occlusion — never trust it alone. Fix defects delta-only (§9).
+8. **Caption:** NO `#AI`/no AI tells; hook+CTA → `[SEO keyword bracket]` → `📍 neighborhood, delhi` → 5 Hashtag-Bank tags; save to captions/ AND copy as `caption.txt` in the output folder.
 
 ### Mandatory run command templates
 
@@ -140,10 +144,15 @@ python scripts/faceswap_carousel.py `
 
 | Pattern | Replacement |
 |---|---|
-| `body turned away from camera` / `back to camera` | `three-quarter angle facing slightly left/right toward camera, head turned over shoulder` |
+| `body turned away from camera` / `back to camera` | `three-quarter angle facing slightly left/right toward camera, head turned over shoulder` (or intentional faceless walk-away with `faceswap=false`) |
 | `hand touching ribbon tie / lace / button / zipper / strings` | `hand to cheek`, `fingertips at collarbone`, `hand raised near shoulder` |
 | `sitting` in a standing carousel | Separate carousel entirely |
 | `change to waist-up portrait framing` | `change to chest-up portrait framing showing face neck shoulders and neckline only` |
+| hand at waist/hip/midriff, or any hand resting on **light/white fabric** | fused/clawed fingers — move hands to railing / in hair / near face / straight down |
+| thin held prop (glass/flute/wine) on a detail/head-out slide | duplicates + claws — make the detail slide **NO hands + NO prop** (garment/jewelry crop) |
+| `mirror` / reflective BG | portal artefact — use a non-reflective wall/sconce |
+
+The linter `scripts/lint_carousel_prompts.py` enforces this table pre-GPU — run it every time.
 
 ### Partial rerun rule
 

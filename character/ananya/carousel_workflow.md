@@ -1,6 +1,6 @@
 # Ananya Carousel Workflow — Canonical Reference
 
-**Last updated: 2026-06-06 — NEW §14 ultra-realism pass (`--ultra` selective realism refiner) + §15 `lens_profile:` key (editorial bokeh vs selfie deep-focus). Validated white bodycon club + black tube daycafe carousels: ultra adds real skin pore / hair / fabric micro-texture BEFORE ReActor (face identity guaranteed), background untouched. Uplift most visible in bright daytime deep-focus scenes; moderate in dark neon. Sweet-spot denoise 0.38; per-slide `ultra=0.44` for hero closeups; >0.50 over-processes fabric.**
+**Last updated: 2026-06-06 (pm) — NEW §17 MASTER RUNBOOK (one ordered fullproof checklist) + §16 fullproof QC system (Layer1 lint / Layer2 cands batching / Layer3 hand_qc with mediapipe finger check NOW installed) + 11-slide format (6 model/2 faceless/1 detail/2 ambiance) + detail-slide = NO hands/NO prop + captions drop `#AI` & add SEO keyword bracket. Hard lesson: auto-QC (YOLO+mediapipe) is NOT enough — human-zoom EVERY hand. Earlier 2026-06-06 — §14 ultra-realism pass (`--ultra` selective realism refiner) + §15 `lens_profile:` key (editorial bokeh vs selfie deep-focus). Validated white bodycon club + black tube daycafe carousels: ultra adds real skin pore / hair / fabric micro-texture BEFORE ReActor (face identity guaranteed), background untouched. Uplift most visible in bright daytime deep-focus scenes; moderate in dark neon. Sweet-spot denoise 0.38; per-slide `ultra=0.44` for hero closeups; >0.50 over-processes fabric.**
 
 Prior 2026-06-03 — §8 new forbidden patterns from black cowl NYE v1: object duplication on close detail shots (force "ONE single"); `faceswap=false` does NOT guarantee faceless (crop head out of frame); open-back drifts to racerback on back/walk-away views (re-specify single nape tie); side-profile bag-arm bends backward (pose arm forward natural).
 
@@ -546,7 +546,43 @@ After generation, scores every slide's hands and **auto-picks the best candidate
 python scripts/hand_qc.py output/<date>/ananya/carousel_<name>/ --pick
 ```
 - **YOLO backend (always on):** uses `hand_yolov8s.pt` (same model as Stage 3.5). Catches the universal hard failure — **>2 hands (extra/third limb)** — and missing hands. Lower score = cleaner.
-- **MediaPipe backend (optional):** adds true finger-landmark checks (fused/claw fingers). NOT installed by default — mediapipe pins opencv-contrib which clashes with the pipeline's opencv on Windows (cv2.pyd lock during runs). If you want finger-level QC, install mediapipe when no carousel is running and verify `import cv2` + a skin_color_match smoke test still pass; else the YOLO backend alone still catches extra-hand defects. **Finger-deformity QC is therefore best-effort until mediapipe is cleanly installed.**
+- **MediaPipe backend (INSTALLED 2026-06-06):** `mediapipe==0.10.35` + `models/hand_landmarker.task` (Tasks API; the legacy `mp.solutions` is gone in 0.10.x). Setup (one-time, gitignored binary): `pip install mediapipe` then `curl -sL -o models/hand_landmarker.task https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`. Signal = **YOLO finds N hands but mediapipe can only fit 21-pt landmarks to M<N of them → the unmodelled hand is LIKELY_DEFORMED** (extra/fused/clawed fingers — what YOLO-count misses). Verified it still co-exists with the pipeline's opencv (`import cv2` 4.13 + skin_color_match import both OK). Install note: it added `opencv-contrib-python`; do it when no carousel is running.
+- **CRITICAL LIMITATION — auto-QC is NOT sufficient alone.** mediapipe fits landmarks even to *somewhat*-deformed hands, so it catches some finger defects (caught white slide_00) but **misses others** (missed navy 07/08 in testing) and **false-positives on occluded hands** (a half-hidden 2nd hand reads as deformed). **Every visible hand MUST still be human-zoomed** (Read the full-res slide, look at each hand). Auto-QC narrows where to look; it does not replace looking.
 
 ### Net workflow
-`lint (fix ERRORs)` → `--anchor-only` gate → full carousel with `cands=2-3` on risky slides → `hand_qc --pick` → human review only the flagged slides → partial-rerun (delta-only) any remaining failures. **Always delta-only reruns — never regenerate good slides.**
+`lint (fix ERRORs)` → `--anchor-only` gate → full carousel with `cands=2-3` on hand-risky slides → `hand_qc --pick` → **human-zoom EVERY visible hand** (not just flagged ones) → partial-rerun (delta-only) any defect. **Always delta-only reruns — never regenerate good slides.**
+
+---
+
+## 17. MASTER RUNBOOK — fullproof carousel run (do every step, in order)
+
+The single ordered checklist. If every box is ticked, nothing from this doc is missed. Each step links the section with the detail.
+
+**A. Plan (before any GPU)**
+1. Pick outfit + scene from the reference image(s). Decide tier (free = clothed / premium = cleavage). Decide **one** pose mode — all-standing OR all-sitting, never mixed (§7, §8).
+2. Choose lens: `lens_profile: editorial` (bokeh, produced) or `selfie` (deep-focus, candid) (§15). Do NOT also hand-write lens text.
+3. Write the anchor YAML (§2 identity locks: `face_ref_v2`, `anchor_seed: 334521876`, `anchor_body_lora_strength: 0.5`; header `# Used with: --flux-dev --kontext`). Body push per fabric table (§2) — bodycon/leather = minimal/slim push (over-push → plus-size).
+4. Write the slide prompt file in the **11-slide structure** (§16 table): 6 model + 2 faceless + 1 detail + 2 ambiance.
+   - Detail slide (08): **NO hands, NO held prop**, head fully out, `faceswap=false` (§8 — props duplicate, head-out hands claw).
+   - Ambiance slides (09-10): no person, `faceswap=false | ultra=false`; for crowds use "heavily blurred distant, NO figures cut at the edges" (avoids sliced bodies).
+   - Faceless walk-away (07): `faceswap=false`, both arms straight down (no hip-hand).
+   - Hands on EVERY model slide: railing / in hair / near face / straight down. **NEVER hand at waist/hip, NEVER hand on light fabric** (§8, §11). Add `cands=3` to full-body hand slides, `cands=2` to detail.
+   - Repeat the `keeping exact same [outfit geometry]` block every slide (§4). No contradictory neckline tokens.
+
+**B. Pre-flight gate**
+5. **Lint:** `python scripts/lint_carousel_prompts.py character/ananya/carousel_prompts/<name>.txt` — fix every ERROR (§1.7, §16 Layer 1).
+6. **Anchor-only:** run Stage A (`--anchor-only`), Read it, get user approval. Check outfit/BG/body M-size/skin. Never skip (§3).
+
+**C. Generate**
+7. Full carousel: `python scripts/faceswap_carousel.py --anchor-config <yaml> --prompts <txt> --name <name> --flux-dev --kontext --ultra` (§14 ultra; `--flux-dev --kontext` mandatory or all slides go same-pose).
+
+**D. QC (the part that bit us — do ALL of it)**
+8. `python scripts/hand_qc.py output/<date>/ananya/carousel_<name>/ --pick` — note flagged slides + best candidate per slide.
+9. **Human-zoom EVERY visible hand** (Read each slide at full res). Auto-QC misses finger defects and false-positives on occlusion (§16 limitation). Also visually check: face = Ananya all slides, body M-size, outfit core held, BG consistent, no sliced bg figures, exactly 2 hands max (§11 checklist).
+10. For any defect: **delta-only** partial rerun (§9) — new prompt file with ONLY the bad slide indices, `cands=2-3`, map outputs to targets in a 2-column table, copy explicit, Read each target after copy. Re-run hand_qc + re-zoom. Never regenerate good slides.
+
+**E. Caption + ship**
+11. Write caption (§10): hook+CTA (no emoji line 1) → `[SEO keyword bracket]` → `📍 neighborhood, delhi` → 5 Hashtag-Bank tags. **NO `#AI` / no AI tells anywhere.** Save to `character/ananya/captions/<name>.txt` AND copy as `caption.txt` into the output folder.
+12. Commit on a feature branch (never main): scripts/prompts/captions/docs. Output PNGs are gitignored. Open/update the PR.
+
+**F. If a new failure mode appears** → add it to §8 (forbidden), update the linter (`scripts/lint_carousel_prompts.py`) so it's caught pre-GPU next time, bump the `Last updated` line, and note it in memory. The system only stays fullproof if every new lesson is encoded in BOTH the doc AND the linter.
