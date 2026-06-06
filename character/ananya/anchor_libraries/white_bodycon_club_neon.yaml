@@ -1,0 +1,37 @@
+# Anchor: fitted white bodycon midi dress, nightclub with green neon laser + magenta glow.
+# Vibe: glam night-out club content, full-body confident, holding pink top-handle bag + wine glass.
+# Lens: editorial (club neon bokeh background) — NOT selfie deep-focus.
+# Tier: premium (deep square neckline cleavage visible — intentional).
+# Used with: --flux-dev --kontext flags (MANDATORY)
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/white_bodycon_club_neon.yaml --prompts character/ananya/carousel_prompts/white_bodycon_club_neon.txt --name white_bodycon_club_v1 --flux-dev --kontext --ultra
+
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
+
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure, defined waist with soft natural curves,
+  slim-to-average M-size build, fabric shows soft midsection and natural body curves,
+  NOT plus-size NOT oversized NOT heavy, slender feminine curves not exaggerated,
+  long dark brown hair NOT auburn NOT blonde NOT highlighted, hair pulled back in a half-up ponytail,
+  soft face-framing strands loose at the temples,
+  wearing a fitted white stretch-jersey bodycon midi dress, thick wide squared shoulder straps,
+  deep square sweetheart neckline dipping low between the breasts showing deep cleavage,
+  sleeveless, body-hugging smooth bodice through torso and hips, narrow ankle-length column skirt,
+  thin delicate gold pendant chain at neckline,
+  small yellow event wristband on left wrist, bare wrists no bracelets no bangles,
+  both hands empty NO handbag NO bag NO purse NO object in hands,
+  standing confidently with weight shifted onto one hip, right hand resting lightly on a black metal railing,
+  left hand relaxed at side,
+  in an upscale nightclub at night, dark matte club walls,
+  bright emerald-green neon laser beams and green LED light bars across the background,
+  soft magenta and purple glow accents on the right side,
+  low black metal barrier railing with thin vertical poles behind her,
+  blurred club crowd and bokeh light spots deep in the background,
+  moody nightclub ambience with colored neon light, soft bokeh club lights behind,
+  shot on Sony A7IV 50mm shallow depth of field full-body environmental portrait,
+  subject framed center occupying the central two-thirds of the vertical frame,
+  full feet and floor visible at bottom of frame, headroom above her head,
+  both arms hands and elbows fully contained within frame edges,
+  authentic skin texture with visible pores, natural skin imperfections, no plasticky skin,
+  asymmetric facial features, slightly off-center composition, candid night-out moment not posed

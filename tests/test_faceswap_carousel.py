@@ -164,3 +164,35 @@ def test_parse_ultra_token_default_on_with_override(tmp_path):
     rows = fc.parse_prompts_file(p, default_denoise=0.6, default_ultra=True)
     assert rows[0]["ultra"] is True   # inherits global --ultra
     assert rows[1]["ultra"] is False  # per-slide override wins
+
+
+def test_parse_ultra_numeric_denoise(tmp_path):
+    p = tmp_path / "slides.txt"
+    p.write_text("ultra=0.44 | a\nultra=true | b\nultra=0 | c\nanchor=default | d\n", encoding="utf-8")
+    rows = fc.parse_prompts_file(p, default_denoise=0.6)
+    # numeric value turns ultra ON and sets per-slide denoise
+    assert rows[0]["ultra"] is True and rows[0]["ultra_denoise"] == 0.44
+    # bare true = on, denoise None (workflow default 0.38)
+    assert rows[1]["ultra"] is True and rows[1]["ultra_denoise"] is None
+    # ultra=0 = off
+    assert rows[2]["ultra"] is False and rows[2]["ultra_denoise"] is None
+    # absent token = off, no denoise
+    assert rows[3]["ultra"] is False and rows[3]["ultra_denoise"] is None
+    assert "ultra=" not in rows[0]["prompt"]
+
+
+def test_inject_realism_overrides_denoise():
+    wf = {
+        "2": {"_meta": {"title": "_claude_inject_input_image"}, "class_type": "LoadImage", "inputs": {"image": ""}},
+        "7": {"_meta": {"title": "Subject detail pass"}, "class_type": "DetailerForEach", "inputs": {"denoise": 0.38}},
+    }
+    out = fc._inject_realism(wf, "base.png", denoise=0.44, propagate_cache=False)
+    assert out["7"]["inputs"]["denoise"] == 0.44
+    assert out["2"]["inputs"]["image"] == "base.png"
+    # None leaves the workflow default untouched
+    wf2 = {
+        "2": {"_meta": {"title": "_claude_inject_input_image"}, "class_type": "LoadImage", "inputs": {"image": ""}},
+        "7": {"_meta": {"title": "x"}, "class_type": "DetailerForEach", "inputs": {"denoise": 0.38}},
+    }
+    out2 = fc._inject_realism(wf2, "b.png", denoise=None, propagate_cache=False)
+    assert out2["7"]["inputs"]["denoise"] == 0.38

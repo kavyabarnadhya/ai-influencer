@@ -1,0 +1,23 @@
+# White bodycon midi nightclub carousel — 6 standing slides.
+# Lens: editorial (club neon bokeh). Tier: premium (deep neckline cleavage).
+# HAND RULE (§8): white dress fuses hands — keep hands on dark railing / in hair / at cheek / at collarbone. NEVER hand resting on the white dress or hip.
+# keeping-exact-same outfit block repeated every slide. BG: dark club, emerald neon laser bars, magenta glow right, black metal railing.
+# Run Stage B: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/white_bodycon_club_neon.yaml --prompts character/ananya/carousel_prompts/white_bodycon_club_neon.txt --name white_bodycon_club_v1 --flux-dev --kontext --ultra
+
+# slide_00 — full body hook
+anchor=default | full body shot, standing tall with weight shifted onto right hip, right hand resting lightly on the black metal railing, left arm hanging relaxed straight down at side away from the dress, confident direct gaze at camera, keeping exact same fitted white stretch-jersey bodycon midi dress with thick wide squared shoulder straps and deep square sweetheart neckline and narrow ankle-length column skirt, long dark brown half-up ponytail, thin gold pendant chain, small yellow wristband on left wrist, dark club wall with emerald-green neon laser bars and soft magenta glow on right, black metal railing with thin vertical poles behind, bokeh club lights deep in background
+
+# slide_01 — chest-up portrait closeup
+anchor=default | change to chest-up portrait framing showing face neck shoulders and neckline only, direct camera gaze with soft confident smile, right hand raised lightly to collarbone fingertips on skin, keeping exact same white bodycon dress with thick wide squared shoulder straps and deep square sweetheart neckline, long dark brown half-up ponytail, thin gold pendant chain, emerald-green neon glow and soft magenta light behind, blurred dark club background
+
+# slide_02 — full body dynamic
+anchor=default | full body shot, leaning sideways with left forearm resting along the top of the black metal railing, body angled three-quarter toward camera, right hand raised pushing wavy strands off the face, head tilted, keeping exact same fitted white bodycon midi dress with thick squared straps and deep square neckline and ankle-length column skirt, long dark brown half-up ponytail, thin gold pendant chain, small yellow wristband on left wrist, dark club wall with emerald-green neon laser bars and magenta glow on right, black railing with vertical poles, bokeh club crowd behind
+
+# slide_03 — full body alt angle
+anchor=default | full body shot, body turned three-quarter facing slightly left toward camera with head turned over left shoulder looking at camera, both hands raised loosely near the hair adjusting the ponytail, away from the dress, keeping exact same white bodycon midi dress with thick squared shoulder straps and deep square sweetheart neckline and narrow column skirt, long dark brown half-up ponytail, thin gold pendant chain, yellow wristband on left wrist, dark nightclub with emerald-green neon laser bars and soft magenta glow on right, black metal railing behind, bokeh club lights deep in background
+
+# slide_04 — full body candid
+anchor=default | full body shot, standing relaxed glancing to the right with a soft candid smile off-camera, right hand lightly touching the side of the neck below the ear, left arm hanging straight down at side away from the dress, keeping exact same fitted white bodycon midi dress with thick squared straps and deep square neckline and ankle-length skirt, long dark brown half-up ponytail, thin gold pendant chain, small yellow wristband on left wrist, dark club wall with emerald-green neon laser bars and magenta accent glow on right, black railing with vertical poles, bokeh club background
+
+# slide_05 — chest-up portrait closing
+anchor=default | change to chest-up portrait framing showing face neck shoulders and neckline only, chin slightly lowered looking up at camera with warm confident smile, right hand to cheek with fingers near the jawline, keeping exact same white bodycon dress with thick wide squared shoulder straps and deep square sweetheart neckline, long dark brown half-up ponytail, thin gold pendant chain, emerald-green neon glow with soft magenta light behind, blurred dark nightclub background

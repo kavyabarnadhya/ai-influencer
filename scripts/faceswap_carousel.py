@@ -136,16 +136,26 @@ def _inject_hand_detail(wf: dict, input_image_name: str, seed: int, propagate_ca
     return inject_workflow_values(wf, overrides, propagate_cache=propagate_cache)
 
 
-def _inject_realism(wf: dict, input_image_name: str, propagate_cache: bool = True) -> dict:
+def _inject_realism(wf: dict, input_image_name: str, denoise: float | None = None,
+                    propagate_cache: bool = True) -> dict:
     """
     Inject input image into the selective realism workflow (workflows/realism_selective.json):
     person-SEGS subject detail (skin/hair/fabric) over an SDXL realism checkpoint, background untouched.
     Runs BEFORE ReActor so the final face is always face_ref (ReActor applies last). --ultra only.
+
+    denoise: optional per-slide override of the DetailerForEach subject-pass denoise.
+        None = keep the workflow default (0.38, the validated sweet spot). Higher (~0.44)
+        gives more skin micro-texture for hero closeups; >0.50 over-processes fabric.
     """
-    return inject_workflow_values(
+    wf = inject_workflow_values(
         wf, {"_claude_inject_input_image": {"inputs.image": input_image_name}},
         propagate_cache=propagate_cache,
     )
+    if denoise is not None:
+        for node in wf.values():
+            if node.get("class_type") == "DetailerForEach":
+                node["inputs"]["denoise"] = float(denoise)
+    return wf
 
 
 def _run_and_save(client: ComfyUIClient, wf: dict, out_path: Path,
@@ -166,11 +176,15 @@ def _run_and_save(client: ComfyUIClient, wf: dict, out_path: Path,
 def parse_prompts_file(path: Path, default_denoise: float, default_ultra: bool = False) -> list[dict]:
     """Parse prompt lines. Tokens (any order, all optional):
         denoise=0.85 | anchor=standing | pose=path | cn=0.65 | faceswap=false | ultra=true | <prompt>
-    Returns list of dicts: {denoise, anchor, pose, cn_strength, faceswap, ultra, prompt}
+    Returns list of dicts: {denoise, anchor, pose, cn_strength, faceswap, ultra, ultra_denoise, prompt}
 
     faceswap=false skips the ReActor stage for that slide (use for zero-face shots
     — back of head, cropped torso, body-only — where no Ananya face is visible, so a
     swap would only risk distortion). Hand detail + skin lock still run.
+
+    ultra=true|false toggles the selective realism pass; ultra=<float> (e.g. ultra=0.44)
+    turns it on AND overrides the subject-pass denoise for that slide (None = workflow
+    default 0.38). >0.50 over-processes fabric — keep hero bumps ~0.44.
     """
     out = []
     for raw in path.read_text(encoding="utf-8").splitlines():
@@ -183,6 +197,7 @@ def parse_prompts_file(path: Path, default_denoise: float, default_ultra: bool =
         cn_strength = 0.65
         faceswap = True
         ultra = default_ultra
+        ultra_denoise = None
         parts = [p.strip() for p in line.split("|")]
         remaining = []
         for part in parts:
@@ -204,14 +219,22 @@ def parse_prompts_file(path: Path, default_denoise: float, default_ultra: bool =
             elif low.startswith("faceswap="):
                 faceswap = part.split("=", 1)[1].strip().lower() not in ("false", "no", "0", "off")
             elif low.startswith("ultra="):
-                ultra = part.split("=", 1)[1].strip().lower() in ("true", "yes", "1", "on")
+                val = part.split("=", 1)[1].strip().lower()
+                try:
+                    fv = float(val)
+                    # numeric value (e.g. 0.44) = ultra ON at that denoise; 0 = off
+                    ultra = fv > 0
+                    ultra_denoise = fv if fv > 0 else None
+                except ValueError:
+                    ultra = val in ("true", "yes", "1", "on")
             elif low.startswith("kontext_strength="):
                 pass  # FluxKontextImageScale has no strength input — token accepted but ignored
             else:
                 remaining.append(part)
         text = " ".join(remaining).strip() if remaining else line
         out.append({"denoise": denoise, "anchor": anchor, "pose": pose,
-                    "cn_strength": cn_strength, "faceswap": faceswap, "ultra": ultra, "prompt": text})
+                    "cn_strength": cn_strength, "faceswap": faceswap, "ultra": ultra,
+                    "ultra_denoise": ultra_denoise, "prompt": text})
     return out
 
 
@@ -607,10 +630,14 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                     try:
                         realism_path = inter / f"slide_{idx:02d}_cand_{cand}_realism.png"
                         up_base = client.upload_image(str(base_path))
-                        wf_r = _inject_realism(realism_template, up_base, propagate_cache=False)
+                        wf_r = _inject_realism(realism_template, up_base,
+                                               denoise=slide.get("ultra_denoise"),
+                                               propagate_cache=False)
                         _run_and_save(client, wf_r, realism_path, timeout=600)
                         swap_src = realism_path
-                        console.print("  [magenta]ultra: selective realism pass applied (face left for ReActor)[/magenta]")
+                        _dn = slide.get("ultra_denoise")
+                        _dn_txt = f" denoise={_dn}" if _dn is not None else ""
+                        console.print(f"  [magenta]ultra: selective realism pass applied{_dn_txt} (face left for ReActor)[/magenta]")
                     except Exception as e:
                         console.print(f"  [yellow]ultra realism failed: {e} — using plain base[/yellow]")
                         swap_src = base_path

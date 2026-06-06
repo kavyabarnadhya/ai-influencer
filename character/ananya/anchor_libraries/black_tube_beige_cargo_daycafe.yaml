@@ -1,0 +1,33 @@
+# Anchor: black strapless tube crop top + beige cargo mini skirt, daytime outdoor cafe patio.
+# Lens: deep-focus daytime candid (NO bokeh — everything sharp). Validates ultra vs non-ultra on a bright day scene.
+# Tier: premium (bare midriff, strapless).
+# Used with: --flux-dev --kontext flags (MANDATORY)
+
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
+
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure, defined waist with soft natural curves,
+  slim-to-average M-size build, fabric shows soft midsection and natural body curves,
+  NOT plus-size NOT oversized NOT heavy, slender feminine curves not exaggerated,
+  long dark brown hair NOT auburn NOT blonde NOT highlighted, hair worn long and straight falling past the waist,
+  dark sunglasses pushed up resting on top of the head,
+  wearing a fitted black strapless ruched bandeau tube crop top with bare shoulders and bare arms,
+  bare midriff with toned stomach exposed, high-waisted beige khaki cargo mini skirt with utility flap pockets,
+  hemline at upper-thigh well above the knee, bare legs,
+  thin delicate gold pendant chain at neckline,
+  holding a brown monogram-pattern top-handle shoulder bag in left hand down at side,
+  ONE single bag exactly one NOT two NOT duplicate,
+  standing with weight shifted onto one hip, right arm raised with hand behind head touching the hair,
+  head tilted softly looking down to the side, candid relaxed posture,
+  in an outdoor cafe patio in bright daytime, smooth pale polished concrete floor,
+  tall black high bar stools with gold metal foot rings, black marble high-top tables,
+  black vertical-slat wooden fence behind, lush green trees and foliage above the fence,
+  bright soft overcast daytime light, deep focus everything sharp in focus background fully in focus,
+  NO bokeh NO shallow depth of field, candid daytime phone photo look,
+  wide environmental full-body shot, subject framed center occupying central two-thirds of vertical frame,
+  full legs and floor visible at bottom of frame, headroom above her head,
+  both arms hands and elbows fully contained within frame edges,
+  authentic skin texture with visible pores, natural skin imperfections, no plasticky skin,
+  asymmetric facial features, slightly off-center composition, candid daytime moment not posed

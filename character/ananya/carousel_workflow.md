@@ -1,6 +1,8 @@
 # Ananya Carousel Workflow — Canonical Reference
 
-**Last updated: 2026-06-03 — §8 new forbidden patterns from black cowl NYE v1: object duplication on close detail shots (force "ONE single"); `faceswap=false` does NOT guarantee faceless (crop head out of frame); open-back drifts to racerback on back/walk-away views (re-specify single nape tie); side-profile bag-arm bends backward (pose arm forward natural).**
+**Last updated: 2026-06-06 — NEW §14 ultra-realism pass (`--ultra` selective realism refiner). Validated white bodycon club + black tube daycafe carousels: ultra adds real skin pore / hair / fabric micro-texture BEFORE ReActor (face identity guaranteed), background untouched. Uplift most visible in bright daytime deep-focus scenes; moderate in dark neon. Sweet-spot denoise 0.38; per-slide `ultra=0.44` for hero closeups; >0.50 over-processes fabric.**
+
+Prior 2026-06-03 — §8 new forbidden patterns from black cowl NYE v1: object duplication on close detail shots (force "ONE single"); `faceswap=false` does NOT guarantee faceless (crop head out of frame); open-back drifts to racerback on back/walk-away views (re-specify single nape tie); side-profile bag-arm bends backward (pose arm forward natural).
 
 Prior 2026-05-31 — §7 faceless/off-camera slide vocabulary + `faceswap=false` token (skip ReActor for zero-face slides); §8 new forbidden patterns (mirror BG → portal artefact, hair-flip → rubbery hair, straight-overhead arms); §2 hair-color lock (warm scenes drift lighter) + skin caps lowered to 10/8 (25/12 over-bleached warm scenes). Validated red halter vanity v1.
 
@@ -435,3 +437,57 @@ If this doc contradicts `flux_dev_rulebook.md` or `feedback_prompt_cookbook.md`,
 ### Pruning
 
 If a rule hasn't fired or been referenced in 3+ months and the underlying tool/script has changed, mark it `[DEPRECATED YYYY-MM-DD]` rather than deleting. Future debugging may need the history.
+
+---
+
+## 14. Ultra-realism pass (`--ultra`)
+
+Optional selective realism refiner that adds genuine skin/hair/fabric micro-texture to kill the plastic/waxy AI look. **Additive and default-off** — without `--ultra` the pipeline runs the exact current path (zero behaviour change).
+
+### What it does
+
+Inserts a **Stage 2.5** between FLUX-Kontext gen and ReActor:
+
+```
+FLUX-Kontext gen → [NEW: selective realism pass] → ReActor → hand detail → skin lock
+```
+
+- Workflow: `workflows/realism_selective.json` — `UltralyticsDetectorProvider (segm/yolov8n-seg.pt)` → `ImpactSimpleDetectorSEGS` (person SEGS) → `DetailerForEach` on an **SDXL realism checkpoint (RealVisXL_V4.0)** at denoise **0.38**, re-rendering ONLY the subject's skin/hair/fabric. **Background is left untouched** (no global refine).
+- Runs **BEFORE ReActor** → the final face is always `face_ref_v2` (ReActor applies last), so **identity is guaranteed** regardless of the realism pass. The face SEGS sub-pass in the workflow is bypassed for this reason.
+- Adds ~30-60s/slide on RTX 3050 6GB. Degrades gracefully: on any failure the slide ships the plain FLUX base.
+
+### Why selective, NOT global
+
+A whole-image tiled refine (tested + rejected) dirties the **entire** image — adds vintage grain/noise to the background, not just the subject. The laplacian-variance metric LIES here (rewards noise, not real detail) — **judge visually**. Person-SEGS detail keeps the BG clean while adding real texture to skin/hair/fabric only. (See memory `feedback_realism_selective_detail`.)
+
+### How to use
+
+Global flag (all slides):
+```powershell
+python scripts/faceswap_carousel.py --anchor-config <...>.yaml --prompts <...>.txt --name <...> --flux-dev --kontext --ultra
+```
+
+Per-slide token in the prompt file (overrides the global flag):
+- `ultra=true` — on at default denoise 0.38
+- `ultra=false` — off (e.g. bulk/filler slides to save time)
+- `ultra=0.44` — on AND override denoise to 0.44 (more skin pore detail; use for **hero closeups** where fabric is minimal)
+- `ultra=0` — off
+
+### Denoise tuning (validated 2026-06-06)
+
+| Denoise | Result |
+|---|---|
+| 0.38 (default) | Sweet spot — skin pore + fabric texture, natural, BG clean |
+| ~0.44 | More skin micro-texture; good for face/skin-dominant closeups |
+| 0.50 | Over-processes fabric (crunchy seams/weave), edges toward AI-sharpened; not worth it as default |
+
+### When the uplift is worth it
+
+- **Most visible in bright daytime deep-focus** scenes — flat even light exposes smooth plastic skin, so the texture gain reads strongly.
+- **Moderate in dark/neon** scenes — colored low light hides skin detail, so the gain is subtle at feed size (pronounced at full zoom).
+- **Ceiling caveat:** ReActor's pasted face is still the realism limit on the **face itself**; ultra improves body skin/hair/fabric and the swap-seam blend, not the intrinsic face resolution.
+
+### Validated carousels
+
+- `white_bodycon_club_neon` (night neon) — uplift real but moderate; BG stayed clean, identity held.
+- `black_tube_beige_cargo_daycafe` (daytime deep-focus) — uplift clearly visible; non-ultra legs/midriff showed CGI sheen, ultra rendered matte natural skin.
