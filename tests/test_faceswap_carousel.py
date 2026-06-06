@@ -76,6 +76,34 @@ def test_anchor_config_multi_group_missing_prompt(tmp_path):
         fc.load_anchor_config(_write(tmp_path, "anchors:\n  g:\n    seed: 1\n"))
 
 
+# --- lens_profile ---
+
+def test_lens_profile_valid(tmp_path):
+    cfg = fc.load_anchor_config(_write(tmp_path, "anchor_prompt: x\nlens_profile: selfie\n"))
+    assert cfg["lens_profile"] == "selfie"
+
+
+def test_lens_profile_rejects_unknown(tmp_path):
+    with pytest.raises(ValueError, match="lens_profile.*must be one of"):
+        fc.load_anchor_config(_write(tmp_path, "anchor_prompt: x\nlens_profile: dslr\n"))
+
+
+def test_lens_suffix_unset_is_empty():
+    assert fc._lens_suffix({"anchor_prompt": "x"}) == ""
+    assert fc._lens_suffix(None) == ""
+
+
+def test_lens_suffix_selfie_has_deep_focus():
+    s = fc._lens_suffix({"lens_profile": "selfie"})
+    assert s.startswith(", ")
+    assert "NO bokeh" in s and "deep focus" in s
+
+
+def test_lens_suffix_editorial_has_bokeh():
+    s = fc._lens_suffix({"lens_profile": "editorial"})
+    assert "bokeh" in s and "depth of field" in s
+
+
 # --- _inject_flux_kontext (BG-lock auto-append) ---
 
 def _kontext_wf():
@@ -148,3 +176,77 @@ def test_parse_faceswap_false_token(tmp_path):
     assert rows[0]["prompt"] == "back of head shot"
     assert "faceswap=" not in rows[0]["prompt"]
     assert rows[1]["faceswap"] is True  # absent token defaults to True
+
+
+def test_parse_ultra_token_defaults_off(tmp_path):
+    p = tmp_path / "slides.txt"
+    p.write_text("anchor=default | a\nultra=true | b\nultra=false | c\n", encoding="utf-8")
+    rows = fc.parse_prompts_file(p, default_denoise=0.6)  # default_ultra defaults False
+    assert [r["ultra"] for r in rows] == [False, True, False]
+    assert "ultra=" not in rows[1]["prompt"]
+
+
+def test_parse_ultra_token_default_on_with_override(tmp_path):
+    p = tmp_path / "slides.txt"
+    p.write_text("anchor=default | a\nultra=false | b\n", encoding="utf-8")
+    rows = fc.parse_prompts_file(p, default_denoise=0.6, default_ultra=True)
+    assert rows[0]["ultra"] is True   # inherits global --ultra
+    assert rows[1]["ultra"] is False  # per-slide override wins
+
+
+def test_parse_ultra_numeric_denoise(tmp_path):
+    p = tmp_path / "slides.txt"
+    p.write_text("ultra=0.44 | a\nultra=true | b\nultra=0 | c\nanchor=default | d\n", encoding="utf-8")
+    rows = fc.parse_prompts_file(p, default_denoise=0.6)
+    # numeric value turns ultra ON and sets per-slide denoise
+    assert rows[0]["ultra"] is True and rows[0]["ultra_denoise"] == 0.44
+    # bare true = on, denoise None (workflow default 0.38)
+    assert rows[1]["ultra"] is True and rows[1]["ultra_denoise"] is None
+    # ultra=0 = off
+    assert rows[2]["ultra"] is False and rows[2]["ultra_denoise"] is None
+    # absent token = off, no denoise
+    assert rows[3]["ultra"] is False and rows[3]["ultra_denoise"] is None
+    assert "ultra=" not in rows[0]["prompt"]
+
+
+def test_parse_cands_token(tmp_path):
+    p = tmp_path / "slides.txt"
+    p.write_text("cands=3 | a\nanchor=default | b\ncands=notanint | c\n", encoding="utf-8")
+    rows = fc.parse_prompts_file(p, default_denoise=0.6)
+    assert rows[0]["cands"] == 3          # parsed
+    assert rows[1]["cands"] is None       # absent => global default
+    assert rows[2]["cands"] is None       # malformed => default, no crash
+    assert "cands=" not in rows[0]["prompt"]
+
+
+def test_parse_cands_clamped(tmp_path):
+    p = tmp_path / "slides.txt"
+    p.write_text("cands=99 | a\ncands=0 | b\n", encoding="utf-8")
+    rows = fc.parse_prompts_file(p, default_denoise=0.6)
+    assert rows[0]["cands"] == 8   # clamped to max 8
+    assert rows[1]["cands"] == 1   # clamped to min 1
+
+
+def test_parse_ultra_denoise_clamped(tmp_path):
+    p = tmp_path / "slides.txt"
+    p.write_text("ultra=5 | a\n", encoding="utf-8")
+    rows = fc.parse_prompts_file(p, default_denoise=0.6)
+    assert rows[0]["ultra"] is True
+    assert rows[0]["ultra_denoise"] == 1.0   # clamped to <=1.0 (denoise>1 crashes sampler)
+
+
+def test_inject_realism_overrides_denoise():
+    wf = {
+        "2": {"_meta": {"title": "_claude_inject_input_image"}, "class_type": "LoadImage", "inputs": {"image": ""}},
+        "7": {"_meta": {"title": "Subject detail pass"}, "class_type": "DetailerForEach", "inputs": {"denoise": 0.38}},
+    }
+    out = fc._inject_realism(wf, "base.png", denoise=0.44, propagate_cache=False)
+    assert out["7"]["inputs"]["denoise"] == 0.44
+    assert out["2"]["inputs"]["image"] == "base.png"
+    # None leaves the workflow default untouched
+    wf2 = {
+        "2": {"_meta": {"title": "_claude_inject_input_image"}, "class_type": "LoadImage", "inputs": {"image": ""}},
+        "7": {"_meta": {"title": "x"}, "class_type": "DetailerForEach", "inputs": {"denoise": 0.38}},
+    }
+    out2 = fc._inject_realism(wf2, "b.png", denoise=None, propagate_cache=False)
+    assert out2["7"]["inputs"]["denoise"] == 0.38
