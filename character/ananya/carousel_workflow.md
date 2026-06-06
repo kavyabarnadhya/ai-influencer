@@ -33,6 +33,7 @@ Before typing any carousel command:
 4. **Confirm your command includes `--flux-dev --kontext`.** Without these flags, the pipeline silently downgrades to FLUX img2img which locks anchor composition → all 6 slides become same pose.
 5. **Always run `--anchor-only` first.** Wait for user approval. Then run full carousel. Never skip the gate — a broken anchor wastes ~12 min of GPU on 6 bad slides.
 6. **Read your slide prompt file end-to-end** and verify none of the forbidden patterns from Section 8 appear.
+7. **Run the prompt linter (Layer 1, free, pre-GPU):** `python scripts/lint_carousel_prompts.py character/ananya/carousel_prompts/<name>.txt`. Fix all ERRORs before generating — it catches the exact hand-on-light-fabric / duplicated-prop / forbidden-pattern mistakes that have wasted whole runs. See §16.
 
 If any step fails, fix it before proceeding.
 
@@ -215,6 +216,7 @@ Candid faceless shots add editorial variety. Research-backed poses that work in 
 | `hair flip` / `hair flung across face` / hair in motion hiding face | FLUX renders flung hair as rubbery artificial strands with gaps that still show the face → looks fake. | For hidden-face use walking-away or side-profile-with-prop (see §7 faceless table). |
 | `both arms raised straight overhead` (from a relaxed anchor) | Kontext won't raise arms from a relaxed-arm anchor (keeps anchor pose); when forced via a baked anchor, straight-up reads stiff/"surrender". | Bake an `armsup:` anchor group with a **languid sensual** stretch (soft bent elbows, head tilt). |
 | `close detail shot of [handbag/object]` | FLUX duplicates the object — renders TWO handbags. Also `faceswap=false` does NOT guarantee faceless: FLUX still paints a (non-Ananya) face into the frame, which then ships unswapped. | Force singular: `ONE SINGLE bag, exactly one, NOT two NOT duplicate`. For truly faceless, crop the head OUT: `framed from the collarbone DOWN, entire head and face OUT of frame above, NO face NO chin visible` — don't rely on `faceswap=false` alone. Validated black cowl NYE v1 (2026-06-03). |
+| detail/head-out slide with a **thin held prop** (champagne flute, wine glass, straw) AND/OR hands near light fabric | The thin glass duplicates (renders TWO) even with `ONE single NOT two`, and head-out hands clawthe/fuse — both failed repeatedly on navy gown + white club detail slides (2026-06-06). | **Default the detail slide to NO hands + NO prop:** a pure garment/jewelry crop — `extreme tight crop from mid-chest down, head fully out, the [gold O-ring / square neckline + pendant] in focus, NO hands NO arms NO fingers, NO glass NO object`. If a held prop is essential, use ONE hand + ONE prop on a DARK fabric only, and batch 2-3 candidates. |
 | open-back / halter top on a **back-view or walking-away** slide | Kontext re-invents the back as a `racerback` / `scoop-back` / crossed-straps — loses the open-back design. | Re-specify the exact back: `completely open bare back with only a single thin halter strap to a tie-neck knotted at the nape, NOT racerback NOT scoop-back NOT crossed straps`. |
 | side-profile holding a bag/prop with the near arm | Arm bends backward / wrist twists unnaturally (broken elbow-to-hand line) to keep the prop in frame. | Pose the arm `hanging straight down and slightly FORWARD in front of the thigh, natural straight elbow, forearm and wrist in a natural anatomical line NOT twisted NOT bent backward`. Validated black cowl NYE v1 (2026-06-03). |
 
@@ -277,10 +279,13 @@ python scripts/reprocess_carousel_post.py `
 ## 10. Caption workflow
 
 - **Location:** `character/ananya/captions/<carousel_name>.txt` — one file per carousel, same name stem as the anchor YAML and prompt file. **Also copy it as `caption.txt` into the carousel's output folder** (`output/YYYY-MM-DD/ananya/carousel_<name>/caption.txt`) so the post text ships next to the images.
-- **Format:** opening hook line (lowercase, casual tone) → neighborhood location tag → `#AI` disclosure (mandatory) → max 5 hashtags.
-- **Lowercase tone** throughout (per `feedback_instagram_captions.md`).
-- **Neighborhood-level location tags**, not landmark, not city-level. (`Bandra` not `Mumbai`; `Lodhi Colony` not `Lodhi Garden`.)
-- **Rotate hashtags** across posts — don't reuse the same 5 every time.
+- **Format (4 blocks, blank line between each):**
+  1. **Hook** — lowercase, 1-2 sentences, minimal/elegant (Masoom Minawala / Aashna Shroff register), trailing `...`. NO emoji in the first line. Include a save-driving CTA in the first 125 chars.
+  2. **SEO keyword bracket** — `[comma-separated search keywords]` describing outfit + scene + creator niche (Instagram indexes caption text for search). E.g. `[navy strapless gown, gold ring detail, evening glam, lounge ootd, indian digital creator, date night outfit, ootd reel]`. This is the SEO layer — always include it.
+  3. **Location** — `📍 neighborhood, delhi` from the Delhi/NCR pool (`defence colony`, `vasant vihar`, `hauz khas`, `greater kailash`, `khan market`…), never landmark, never city-level.
+  4. **Hashtags** — exactly 5 from the playbook **Hashtag Bank**: 1 broad (`#ootd`) + 2 niche + 1 location + 1 community (`#delhicreator`/`#indianblogger`). Do NOT invent generic tags (`#navygown`, `#eveninglook` are wrong; use bank tags like `#eveningwear`, `#partylook`, `#streetstyle`).
+- **NO `#AI` / no AI disclosure anywhere in the caption** (user decision 2026-06-06) — keep captions free of AI tells, including the keyword bracket.
+- **Rotate** neighborhood + hashtags + keywords every post (repeats signal duplicate content).
 - **Write the caption AFTER carousel validation passes.** The hook should reflect what actually rendered, not what you hoped would render.
 
 ---
@@ -510,3 +515,38 @@ lens_profile: editorial   # or: selfie
 **Why it matters:** the bokeh→deep-focus swap is itself a realism lever. DSLR bokeh reads "produced/AI"; phone deep-focus reads candid-real. The `--ultra` pass (§14) then sharpens the now-in-focus background cleanly. Pair `lens_profile: selfie` + `--ultra` for the most photo-real daytime look.
 
 Do NOT also hand-write lens text in the prompt when using this key — pick one (the key OR inline), not both, to avoid contradictory camera tokens.
+
+---
+
+## 16. Fullproof QC system — avoid wasted reruns (3 layers)
+
+Built 2026-06-06 after a session that burned ~5 reruns (over-pushed body, hand deformities found late, duplicated props, head-out shots painting a face). The three layers attack reruns at three stages: prevent → batch → catch.
+
+### 11-slide carousel structure (current standard)
+
+6 model poses + 2 faceless + 1 detail + 2 ambiance:
+
+| Slides | Type | Notes |
+|---|---|---|
+| 00-05 | model poses | hero / closeup / profile-over-shoulder / rear-three-quarter / candid / closing closeup |
+| 06 | faceless side-profile | face turned away; may hold ONE prop on dark fabric; faceswap ON (profile shows) |
+| 07 | faceless walk-away | back view, `faceswap=false` |
+| 08 | **detail** | garment/jewelry crop, head fully out, **NO hands NO prop** (see §8 — props duplicate, head-out hands claw). `faceswap=false` |
+| 09-10 | **ambiance** | empty scene, no person — `faceswap=false | ultra=false` (no skin to detail) |
+
+### Layer 1 — PREVENT (free, pre-GPU): `scripts/lint_carousel_prompts.py`
+Run in pre-flight (§1 step 7). Hard-fails (ERROR) on: hand at waist/hip on a **light garment**, thin held prop on a detail slide, §8 forbidden patterns (back-to-camera, closure-touch, waist-up, mirror, hair-flip, overhead). WARNs on: object named without a singular guard, head-out without a `NO face` exclusion. Negation-aware (`NO hand at the waist` does not trip). `--strict` makes warnings fail too.
+
+### Layer 2 — BATCH (kill serial reruns): `cands=N` per-slide token + `--candidates N`
+Hands are a dice roll — generate 2-3 candidates on hand-risky full-body/detail slides in ONE run instead of discovering a bad hand and re-running serially. Per-slide `cands=3` overrides the global `--candidates`. Closeups/ambiance stay at 1. Then pick the best with Layer 3 `--pick`.
+
+### Layer 3 — CATCH (auto, pre-human): `scripts/hand_qc.py`
+After generation, scores every slide's hands and **auto-picks the best candidate**:
+```
+python scripts/hand_qc.py output/<date>/ananya/carousel_<name>/ --pick
+```
+- **YOLO backend (always on):** uses `hand_yolov8s.pt` (same model as Stage 3.5). Catches the universal hard failure — **>2 hands (extra/third limb)** — and missing hands. Lower score = cleaner.
+- **MediaPipe backend (optional):** adds true finger-landmark checks (fused/claw fingers). NOT installed by default — mediapipe pins opencv-contrib which clashes with the pipeline's opencv on Windows (cv2.pyd lock during runs). If you want finger-level QC, install mediapipe when no carousel is running and verify `import cv2` + a skin_color_match smoke test still pass; else the YOLO backend alone still catches extra-hand defects. **Finger-deformity QC is therefore best-effort until mediapipe is cleanly installed.**
+
+### Net workflow
+`lint (fix ERRORs)` → `--anchor-only` gate → full carousel with `cands=2-3` on risky slides → `hand_qc --pick` → human review only the flagged slides → partial-rerun (delta-only) any remaining failures. **Always delta-only reruns — never regenerate good slides.**

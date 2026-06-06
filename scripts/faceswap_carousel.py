@@ -198,6 +198,7 @@ def parse_prompts_file(path: Path, default_denoise: float, default_ultra: bool =
         faceswap = True
         ultra = default_ultra
         ultra_denoise = None
+        cands = None  # per-slide candidate count; None => use the global --candidates
         parts = [p.strip() for p in line.split("|")]
         remaining = []
         for part in parts:
@@ -227,6 +228,11 @@ def parse_prompts_file(path: Path, default_denoise: float, default_ultra: bool =
                     ultra_denoise = fv if fv > 0 else None
                 except ValueError:
                     ultra = val in ("true", "yes", "1", "on")
+            elif low.startswith("cands="):
+                try:
+                    cands = max(1, int(part.split("=", 1)[1]))
+                except (ValueError, IndexError):
+                    pass
             elif low.startswith("kontext_strength="):
                 pass  # FluxKontextImageScale has no strength input — token accepted but ignored
             else:
@@ -234,7 +240,7 @@ def parse_prompts_file(path: Path, default_denoise: float, default_ultra: bool =
         text = " ".join(remaining).strip() if remaining else line
         out.append({"denoise": denoise, "anchor": anchor, "pose": pose,
                     "cn_strength": cn_strength, "faceswap": faceswap, "ultra": ultra,
-                    "ultra_denoise": ultra_denoise, "prompt": text})
+                    "ultra_denoise": ultra_denoise, "cands": cands, "prompt": text})
     return out
 
 
@@ -626,7 +632,8 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                 continue
             uploaded_pose = client.upload_image(pose_full)
 
-        for cand in range(candidates):
+        n_cands = slide.get("cands") or candidates
+        for cand in range(n_cands):
             slide_seed = random.randint(1, 2**31 - 1)
             base_path = inter / f"slide_{idx:02d}_cand_{cand}_base.png"
             final_path = out_dir / f"slide_{idx:02d}_cand_{cand}.png"

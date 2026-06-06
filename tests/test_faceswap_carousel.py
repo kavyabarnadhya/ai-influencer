@@ -209,6 +209,16 @@ def test_parse_ultra_numeric_denoise(tmp_path):
     assert "ultra=" not in rows[0]["prompt"]
 
 
+def test_parse_cands_token(tmp_path):
+    p = tmp_path / "slides.txt"
+    p.write_text("cands=3 | a\nanchor=default | b\ncands=notanint | c\n", encoding="utf-8")
+    rows = fc.parse_prompts_file(p, default_denoise=0.6)
+    assert rows[0]["cands"] == 3          # parsed
+    assert rows[1]["cands"] is None       # absent => global default
+    assert rows[2]["cands"] is None       # malformed => default, no crash
+    assert "cands=" not in rows[0]["prompt"]
+
+
 def test_inject_realism_overrides_denoise():
     wf = {
         "2": {"_meta": {"title": "_claude_inject_input_image"}, "class_type": "LoadImage", "inputs": {"image": ""}},

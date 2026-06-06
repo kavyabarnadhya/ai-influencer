@@ -161,7 +161,7 @@ Full procedural reference + worked examples + per-outfit-type rules + caption wo
 
 - All outputs → `output/YYYY-MM-DD/{character}/` (character-specific subfolder)
 - Ananya content: Instagram-first. Free tier: fully clothed. Premium/subscription tier: cleavage-visible editorial fashion (intentional — training data includes these images)
-- Every post must carry `#AI` disclosure
+- Do NOT add `#AI` or any AI-disclosure tag/text to captions (user decision 2026-06-06) — keep captions free of AI tells
 - Age representation: **always 23** in all captions, bios, and prompts — never change this
 - Do not use real-person likenesses in training data without explicit written consent
 - Verify Juggernaut XL license terms before any commercial monetization
