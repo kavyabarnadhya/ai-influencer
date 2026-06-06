@@ -51,6 +51,8 @@ _THIN_PROP = re.compile(
     r"\b(champagne\s+flute|wine\s+glass|cocktail\s+glass|flute|wine|cup|straw|cigarette|glass)\b",
     re.I,
 )
+# Architectural "glass" (BG fixtures) — NOT a held prop; must not trip the prop rule.
+_GLASS_FIXTURE = re.compile(r"\bglass\s+(panel|balustrade|railing|window|door|wall|partition)\b", re.I)
 
 # Markers that a slide is a tight detail / head-cropped shot.
 _DETAIL_SLIDE = re.compile(
@@ -117,11 +119,12 @@ def lint_text(text: str) -> tuple[list[str], list[str]]:
         # ("NO hand at the waist" / "NO glass" must NOT trip the positive-pose checks).
         clauses = [c.strip() for c in prompt.split(",")]
 
-        def _positive(rx: re.Pattern) -> str | None:
-            """Return the matched text from the first NON-negated clause, else None."""
+        def _positive(rx: re.Pattern, exclude: re.Pattern | None = None) -> str | None:
+            """Return the matched text from the first NON-negated clause, else None.
+            Clauses matching `exclude` (e.g. architectural 'glass panel') are skipped."""
             for c in clauses:
                 m = rx.search(c)
-                if m and not _NEG.search(c):
+                if m and not _NEG.search(c) and not (exclude and exclude.search(c)):
                     return m.group(0)
             return None
 
@@ -133,7 +136,8 @@ def lint_text(text: str) -> tuple[list[str], list[str]]:
             )
 
         # ERROR: thin held prop on a detail/head-out slide -> duplicates + claw hands
-        prop = _positive(_THIN_PROP) if is_detail else None
+        # (architectural 'glass panel/balustrade/window' in the BG is excluded)
+        prop = _positive(_THIN_PROP, exclude=_GLASS_FIXTURE) if is_detail else None
         if prop:
             errors.append(
                 f"{tag}: thin held prop ({prop}) on a detail/head-out shot -> "
@@ -143,7 +147,7 @@ def lint_text(text: str) -> tuple[list[str], list[str]]:
 
         # WARN: countable object without a singular guard -> may duplicate (precautionary,
         # not always fatal — a held bag usually renders fine; detail shots are the real risk).
-        obj = _positive(_OBJECT_NAMED)
+        obj = _positive(_OBJECT_NAMED, exclude=_GLASS_FIXTURE)
         if obj and not _SINGULAR_GUARD.search(prompt) and (is_detail or "holding" in low):
             warnings.append(
                 f"{tag}: object '{obj}' named without a singular guard -> FLUX may "

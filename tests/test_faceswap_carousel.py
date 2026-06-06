@@ -219,6 +219,22 @@ def test_parse_cands_token(tmp_path):
     assert "cands=" not in rows[0]["prompt"]
 
 
+def test_parse_cands_clamped(tmp_path):
+    p = tmp_path / "slides.txt"
+    p.write_text("cands=99 | a\ncands=0 | b\n", encoding="utf-8")
+    rows = fc.parse_prompts_file(p, default_denoise=0.6)
+    assert rows[0]["cands"] == 8   # clamped to max 8
+    assert rows[1]["cands"] == 1   # clamped to min 1
+
+
+def test_parse_ultra_denoise_clamped(tmp_path):
+    p = tmp_path / "slides.txt"
+    p.write_text("ultra=5 | a\n", encoding="utf-8")
+    rows = fc.parse_prompts_file(p, default_denoise=0.6)
+    assert rows[0]["ultra"] is True
+    assert rows[0]["ultra_denoise"] == 1.0   # clamped to <=1.0 (denoise>1 crashes sampler)
+
+
 def test_inject_realism_overrides_denoise():
     wf = {
         "2": {"_meta": {"title": "_claude_inject_input_image"}, "class_type": "LoadImage", "inputs": {"image": ""}},

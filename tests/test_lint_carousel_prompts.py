@@ -43,6 +43,14 @@ def test_thin_prop_on_detail_errors():
     assert any("thin held prop" in e for e in errs)
 
 
+def test_glass_panel_fixture_not_flagged_as_prop():
+    # architectural "glass panel" in BG must NOT trip the held-prop rule on a detail slide
+    assert not _e(
+        "anchor=default | tight crop head out, the bodice, dark wood railing with glass panel behind, "
+        "NO face NO chin, NO hands"
+    )
+
+
 def test_detail_no_prop_no_hands_ok():
     assert not _e(
         "anchor=default | extreme tight crop head cropped out, NO hands NO glass, "

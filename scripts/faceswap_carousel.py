@@ -223,14 +223,16 @@ def parse_prompts_file(path: Path, default_denoise: float, default_ultra: bool =
                 val = part.split("=", 1)[1].strip().lower()
                 try:
                     fv = float(val)
-                    # numeric value (e.g. 0.44) = ultra ON at that denoise; 0 = off
+                    # numeric value (e.g. 0.44) = ultra ON at that denoise; 0 = off.
+                    # Clamp to (0,1]: denoise > 1.0 is invalid and crashes the sampler.
                     ultra = fv > 0
-                    ultra_denoise = fv if fv > 0 else None
+                    ultra_denoise = min(1.0, fv) if fv > 0 else None
                 except ValueError:
                     ultra = val in ("true", "yes", "1", "on")
             elif low.startswith("cands="):
                 try:
-                    cands = max(1, int(part.split("=", 1)[1]))
+                    # clamp to a sane 1..8 — guards typos like cands=99 from a runaway run
+                    cands = min(8, max(1, int(part.split("=", 1)[1])))
                 except (ValueError, IndexError):
                     pass
             elif low.startswith("kontext_strength="):
