@@ -1,6 +1,6 @@
 # Ananya Carousel Workflow — Canonical Reference
 
-**Last updated: 2026-06-06 — NEW §14 ultra-realism pass (`--ultra` selective realism refiner). Validated white bodycon club + black tube daycafe carousels: ultra adds real skin pore / hair / fabric micro-texture BEFORE ReActor (face identity guaranteed), background untouched. Uplift most visible in bright daytime deep-focus scenes; moderate in dark neon. Sweet-spot denoise 0.38; per-slide `ultra=0.44` for hero closeups; >0.50 over-processes fabric.**
+**Last updated: 2026-06-06 — NEW §14 ultra-realism pass (`--ultra` selective realism refiner) + §15 `lens_profile:` key (editorial bokeh vs selfie deep-focus). Validated white bodycon club + black tube daycafe carousels: ultra adds real skin pore / hair / fabric micro-texture BEFORE ReActor (face identity guaranteed), background untouched. Uplift most visible in bright daytime deep-focus scenes; moderate in dark neon. Sweet-spot denoise 0.38; per-slide `ultra=0.44` for hero closeups; >0.50 over-processes fabric.**
 
 Prior 2026-06-03 — §8 new forbidden patterns from black cowl NYE v1: object duplication on close detail shots (force "ONE single"); `faceswap=false` does NOT guarantee faceless (crop head out of frame); open-back drifts to racerback on back/walk-away views (re-specify single nape tie); side-profile bag-arm bends backward (pose arm forward natural).
 
@@ -491,3 +491,22 @@ Per-slide token in the prompt file (overrides the global flag):
 
 - `white_bodycon_club_neon` (night neon) — uplift real but moderate; BG stayed clean, identity held.
 - `black_tube_beige_cargo_daycafe` (daytime deep-focus) — uplift clearly visible; non-ultra legs/midriff showed CGI sheen, ultra rendered matte natural skin.
+
+---
+
+## 15. Lens / DOF profile (`lens_profile:` anchor YAML key)
+
+Optional anchor-YAML key that appends a camera/depth-of-field snippet to the anchor prompt **and every slide prompt** (so framing stays consistent). **Only applied when explicitly set** — omit it and nothing changes (existing anchors that hand-write `shot on Sony A7IV…` are unaffected).
+
+```yaml
+lens_profile: editorial   # or: selfie
+```
+
+| Profile | Look | Use for |
+|---|---|---|
+| `editorial` | Sony A7IV 50mm f1.8, shallow DOF, **creamy background bokeh** | Produced OOTD carousels — subject pops off a blurred BG |
+| `selfie` | iPhone wide ~24mm, **deep focus, everything sharp, NO bokeh**, arm's-length candid | Matches real influencer phone selfies — daytime/outdoor candids |
+
+**Why it matters:** the bokeh→deep-focus swap is itself a realism lever. DSLR bokeh reads "produced/AI"; phone deep-focus reads candid-real. The `--ultra` pass (§14) then sharpens the now-in-focus background cleanly. Pair `lens_profile: selfie` + `--ultra` for the most photo-real daytime look.
+
+Do NOT also hand-write lens text in the prompt when using this key — pick one (the key OR inline), not both, to avoid contradictory camera tokens.

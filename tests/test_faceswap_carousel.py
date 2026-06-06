@@ -76,6 +76,34 @@ def test_anchor_config_multi_group_missing_prompt(tmp_path):
         fc.load_anchor_config(_write(tmp_path, "anchors:\n  g:\n    seed: 1\n"))
 
 
+# --- lens_profile ---
+
+def test_lens_profile_valid(tmp_path):
+    cfg = fc.load_anchor_config(_write(tmp_path, "anchor_prompt: x\nlens_profile: selfie\n"))
+    assert cfg["lens_profile"] == "selfie"
+
+
+def test_lens_profile_rejects_unknown(tmp_path):
+    with pytest.raises(ValueError, match="lens_profile.*must be one of"):
+        fc.load_anchor_config(_write(tmp_path, "anchor_prompt: x\nlens_profile: dslr\n"))
+
+
+def test_lens_suffix_unset_is_empty():
+    assert fc._lens_suffix({"anchor_prompt": "x"}) == ""
+    assert fc._lens_suffix(None) == ""
+
+
+def test_lens_suffix_selfie_has_deep_focus():
+    s = fc._lens_suffix({"lens_profile": "selfie"})
+    assert s.startswith(", ")
+    assert "NO bokeh" in s and "deep focus" in s
+
+
+def test_lens_suffix_editorial_has_bokeh():
+    s = fc._lens_suffix({"lens_profile": "editorial"})
+    assert "bokeh" in s and "depth of field" in s
+
+
 # --- _inject_flux_kontext (BG-lock auto-append) ---
 
 def _kontext_wf():

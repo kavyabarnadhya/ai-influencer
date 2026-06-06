@@ -238,6 +238,30 @@ def parse_prompts_file(path: Path, default_denoise: float, default_ultra: bool =
     return out
 
 
+# Optional `lens_profile:` anchor-YAML key — appends a depth-of-field / camera snippet
+# to the anchor prompt AND every slide prompt so framing stays consistent across slides.
+# Only applied when EXPLICITLY set in the YAML; absent = no change (existing anchors that
+# hand-write their own lens text are unaffected).
+LENS_PROFILES = {
+    # Produced OOTD look — shallow DSLR bokeh, subject pops off a blurred background.
+    "editorial": ("shot on Sony A7IV 50mm f1.8, shallow depth of field, "
+                  "soft creamy background bokeh, subject in sharp focus"),
+    # Candid phone look (matches real influencer selfies) — everything sharp, NO bokeh.
+    "selfie": ("candid iPhone front-camera photo, wide-angle ~24mm, deep focus everything sharp, "
+               "background fully in focus, NO bokeh NO shallow depth of field, "
+               "slight wide-angle perspective, arm's-length amateur phone snapshot, "
+               "natural windswept imperfection"),
+}
+
+
+def _lens_suffix(anchor_cfg: dict | None) -> str:
+    """Return ', <lens snippet>' for the configured lens_profile, or '' if unset."""
+    if not anchor_cfg:
+        return ""
+    profile = anchor_cfg.get("lens_profile")
+    return f", {LENS_PROFILES[profile]}" if profile else ""
+
+
 def load_anchor_config(path: Path) -> dict:
     """Load + validate anchor YAML. Two supported schemas:
 
@@ -295,6 +319,11 @@ def load_anchor_config(path: Path) -> dict:
         v = cfg["anchor_body_lora_strength"]
         if not isinstance(v, (int, float)) or not (0.0 <= float(v) <= 1.0):
             raise ValueError(f"{path}: 'anchor_body_lora_strength' must be float between 0.0 and 1.0")
+
+    if "lens_profile" in cfg and cfg["lens_profile"] not in LENS_PROFILES:
+        raise ValueError(
+            f"{path}: 'lens_profile' must be one of {sorted(LENS_PROFILES)} (got {cfg['lens_profile']!r})"
+        )
 
     if cfg["mode"] == "multi":
         _validate_multi_anchor_consistency(cfg, path)
@@ -508,7 +537,7 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
 
     if anchor_cfg and anchor_cfg["mode"] == "single":
         console.print(f"\n[bold cyan]Stage 1 — Single anchor (accessory-locked)[/bold cyan]")
-        anchor_prompt_text = anchor_cfg["anchor_prompt"].strip()
+        anchor_prompt_text = anchor_cfg["anchor_prompt"].strip() + _lens_suffix(anchor_cfg)
         console.print(f"  {anchor_prompt_text[:100]}...")
         anchor_path = inter / "anchor.png"
         wf1 = _make_anchor_wf(anchor_prompt_text, anchor_seed)
@@ -526,7 +555,7 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
         console.print(f"\n[bold cyan]Stage 1 — Generating {len(anchor_cfg['anchors'])} anchors[/bold cyan]")
         tail = anchor_cfg.get("shared_tail", "").strip()
         for group_name, group_cfg in anchor_cfg["anchors"].items():
-            anchor_prompt_text = (group_cfg["prompt"].strip() + " " + tail).strip()
+            anchor_prompt_text = (group_cfg["prompt"].strip() + " " + tail).strip() + _lens_suffix(anchor_cfg)
             anchor_path = inter / f"anchor_{group_name}.png"
             console.print(f"  [{group_name}] {anchor_prompt_text[:80]}...")
             wf1 = _make_anchor_wf(anchor_prompt_text, anchor_seed)
@@ -563,7 +592,7 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
     failed = []
     for idx, slide in enumerate(slides):
         denoise = slide["denoise"]
-        slide_prompt = slide["prompt"]
+        slide_prompt = slide["prompt"] + _lens_suffix(anchor_cfg)
         pose_path = slide["pose"]
         cn_strength = slide["cn_strength"]
         anchor_group = slide["anchor"]
