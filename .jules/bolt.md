@@ -180,3 +180,7 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 ## 2026-06-05 - Vectorized FFT Masking for Texture Analysis
 **Learning:** Python's nested loops for image-sized array masking (O(H*W)) are a massive bottleneck. Vectorizing coordinate generation with `np.ogrid` and using the "inner-sum trick" (Total - InnerCircle) avoids the overhead of creating and indexing large boolean masks for the "outer" region, providing a ~6.8x end-to-end speedup.
 **Action:** In frequency analysis or spatial masking, always use vectorized coordinate math (`ogrid`/`mgrid`) and favor subtracting a smaller region's sum from the total to minimize boolean indexing pressure on high-resolution buffers.
+
+## 2026-06-06 - Vectorized 1D Coordinate Mapping for Parallax Reels
+**Learning:** In image processing loops using NumPy, materializing full 2D meshgrids (O(H*W)) for sampling maps is significantly slower and more memory-intensive than using 1D coordinate vectors (O(H+W)) combined with NumPy broadcasting. Even if the 2D meshgrids are cached, the subsequent arithmetic operations on them remain expensive.
+**Action:** In image remapping or coordinate-based transformation loops, refactor logic to use 1D arrays and broadcasting for spatially separable components (like zoom or uniform pan). This reduces redundant arithmetic and memory bandwidth, providing measurable speedups (~2.6x in this case) on high-resolution buffers.
