@@ -49,7 +49,7 @@ from rich.console import Console
 
 console = Console()
 
-# Cache for relative meshgrid to avoid redundant allocations and subtractions across frames
+# Cache for coordinate vectors to avoid redundant allocations across frames
 _GRID_CACHE: dict[tuple[int, int], tuple[np.ndarray, np.ndarray]] = {}
 
 
@@ -125,28 +125,32 @@ def render_parallax_frame(
     and far pixels (depth low) shift less. Zoom is applied uniformly (camera dolly-in).
 
     Performance Optimization:
-    1. Reuse relative meshgrid via _GRID_CACHE to avoid O(H*W) allocations and
-       subtractions (pre-centered grid) per frame.
-    2. Uses pre-computed parallax map to avoid redundant linear arithmetic.
+    1. Reuse 1D coordinate vectors via _GRID_CACHE to avoid O(H*W) allocations.
+    2. Leverage NumPy broadcasting to calculate the sampling grid in a single pass,
+       reducing redundant O(H*W) operations for the zoom component.
     """
     h, w = img_bgr.shape[:2]
     cx, cy = w / 2.0, h / 2.0
 
-    # Optimization: Reuse relative grid to avoid redundant allocations and
-    # subtractions across video frames.
+    # Optimization: Reuse 1D vectors to avoid large 2D meshgrid allocations in cache.
     cache_key = (h, w)
     if cache_key in _GRID_CACHE:
-        rel_grid_x, rel_grid_y = _GRID_CACHE[cache_key]
+        xs_1d, ys_1d = _GRID_CACHE[cache_key]
     else:
-        xs = np.arange(w, dtype=np.float32) - cx
-        ys = np.arange(h, dtype=np.float32) - cy
-        rel_grid_x, rel_grid_y = np.meshgrid(xs, ys)
-        _GRID_CACHE[cache_key] = (rel_grid_x, rel_grid_y)
+        xs_1d = np.arange(w, dtype=np.float32)
+        ys_1d = np.arange(h, dtype=np.float32)
+        _GRID_CACHE[cache_key] = (xs_1d, ys_1d)
 
-    # Zoom and Parallax: combined into a single vectorized pass to reduce memory pressure
+    # Combined Zoom and Parallax: uses NumPy broadcasting to minimize intermediate buffers.
     inv_z = 1.0 / zoom
-    src_x = rel_grid_x * inv_z + (cx - dx_px * parallax)
-    src_y = rel_grid_y * inv_z + (cy - dy_px * parallax)
+    # zoom_x_1d is the mapping from output x to source x for the zoom component.
+    # Mathematically: (xs_1d - cx) * inv_z + cx => xs_1d * inv_z + cx * (1.0 - inv_z)
+    zoom_x_1d = xs_1d * inv_z + (cx * (1.0 - inv_z))
+    zoom_y_1d = ys_1d * inv_z + (cy * (1.0 - inv_z))
+
+    # Apply parallax displacement to the zoomed coordinates
+    src_x = zoom_x_1d - (dx_px * parallax)
+    src_y = zoom_y_1d.reshape(-1, 1) - (dy_px * parallax)
 
     return cv2.remap(
         img_bgr, src_x, src_y,
