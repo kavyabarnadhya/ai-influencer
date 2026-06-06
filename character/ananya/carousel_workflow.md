@@ -276,7 +276,7 @@ python scripts/reprocess_carousel_post.py `
 
 ## 10. Caption workflow
 
-- **Location:** `character/ananya/captions/<carousel_name>.txt` — one file per carousel, same name stem as the anchor YAML and prompt file.
+- **Location:** `character/ananya/captions/<carousel_name>.txt` — one file per carousel, same name stem as the anchor YAML and prompt file. **Also copy it as `caption.txt` into the carousel's output folder** (`output/YYYY-MM-DD/ananya/carousel_<name>/caption.txt`) so the post text ships next to the images.
 - **Format:** opening hook line (lowercase, casual tone) → neighborhood location tag → `#AI` disclosure (mandatory) → max 5 hashtags.
 - **Lowercase tone** throughout (per `feedback_instagram_captions.md`).
 - **Neighborhood-level location tags**, not landmark, not city-level. (`Bandra` not `Mumbai`; `Lodhi Colony` not `Lodhi Garden`.)
