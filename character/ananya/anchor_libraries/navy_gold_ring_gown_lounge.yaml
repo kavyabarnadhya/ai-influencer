@@ -1,0 +1,29 @@
+# Anchor: navy-blue strapless bandeau gown with gold O-ring center-bust hardware + side waist cutout, warm upscale indoor lounge.
+# Vibe: elegant evening, long voluminous wavy hair, soft warm bokeh background.
+# Lens: editorial (warm indoor bokeh) via lens_profile key — NO inline lens text.
+# Tier: premium (strapless, cleavage, cutout).
+# Used with: --flux-dev --kontext --ultra flags (MANDATORY)
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/navy_gold_ring_gown_lounge.yaml --prompts character/ananya/carousel_prompts/navy_gold_ring_gown_lounge.txt --name navy_gold_gown_v1 --flux-dev --kontext --ultra
+
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
+lens_profile: editorial
+
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure, defined waist with soft natural curves,
+  slim-to-average M-size build, fabric shows soft midsection and natural body curves,
+  NOT plus-size NOT oversized NOT heavy, slender feminine curves not exaggerated,
+  long dark brown hair NOT auburn NOT blonde NOT highlighted, very long voluminous loose wavy hair
+  falling past the waist swept over one shoulder with soft bouncy curls,
+  wearing a fitted navy-blue strapless bandeau gown, bare shoulders and bare arms,
+  smooth navy bodice with a polished gold circular O-ring hardware detail at the center of the bust,
+  a small navy side waist cutout exposing a sliver of midriff, body-hugging floor-length column skirt,
+  thin gold bangle on right wrist,
+  standing elegantly with weight shifted onto one hip, body angled three-quarter,
+  head tilted softly looking down with a warm gentle smile, one hand relaxed,
+  in an upscale warm-lit indoor lounge at evening, polished wooden railing and banister behind,
+  warm amber ambient lighting, soft blurred warm bokeh of lounge lights deep in the background,
+  cream and wood-toned upscale interior, moody warm evening ambience,
+  authentic skin texture with visible pores, natural skin imperfections, no plasticky skin,
+  asymmetric facial features, slightly off-center composition, candid elegant moment not posed

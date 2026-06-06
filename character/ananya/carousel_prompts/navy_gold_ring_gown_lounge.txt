@@ -1,0 +1,23 @@
+# Navy gold-ring gown lounge carousel — 6 slides, elegant evening, portrait-forward (matches refs).
+# lens_profile: editorial auto-appends warm-bokeh DSLR snippet to every slide (no inline lens text).
+# Navy is dark = hands safe near fabric. Tier: premium (strapless, cleavage, cutout).
+# keeping-exact-same outfit block every slide. BG: warm upscale lounge, wooden railing, warm bokeh.
+# Run Stage B: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/navy_gold_ring_gown_lounge.yaml --prompts character/ananya/carousel_prompts/navy_gold_ring_gown_lounge.txt --name navy_gold_gown_v1 --flux-dev --kontext --ultra
+
+# slide_00 — full body hook
+anchor=default | full body shot, standing tall and elegant with weight shifted onto right hip, body angled three-quarter toward camera, right hand relaxed at side, left hand lightly at the hip, direct warm gaze at camera, keeping exact same fitted navy-blue strapless bandeau floor-length gown with polished gold circular O-ring hardware at center bust and small side waist cutout, very long voluminous loose wavy dark brown hair past the waist swept over one shoulder, thin gold bangle on right wrist, upscale warm-lit indoor lounge, polished wooden railing and banister behind, soft warm amber bokeh lights deep in background
+
+# slide_01 — chest-up portrait, looking down soft smile
+anchor=default | change to chest-up portrait framing showing face neck shoulders and neckline only, head tilted softly looking down with eyes lowered and a warm gentle closed-mouth smile, right hand raised lightly near the collarbone, keeping exact same navy-blue strapless bandeau bodice with polished gold O-ring hardware at center bust, very long voluminous wavy dark brown hair cascading over one shoulder, warm amber lounge lighting, soft warm bokeh behind
+
+# slide_02 — full body three-quarter, over-shoulder gaze
+anchor=default | full body shot, body turned three-quarter facing slightly away with head turned back over the shoulder looking softly at camera, bare back and shoulder toward camera, one hand resting on the wooden railing, keeping exact same fitted navy-blue strapless bandeau floor-length gown with gold O-ring at center bust and side waist cutout, very long voluminous wavy dark brown hair falling down the back over one shoulder, thin gold bangle, upscale warm lounge with polished wooden banister, warm amber bokeh deep in background
+
+# slide_03 — chest-up profile, hand to temple
+anchor=default | change to chest-up portrait framing showing face neck shoulders and neckline only, strict side profile facing left with chin lifted and eyes closed serene, right arm raised gracefully with the back of the hand resting near the forehead and temple, keeping exact same navy-blue strapless bandeau bodice with gold O-ring hardware at center bust, very long voluminous wavy dark brown hair flowing back, warm amber lounge lighting, soft warm bokeh behind
+
+# slide_04 — full body, hand in hair
+anchor=default | full body shot, standing relaxed with body angled, right hand raised running fingers through the long wavy hair near the temple, left arm relaxed down at side, head tilted with a soft confident expression, keeping exact same fitted navy-blue strapless bandeau floor-length gown with gold O-ring at center bust and side waist cutout, very long voluminous wavy dark brown hair swept over one shoulder, thin gold bangle on right wrist, upscale warm lounge with wooden railing behind, warm amber bokeh lights deep in background
+
+# slide_05 — chest-up closing, looking up
+anchor=default | change to chest-up portrait framing showing face neck shoulders and neckline only, chin slightly lowered looking up at camera with a warm confident smile, right hand to cheek with fingers near the jawline, keeping exact same navy-blue strapless bandeau bodice with polished gold O-ring hardware at center bust, very long voluminous wavy dark brown hair over one shoulder, warm amber lounge lighting, soft warm bokeh behind
