@@ -100,7 +100,9 @@ def _bgr_to_lab(bgr: np.ndarray) -> np.ndarray:
 
 def _lab_to_bgr(lab: np.ndarray) -> np.ndarray:
     bgr = cv2.cvtColor(lab.astype(np.float32), cv2.COLOR_Lab2BGR)
-    return np.clip(bgr * 255.0, 0, 255).astype(np.uint8)
+    # Optimization: In-place multiplication and clipping to reduce allocations.
+    bgr *= 255.0
+    return np.clip(bgr, 0, 255, out=bgr).astype(np.uint8)
 
 
 def _sample_cheek_lab_from_bgr(
@@ -135,10 +137,10 @@ def _sample_cheek_lab_from_bgr(
     if skin_mask.sum() < 50:
         skin_mask = np.ones(roi_bgr.shape[:2], dtype=bool)
 
-    L = float(roi_lab[:, :, 0][skin_mask].mean())
-    a = float(roi_lab[:, :, 1][skin_mask].mean())
-    b = float(roi_lab[:, :, 2][skin_mask].mean())
-    return L, a, b
+    # Optimization: Multi-channel vectorized mean calculation.
+    # One scan of skin_mask instead of three.
+    L, a, b = roi_lab[skin_mask].mean(axis=0)
+    return float(L), float(a), float(b)
 
 
 def _sample_face_skin_lab(face_ref_path: Path) -> tuple[float, float, float]:
@@ -179,16 +181,15 @@ def _person_mask(img_bgr: np.ndarray) -> np.ndarray:
     if (results and results[0].masks is not None
             and len(results[0].masks.data) > 0):
         # Find person class (class 0 in COCO)
-        classes = results[0].boxes.cls.cpu().numpy().astype(int)
-        person_indices = np.where(classes == 0)[0]
+        classes = results[0].boxes.cls
+        person_indices = (classes == 0).nonzero(as_tuple=True)[0]
         if len(person_indices) > 0:
-            # Union of all person masks (handles partial occlusion)
-            combined = np.zeros((h, w), dtype=np.uint8)
-            for idx in person_indices:
-                mask_tensor = results[0].masks.data[idx].cpu().numpy()
-                mask_resized = cv2.resize(mask_tensor, (w, h), interpolation=cv2.INTER_NEAREST)
-                combined = cv2.bitwise_or(combined, (mask_resized > 0.5).astype(np.uint8))
-            return combined.astype(bool)
+            # Optimization: Combine all person masks into a single union mask
+            # on the GPU/torch side before a single resize call. This avoids
+            # the loop of individual CPU resizes and bitwise_or operations.
+            combined_mask = results[0].masks.data[person_indices].any(dim=0).float().cpu().numpy()
+            mask_resized = cv2.resize(combined_mask, (w, h), interpolation=cv2.INTER_NEAREST)
+            return mask_resized > 0.5
 
     # Fallback: treat whole image as person region
     return np.ones((h, w), dtype=bool)
@@ -235,24 +236,7 @@ def _apply_lab_delta(
     if n_pixels < _MIN_SKIN_PIXELS:
         return img_bgr  # nothing to correct
 
-    # Optimization: Extract only skin pixels for mean calculation.
-    # O(SkinPixels) instead of O(TotalPixels).
-    skin_pixels_bgr = img_bgr[body_skin_mask].reshape(1, -1, 3)
-    skin_pixels_lab = cv2.cvtColor(skin_pixels_bgr.astype(np.float32) / 255.0, cv2.COLOR_BGR2Lab).reshape(-1, 3)
-
-    src_L, src_a, src_b = skin_pixels_lab.mean(axis=0)
-
-    dL = float(np.clip(target_lab[0] - src_L, -_MAX_L_SHIFT, _MAX_L_SHIFT))
-    da = float(np.clip(target_lab[1] - src_a, -_MAX_AB_SHIFT, _MAX_AB_SHIFT))
-    db = float(np.clip(target_lab[2] - src_b, -_MAX_AB_SHIFT, _MAX_AB_SHIFT))
-
-    print(f"  [skin_color_match] src LAB ({src_L:.1f}, {src_a:.1f}, {src_b:.1f}) "
-          f"→ target ({target_lab[0]:.1f}, {target_lab[1]:.1f}, {target_lab[2]:.1f}) "
-          f"delta ({dL:+.1f}, {da:+.1f}, {db:+.1f}) "
-          f"pixels={n_pixels}")
-
-    # Optimization: ROI-based processing for shift and blur.
-    # Approx 2-4x speedup depending on person size.
+    # Optimization: Calculate ROI once and use for both sampling and shifting.
     rows = np.any(body_skin_mask, axis=1)
     cols = np.any(body_skin_mask, axis=0)
     rmin, rmax = np.where(rows)[0][[0, -1]]
@@ -268,25 +252,43 @@ def _apply_lab_delta(
 
     roi_bgr = img_bgr[rmin:rmax+1, cmin:cmax+1]
     roi_mask = body_skin_mask[rmin:rmax+1, cmin:cmax+1]
-
     roi_lab = _bgr_to_lab(roi_bgr)
+
+    # Optimization: Sample mean from the already-converted ROI buffer.
+    # Eliminates a redundant cvtColor call.
+    src_L, src_a, src_b = roi_lab[roi_mask].mean(axis=0)
+
+    dL = float(np.clip(target_lab[0] - src_L, -_MAX_L_SHIFT, _MAX_L_SHIFT))
+    da = float(np.clip(target_lab[1] - src_a, -_MAX_AB_SHIFT, _MAX_AB_SHIFT))
+    db = float(np.clip(target_lab[2] - src_b, -_MAX_AB_SHIFT, _MAX_AB_SHIFT))
+
+    print(f"  [skin_color_match] src LAB ({src_L:.1f}, {src_a:.1f}, {src_b:.1f}) "
+          f"→ target ({target_lab[0]:.1f}, {target_lab[1]:.1f}, {target_lab[2]:.1f}) "
+          f"delta ({dL:+.1f}, {da:+.1f}, {db:+.1f}) "
+          f"pixels={n_pixels}")
 
     mask_f = roi_mask.astype(np.float32)
     mask_blur = cv2.GaussianBlur(
         mask_f, (0, 0),
         sigmaX=_MASK_FEATHER_SIGMA, sigmaY=_MASK_FEATHER_SIGMA,
     )
-    alpha = mask_blur[..., None]
 
-    shift = np.array([dL, da, db], dtype=np.float32)
-    roi_result_lab = roi_lab + alpha * shift
+    # Optimization: Use per-channel in-place additions with 1D alpha.
+    # This avoids the large (H, W, 3) float allocation for (alpha * shift).
+    alpha_2d = mask_blur
+    if dL != 0:
+        roi_lab[..., 0] += alpha_2d * dL
+    if da != 0:
+        roi_lab[..., 1] += alpha_2d * da
+    if db != 0:
+        roi_lab[..., 2] += alpha_2d * db
 
     # In-place clipping
-    np.clip(roi_result_lab[..., 0], 0.0, 100.0, out=roi_result_lab[..., 0])
-    np.clip(roi_result_lab[..., 1], -128.0, 127.0, out=roi_result_lab[..., 1])
-    np.clip(roi_result_lab[..., 2], -128.0, 127.0, out=roi_result_lab[..., 2])
+    np.clip(roi_lab[..., 0], 0.0, 100.0, out=roi_lab[..., 0])
+    np.clip(roi_lab[..., 1], -128.0, 127.0, out=roi_lab[..., 1])
+    np.clip(roi_lab[..., 2], -128.0, 127.0, out=roi_lab[..., 2])
 
-    roi_result_bgr = _lab_to_bgr(roi_result_lab)
+    roi_result_bgr = _lab_to_bgr(roi_lab)
 
     img_result = img_bgr.copy()
     img_result[rmin:rmax+1, cmin:cmax+1] = roi_result_bgr
