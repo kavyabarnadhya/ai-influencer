@@ -184,3 +184,11 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 ## 2026-06-06 - Vectorized 1D Coordinate Mapping for Parallax Reels
 **Learning:** In image processing loops using NumPy, materializing full 2D meshgrids (O(H*W)) for sampling maps is significantly slower and more memory-intensive than using 1D coordinate vectors (O(H+W)) combined with NumPy broadcasting. Even if the 2D meshgrids are cached, the subsequent arithmetic operations on them remain expensive.
 **Action:** In image remapping or coordinate-based transformation loops, refactor logic to use 1D arrays and broadcasting for spatially separable components (like zoom or uniform pan). This reduces redundant arithmetic and memory bandwidth, providing measurable speedups (~2.6x in this case) on high-resolution buffers.
+
+## 2026-06-12 - Fast Bounding Box Discovery with OpenCV
+**Learning:** Using `np.any` across axes to find the bounding box of a boolean mask is an (H \times W)$ operation that is relatively slow in Python. `cv2.boundingRect` on a `uint8` cast of the mask is highly optimized and provides a ~2x speedup for ROI discovery in image processing hot paths.
+**Action:** Replace `np.any` and `np.where` logic for bounding box discovery with `cv2.boundingRect` in performance-critical CV pipelines.
+
+## 2026-06-12 - NumPy `out=` Buffer Trade-offs
+**Learning:** Attempting to optimize simple arithmetic like `b += a * scalar` using manual `np.multiply(a, scalar, out=temp)` followed by `b += temp` can be a performance regression. The overhead of the additional Python function call and NumPy internal setup often outweighs the memory allocation savings for small-to-medium arrays, especially when standard Python/NumPy syntax already uses optimized C-loops.
+**Action:** Favor standard NumPy arithmetic (`+=`, `*=`) for readability unless benchmarks on extremely large arrays (O(GBs)) prove that the allocation overhead is the primary bottleneck.
