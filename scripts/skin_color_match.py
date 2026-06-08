@@ -198,13 +198,11 @@ def _person_mask(img_bgr: np.ndarray) -> np.ndarray:
 def _hsv_skin_filter(img_bgr: np.ndarray, person_mask: np.ndarray) -> np.ndarray:
     """Restrict to person_mask pixels that also match HSV skin range."""
     # Optimization: ROI-based processing. Approx 3x speedup for typical portraits.
-    rows = np.any(person_mask, axis=1)
-    cols = np.any(person_mask, axis=0)
-    if not np.any(rows) or not np.any(cols):
+    x, y, w_box, h_box = cv2.boundingRect(person_mask.astype(np.uint8))
+    if w_box == 0 or h_box == 0:
         return np.zeros_like(person_mask)
 
-    rmin, rmax = np.where(rows)[0][[0, -1]]
-    cmin, cmax = np.where(cols)[0][[0, -1]]
+    rmin, rmax, cmin, cmax = y, y + h_box - 1, x, x + w_box - 1
 
     roi_bgr = img_bgr[rmin:rmax+1, cmin:cmax+1]
     roi_person = person_mask[rmin:rmax+1, cmin:cmax+1]
@@ -237,10 +235,8 @@ def _apply_lab_delta(
         return img_bgr  # nothing to correct
 
     # Optimization: Calculate ROI once and use for both sampling and shifting.
-    rows = np.any(body_skin_mask, axis=1)
-    cols = np.any(body_skin_mask, axis=0)
-    rmin, rmax = np.where(rows)[0][[0, -1]]
-    cmin, cmax = np.where(cols)[0][[0, -1]]
+    x, y, w_box, h_box = cv2.boundingRect(body_skin_mask.astype(np.uint8))
+    rmin, rmax, cmin, cmax = y, y + h_box - 1, x, x + w_box - 1
 
     # Add padding for Gaussian blur (3*sigma is safe)
     pad = int(_MASK_FEATHER_SIGMA * 3)
