@@ -295,7 +295,7 @@ def match_body_skin_to_face_ref(
     slide_path: Path,
     face_ref_path: Path,
     out_path: Path,
-) -> None:
+) -> np.ndarray:
     """
     Main pipeline: detect face → person mask → HSV skin filter → LAB shift face+body.
 
@@ -307,6 +307,7 @@ def match_body_skin_to_face_ref(
     being uniform and tone-only — only colour shifts, never geometry.
 
     Saves corrected image to out_path (may be same as slide_path for in-place).
+    Returns the corrected image array (BGR) to allow callers to skip redundant I/O.
     """
     slide_path = Path(slide_path)
     face_ref_path = Path(face_ref_path)
@@ -339,7 +340,9 @@ def match_body_skin_to_face_ref(
     full_skin_mask = skin_mask  # includes face skin
 
     corrected = _apply_lab_delta(img_bgr, full_skin_mask, target_lab)
-    cv2.imwrite(str(out_path), corrected)
+    # Optimization: Use compression level 3 for a balance of speed and file size.
+    cv2.imwrite(str(out_path), corrected, [cv2.IMWRITE_PNG_COMPRESSION, 3])
+    return corrected
 
 
 if __name__ == "__main__":

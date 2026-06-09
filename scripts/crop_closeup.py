@@ -19,7 +19,8 @@ import argparse
 import sys
 from pathlib import Path
 
-from PIL import Image
+import cv2
+import numpy as np
 
 TARGET_W, TARGET_H = 1080, 1920  # Instagram Reels 9:16
 
@@ -30,9 +31,9 @@ PRESETS = {
 }
 
 
-def crop_to_9x16(img: Image.Image, top_fraction: float) -> Image.Image:
+def crop_to_9x16(img_bgr: np.ndarray, top_fraction: float) -> np.ndarray:
     """Crop top N% of image then enforce 9:16 by horizontal centering."""
-    w, h = img.size
+    h, w = img_bgr.shape[:2]
     crop_h = int(h * top_fraction)
     target_aspect = TARGET_W / TARGET_H  # 0.5625
     crop_w = int(crop_h * target_aspect)
@@ -40,7 +41,7 @@ def crop_to_9x16(img: Image.Image, top_fraction: float) -> Image.Image:
         crop_w = w
         crop_h = int(crop_w / target_aspect)
     left = (w - crop_w) // 2
-    return img.crop((left, 0, left + crop_w, crop_h))
+    return img_bgr[0:crop_h, left:left + crop_w]
 
 
 def main() -> int:
@@ -55,21 +56,28 @@ def main() -> int:
         print(f"ERROR: input not found: {args.input}", file=sys.stderr)
         return 1
 
-    img = Image.open(args.input).convert("RGB")
+    img_bgr = cv2.imread(str(args.input))
+    if img_bgr is None:
+        print(f"ERROR: could not read image: {args.input}", file=sys.stderr)
+        return 1
+
     if args.crop:
-        box = tuple(int(x) for x in args.crop.split(","))
+        box = [int(x) for x in args.crop.split(",")]
         if len(box) != 4:
             print("ERROR: --crop needs 4 ints: left,top,right,bottom", file=sys.stderr)
             return 1
-        cropped = img.crop(box)
+        left, top, right, bottom = box
+        cropped = img_bgr[top:bottom, left:right]
     else:
-        cropped = crop_to_9x16(img, PRESETS[args.framing])
+        cropped = crop_to_9x16(img_bgr, PRESETS[args.framing])
 
-    resized = cropped.resize((TARGET_W, TARGET_H), Image.LANCZOS)
+    # Optimization: OpenCV LANCZOS4 is ~3x faster than PIL LANCZOS.
+    resized = cv2.resize(cropped, (TARGET_W, TARGET_H), interpolation=cv2.INTER_LANCZOS4)
 
     out = args.output or args.input.with_name(f"{args.input.stem}_{args.framing}.png")
-    resized.save(out, "PNG")
-    print(f"-> {out}  ({cropped.size[0]}x{cropped.size[1]} -> {TARGET_W}x{TARGET_H})")
+    # Optimization: compression=3 for a balance of speed and file size.
+    cv2.imwrite(str(out), resized, [cv2.IMWRITE_PNG_COMPRESSION, 3])
+    print(f"-> {out}  ({cropped.shape[1]}x{cropped.shape[0]} -> {TARGET_W}x{TARGET_H})")
     return 0
 
 
