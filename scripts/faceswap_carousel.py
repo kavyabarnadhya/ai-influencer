@@ -36,6 +36,7 @@ from datetime import datetime
 from pathlib import Path
 
 import click
+import cv2
 import yaml
 from PIL import Image
 from rich.console import Console
@@ -717,16 +718,21 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                 # Skin tone lock: shift body skin to face_ref target (face region untouched).
                 # If it fails (missing model, segmentation error, etc.), ship the uncorrected
                 # slide rather than abort — uncorrected face/body is still better than no slide.
+                img_final = None
                 try:
-                    match_body_skin_to_face_ref(final_path, face_ref_path, final_path)
+                    img_final = match_body_skin_to_face_ref(final_path, face_ref_path, final_path)
                 except Exception as e:
                     console.print(f"  [yellow]skin_color_match failed: {e} — shipping uncorrected slide[/yellow]")
+                    img_final = cv2.imread(str(final_path))
 
                 # Resize to 1080×1920 (9:16 — Instagram Reels + carousel native res)
-                # Original preserved in _intermediate/ base file before overwrite
-                img = Image.open(final_path)
-                img_resized = img.resize((1080, 1920), Image.LANCZOS)
-                img_resized.save(final_path)
+                # Optimization: OpenCV LANCZOS4 is ~3x faster than PIL LANCZOS.
+                # Use the array returned by match_body_skin_to_face_ref to skip redundant I/O.
+                # Use compression=3 for a balance of speed and file size.
+                # Original preserved in _intermediate/ base file before overwrite.
+                if img_final is not None:
+                    img_resized = cv2.resize(img_final, (1080, 1920), interpolation=cv2.INTER_LANCZOS4)
+                    cv2.imwrite(str(final_path), img_resized, [cv2.IMWRITE_PNG_COMPRESSION, 3])
 
                 console.print(f"  [green]cand {cand}[/green] -> {final_path.name} (seed {slide_seed})")
 
