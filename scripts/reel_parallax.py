@@ -113,7 +113,7 @@ def _camera_path(t: float, zoom: float, sway_px: float, dolly_px: float) -> tupl
 
 def render_parallax_frame(
     img_bgr: np.ndarray,
-    parallax: np.ndarray,
+    parallax: np.ndarray | float,
     zoom: float,
     dx_px: float,
     dy_px: float,
@@ -126,8 +126,9 @@ def render_parallax_frame(
 
     Performance Optimization:
     1. Reuse 1D coordinate vectors via _GRID_CACHE to avoid O(H*W) allocations.
-    2. Leverage NumPy broadcasting to calculate the sampling grid in a single pass,
-       reducing redundant O(H*W) operations for the zoom component.
+    2. Leverage NumPy broadcasting to calculate the sampling grid in a single pass.
+    3. Use np.broadcast_to for scalar parallax (Ken Burns mode) to avoid materializing
+       2D maps in memory before cv2.remap, reducing rendering overhead.
     """
     h, w = img_bgr.shape[:2]
     cx, cy = w / 2.0, h / 2.0
@@ -148,9 +149,15 @@ def render_parallax_frame(
     zoom_x_1d = xs_1d * inv_z + (cx * (1.0 - inv_z))
     zoom_y_1d = ys_1d * inv_z + (cy * (1.0 - inv_z))
 
-    # Apply parallax displacement to the zoomed coordinates
-    src_x = zoom_x_1d - (dx_px * parallax)
-    src_y = zoom_y_1d.reshape(-1, 1) - (dy_px * parallax)
+    if isinstance(parallax, (float, int)):
+        # Optimization: When parallax is scalar (depth_scale=0), we can stay in 1D
+        # space and use broadcast_to for O(H+W) memory instead of O(H*W).
+        src_x = np.broadcast_to(zoom_x_1d - (dx_px * parallax), (h, w))
+        src_y = np.broadcast_to(zoom_y_1d.reshape(-1, 1) - (dy_px * parallax), (h, w))
+    else:
+        # Apply parallax displacement to the zoomed coordinates
+        src_x = zoom_x_1d - (dx_px * parallax)
+        src_y = zoom_y_1d.reshape(-1, 1) - (dy_px * parallax)
 
     return cv2.remap(
         img_bgr, src_x, src_y,
@@ -210,16 +217,21 @@ def main(input_path: str, output_path: str, duration: float, fps: int,
     h, w = img.shape[:2]
     console.print(f"[bold]Dimensions:[/bold] {w}x{h}")
 
-    depth = estimate_depth(img, smooth_sigma=depth_smooth)
-    console.print(f"[bold]Depth:[/bold] range=[{depth.min():.3f}, {depth.max():.3f}], "
-                  f"mean={depth.mean():.3f}")
+    # Optimization: Skip expensive MiDaS depth estimation if depth_scale is 0 (pure Ken Burns).
+    if depth_scale > 0:
+        depth = estimate_depth(img, smooth_sigma=depth_smooth)
+        console.print(f"[bold]Depth:[/bold] range=[{depth.min():.3f}, {depth.max():.3f}], "
+                      f"mean={depth.mean():.3f}")
 
-    # Pre-calculate parallax map once to save redundant math per frame.
-    # Per-pixel shift factor in [1-depth_scale, 1].
-    # depth_scale=0 -> factor=1 everywhere (uniform pan, no parallax)
-    # depth_scale=1 -> factor=depth (full parallax, far pixels barely move)
-    # depth_scale=0.6 -> blend (near pixels shift ~full, far ~40%)
-    parallax = (1.0 - depth_scale) + depth_scale * depth
+        # Pre-calculate parallax map once to save redundant math per frame.
+        # Per-pixel shift factor in [1-depth_scale, 1].
+        # depth_scale=0 -> factor=1 everywhere (uniform pan, no parallax)
+        # depth_scale=1 -> factor=depth (full parallax, far pixels barely move)
+        # depth_scale=0.6 -> blend (near pixels shift ~full, far ~40%)
+        parallax = (1.0 - depth_scale) + depth_scale * depth
+    else:
+        console.print("[bold]Depth:[/bold] skipped (depth_scale=0)")
+        parallax = 1.0
 
     n_forward = int(round(duration * fps))
     if loop == "palindrome":
