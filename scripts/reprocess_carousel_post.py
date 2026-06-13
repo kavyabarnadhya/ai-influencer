@@ -15,6 +15,7 @@ from pathlib import Path
 
 import click
 import cv2
+import numpy as np
 from PIL import Image
 from rich.console import Console
 
@@ -22,7 +23,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from comfyui_api import ComfyUIClient, find_comfyui_port, load_workflow
-from faceswap_carousel import _inject_faceswap, _inject_hand_detail, _run_and_save
+from faceswap_carousel import _inject_faceswap, _inject_hand_detail, _run_and_save, _run_and_get_data
 from skin_color_match import match_body_skin_to_face_ref
 
 console = Console()
@@ -65,10 +66,11 @@ def main(carousel_dir: str, face_ref: str, cand: int, seed_base: int) -> None:
 
         try:
             # Stage 3: ReActor
+            # Performance Optimization: Keep image in memory between stages.
             uploaded_target = client.upload_image(str(base_path))
             wf3 = _inject_faceswap(faceswap_tpl, uploaded_face, uploaded_target,
                                    propagate_cache=False)
-            _run_and_save(client, wf3, final_path, timeout=180)
+            current_bytes = _run_and_get_data(client, wf3, timeout=180)
             console.print(f"  ReActor OK")
 
             # Stage 3.5: hand detail
@@ -77,22 +79,25 @@ def main(carousel_dir: str, face_ref: str, cand: int, seed_base: int) -> None:
             hand_seed = (int(hashlib.sha256(base_path.name.encode()).hexdigest(), 16)
                          + seed_base) % (2 ** 31 - 1)
             try:
-                uploaded_for_hands = client.upload_image(str(final_path))
+                uploaded_for_hands = client.upload_image_data(current_bytes, f"hand_ref_{slide_id}.png")
                 wf_hands = _inject_hand_detail(hand_tpl, uploaded_for_hands,
                                                seed=hand_seed,
                                                propagate_cache=False)
-                _run_and_save(client, wf_hands, final_path, timeout=180)
+                current_bytes = _run_and_get_data(client, wf_hands, timeout=180)
                 console.print(f"  hand_detail OK")
             except Exception as e:
                 console.print(f"  [yellow]hand_detail failed: {e} — keeping ReActor output[/yellow]")
 
             # Stage 3.6: skin lock (patched feather)
             img_final = None
+            # Convert bytes to NumPy array for skin matching
+            nparr = np.frombuffer(current_bytes, np.uint8)
+            img_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             try:
-                img_final = match_body_skin_to_face_ref(final_path, face_ref_path, final_path)
+                img_final = match_body_skin_to_face_ref(None, face_ref_path, None, img_bgr=img_bgr)
             except Exception as e:
                 console.print(f"  [yellow]skin_color_match failed: {e}[/yellow]")
-                img_final = cv2.imread(str(final_path))
+                img_final = img_bgr
 
             # Resize to 1080×1920
             # Optimization: OpenCV LANCZOS4 is ~3x faster than PIL LANCZOS.

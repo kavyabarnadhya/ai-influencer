@@ -192,3 +192,9 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 ## 2026-06-12 - NumPy `out=` Buffer Trade-offs
 **Learning:** Attempting to optimize simple arithmetic like `b += a * scalar` using manual `np.multiply(a, scalar, out=temp)` followed by `b += temp` can be a performance regression. The overhead of the additional Python function call and NumPy internal setup often outweighs the memory allocation savings for small-to-medium arrays, especially when standard Python/NumPy syntax already uses optimized C-loops.
 **Action:** Favor standard NumPy arithmetic (`+=`, `*=`) for readability unless benchmarks on extremely large arrays (O(GBs)) prove that the allocation overhead is the primary bottleneck.
+
+## 2026-06-13 - In-Memory Pipeline Chaining for Image Processing
+
+**Learning:** Performing multiple sequential image processing stages (ReActor faceswap, hand detailing, skin matching) by writing and reading from disk between each stage is a significant bottleneck. For 1080x1920 PNGs, redundant disk I/O accounts for ~1.3s per slide.
+
+**Action:** Implement in-memory data passing using raw bytes for API uploads and NumPy arrays for local CV operations. Use `ComfyUIClient.upload_image_data` to bypass disk persistence for intermediate results and refactor CV utilities to accept pre-loaded buffers. Only commit the final result to disk once at the end of the pipeline.

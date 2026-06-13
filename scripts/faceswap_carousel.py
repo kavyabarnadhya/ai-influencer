@@ -37,6 +37,7 @@ from pathlib import Path
 
 import click
 import cv2
+import numpy as np
 import yaml
 from PIL import Image
 from rich.console import Console
@@ -159,17 +160,22 @@ def _inject_realism(wf: dict, input_image_name: str, denoise: float | None = Non
     return wf
 
 
-def _run_and_save(client: ComfyUIClient, wf: dict, out_path: Path,
-                  timeout: int = 300) -> Path:
+def _run_and_get_data(client: ComfyUIClient, wf: dict, timeout: int = 300) -> bytes:
+    """Run workflow and return image bytes without writing to disk."""
     prompt_id = client.submit_workflow(wf)
     image_refs = client.wait_for_completion(prompt_id, timeout=timeout)
     if not image_refs:
         raise ComfyUIError(f"No output for prompt {prompt_id}")
-    img_bytes = client.download_image(
+    return client.download_image(
         image_refs[0]["filename"],
         image_refs[0].get("subfolder", ""),
         image_refs[0].get("type", "output"),
     )
+
+
+def _run_and_save(client: ComfyUIClient, wf: dict, out_path: Path,
+                  timeout: int = 300) -> Path:
+    img_bytes = _run_and_get_data(client, wf, timeout=timeout)
     out_path.write_bytes(img_bytes)
     return out_path
 
@@ -683,7 +689,9 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
 
                 # Stage 3: ReActor face swap — skipped for zero-face slides (faceswap=false).
                 # No Ananya face is visible (back of head / cropped torso / body-only), so a
-                # swap would only risk distortion. Copy source → final so Stage 3.5/3.6 still run.
+                # swap would only risk distortion.
+                # Performance Optimization: Keep image in memory between stages.
+                current_bytes = None
                 if slide.get("faceswap", True):
                     uploaded_target = client.upload_image(str(swap_src))
                     # Optimization: Skip cache propagation on final injection to avoid extra dict copy in submit_workflow
@@ -692,10 +700,10 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                         uploaded_face, uploaded_target,
                         propagate_cache=False
                     )
-                    _run_and_save(client, wf3, final_path, timeout=180)
+                    current_bytes = _run_and_get_data(client, wf3, timeout=180)
                 else:
                     console.print("  [cyan]faceswap=false — skipping ReActor (zero-face slide)[/cyan]")
-                    shutil.copy(swap_src, final_path)
+                    current_bytes = swap_src.read_bytes()
 
                 # Stage 3.5: Hand realism — SDXL inpaint on YOLO-detected hand bboxes.
                 # Fixes FLUX 6-finger / deformed-hand artefacts. Failures degrade gracefully
@@ -704,14 +712,14 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                 # Hand inpaint may shift hand skin tone; subsequent skin lock then unifies
                 # the whole body skin to face_ref tone. Reversing the order would undo skin lock.
                 try:
-                    uploaded_for_hands = client.upload_image(str(final_path))
+                    uploaded_for_hands = client.upload_image_data(current_bytes, f"hand_ref_{idx}_{cand}.png")
                     wf_hands = _inject_hand_detail(
                         hand_detail_template,
                         uploaded_for_hands,
                         seed=slide_seed,
                         propagate_cache=False,
                     )
-                    _run_and_save(client, wf_hands, final_path, timeout=180)
+                    current_bytes = _run_and_get_data(client, wf_hands, timeout=180)
                 except Exception as e:
                     console.print(f"  [yellow]hand_detail failed: {e} — shipping uncorrected hands[/yellow]")
 
@@ -719,17 +727,21 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                 # If it fails (missing model, segmentation error, etc.), ship the uncorrected
                 # slide rather than abort — uncorrected face/body is still better than no slide.
                 img_final = None
+                # Convert bytes to NumPy array for skin matching
+                nparr = np.frombuffer(current_bytes, np.uint8)
+                img_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
                 try:
-                    img_final = match_body_skin_to_face_ref(final_path, face_ref_path, final_path)
+                    img_final = match_body_skin_to_face_ref(None, face_ref_path, None, img_bgr=img_bgr)
                 except Exception as e:
                     console.print(f"  [yellow]skin_color_match failed: {e} — shipping uncorrected slide[/yellow]")
-                    img_final = cv2.imread(str(final_path))
+                    img_final = img_bgr
 
                 # Resize to 1080×1920 (9:16 — Instagram Reels + carousel native res)
                 # Optimization: OpenCV LANCZOS4 is ~3x faster than PIL LANCZOS.
                 # Use the array returned by match_body_skin_to_face_ref to skip redundant I/O.
                 # Use compression=3 for a balance of speed and file size.
                 # Original preserved in _intermediate/ base file before overwrite.
+                # Final result written to disk EXACTLY ONCE.
                 if img_final is not None:
                     img_resized = cv2.resize(img_final, (1080, 1920), interpolation=cv2.INTER_LANCZOS4)
                     cv2.imwrite(str(final_path), img_resized, [cv2.IMWRITE_PNG_COMPRESSION, 3])

@@ -153,6 +153,20 @@ class ComfyUIClient:
         except requests.exceptions.RequestException as e:
             raise ComfyUIError(f"Failed to upload image {path.name}: {e}")
 
+    def upload_image_data(self, image_data: bytes, filename: str) -> str:
+        """
+        Upload image bytes to ComfyUI's input folder. Returns the filename ComfyUI assigned.
+        Used for intermediate results in multi-stage pipelines to avoid redundant disk I/O.
+        """
+        url = f"{self.base_url}/upload/image"
+        try:
+            files = {"image": (filename, image_data, "image/png")}
+            resp = self.session.post(url, files=files, timeout=30)
+            resp.raise_for_status()
+            return resp.json()["name"]
+        except requests.exceptions.RequestException as e:
+            raise ComfyUIError(f"Failed to upload image data {filename}: {e}")
+
 
 def find_comfyui_port(host: str = "127.0.0.1", candidates: list[int] | None = None) -> int | None:
     """Try candidate ports and return the first one where ComfyUI responds."""
