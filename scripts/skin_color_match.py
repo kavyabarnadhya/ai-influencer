@@ -292,9 +292,10 @@ def _apply_lab_delta(
 
 
 def match_body_skin_to_face_ref(
-    slide_path: Path,
+    slide_path: Path | None,
     face_ref_path: Path,
-    out_path: Path,
+    out_path: Path | None,
+    img_bgr: np.ndarray | None = None,
 ) -> np.ndarray:
     """
     Main pipeline: detect face → person mask → HSV skin filter → LAB shift face+body.
@@ -306,16 +307,23 @@ def match_body_skin_to_face_ref(
     lifted. Facial structure (eyes, lips, nose) is preserved by the LAB delta
     being uniform and tone-only — only colour shifts, never geometry.
 
+    If img_bgr is provided, slide_path is ignored (skips disk read).
     Saves corrected image to out_path (may be same as slide_path for in-place).
+    If out_path is None, skips disk write.
     Returns the corrected image array (BGR) to allow callers to skip redundant I/O.
     """
-    slide_path = Path(slide_path)
+    if slide_path is not None:
+        slide_path = Path(slide_path)
     face_ref_path = Path(face_ref_path)
-    out_path = Path(out_path)
+    if out_path is not None:
+        out_path = Path(out_path)
 
-    img_bgr = cv2.imread(str(slide_path))
     if img_bgr is None:
-        raise FileNotFoundError(f"Slide not found: {slide_path}")
+        if slide_path is None:
+            raise ValueError("Either slide_path or img_bgr must be provided")
+        img_bgr = cv2.imread(str(slide_path))
+        if img_bgr is None:
+            raise FileNotFoundError(f"Slide not found: {slide_path}")
 
     # Target LAB: always face_ref_v2 cheek (fair, neutral-lit reference). Body +
     # face both get pulled toward this. The in-slide sampling option (tried on
@@ -341,7 +349,8 @@ def match_body_skin_to_face_ref(
 
     corrected = _apply_lab_delta(img_bgr, full_skin_mask, target_lab)
     # Optimization: Use compression level 3 for a balance of speed and file size.
-    cv2.imwrite(str(out_path), corrected, [cv2.IMWRITE_PNG_COMPRESSION, 3])
+    if out_path is not None:
+        cv2.imwrite(str(out_path), corrected, [cv2.IMWRITE_PNG_COMPRESSION, 3])
     return corrected
 
 
