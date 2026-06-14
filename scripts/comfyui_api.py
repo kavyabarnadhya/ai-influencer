@@ -282,7 +282,6 @@ def inject_workflow_values(workflow: dict, overrides: dict[str, Any], propagate_
                         node_to_patches[node_id][parts] = val
 
     # Always return a new dictionary object to ensure original workflow remains immutable.
-    # Performance Optimization: Postpone workflow.copy() until we are sure we have work to do.
     workflow = workflow.copy()
     if propagate_cache:
         workflow["_claude_title_cache"] = title_to_ids
