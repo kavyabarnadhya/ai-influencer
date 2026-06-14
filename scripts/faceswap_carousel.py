@@ -557,13 +557,15 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
         anchor_path = inter / "anchor.png"
         wf1 = _make_anchor_wf(anchor_prompt_text, anchor_seed)
         try:
-            _run_and_save(client, wf1, anchor_path, timeout=flux_timeout)
+            # Optimization: Keep image in memory for upload.
+            anchor_bytes = _run_and_get_data(client, wf1, timeout=flux_timeout)
+            anchor_path.write_bytes(anchor_bytes)
             console.print(f"  [green]OK[/green] anchor.png")
         except ComfyUIError as e:
             console.print(f"[red]Anchor failed: {e}[/red]")
             raise SystemExit(1)
         # In single-anchor mode, ALL anchor groups route to this one anchor
-        uploaded_single = client.upload_image(str(anchor_path))
+        uploaded_single = client.upload_image_data(anchor_bytes, anchor_path.name)
         for group in ("default", "standing", "sitting", "closeup", "dynamic"):
             uploaded_anchors[group] = uploaded_single
     elif anchor_cfg and anchor_cfg["mode"] == "multi":
@@ -575,8 +577,10 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
             console.print(f"  [{group_name}] {anchor_prompt_text[:80]}...")
             wf1 = _make_anchor_wf(anchor_prompt_text, anchor_seed)
             try:
-                _run_and_save(client, wf1, anchor_path, timeout=flux_timeout)
-                uploaded_anchors[group_name] = client.upload_image(str(anchor_path))
+                # Optimization: Keep image in memory for upload.
+                anchor_bytes = _run_and_get_data(client, wf1, timeout=flux_timeout)
+                anchor_path.write_bytes(anchor_bytes)
+                uploaded_anchors[group_name] = client.upload_image_data(anchor_bytes, anchor_path.name)
                 console.print(f"  [green]OK[/green] anchor_{group_name}.png")
             except ComfyUIError as e:
                 console.print(f"[red]Anchor '{group_name}' failed: {e}[/red]")
@@ -585,12 +589,14 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
         anchor_path = inter / "anchor.png"
         wf1 = _make_anchor_wf(anchor_text, anchor_seed)
         try:
-            _run_and_save(client, wf1, anchor_path, timeout=flux_timeout)
+            # Optimization: Keep image in memory for upload.
+            anchor_bytes = _run_and_get_data(client, wf1, timeout=flux_timeout)
+            anchor_path.write_bytes(anchor_bytes)
             console.print(f"  Saved: {anchor_path.relative_to(ROOT)}")
         except ComfyUIError as e:
             console.print(f"[red]Anchor failed: {e}[/red]")
             raise SystemExit(1)
-        uploaded_anchors["default"] = client.upload_image(str(anchor_path))
+        uploaded_anchors["default"] = client.upload_image_data(anchor_bytes, anchor_path.name)
 
     if anchor_only:
         anchor_out = out_dir / "anchor.png"
@@ -664,36 +670,41 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                         pose_image_name=uploaded_pose, cn_strength=cn_strength,
                         propagate_cache=False
                     )
-                _run_and_save(client, wf2, base_path, timeout=flux_timeout)
+                # Optimization: Keep image in memory to skip redundant disk read in next stages.
+                current_bytes = _run_and_get_data(client, wf2, timeout=flux_timeout)
+                base_path.write_bytes(current_bytes)
 
                 # Stage 2.5 (--ultra): selective realism pass on the FLUX base BEFORE ReActor.
                 # Details body skin/hair/fabric (person SEGS, BG untouched). Face is left for
                 # ReActor (next stage) so identity stays exactly face_ref — ReActor applies last.
                 # Failures degrade gracefully: fall back to the plain base.
-                swap_src = base_path
+                swap_src_name = base_path.name
                 if realism_template is not None and slide.get("ultra", False):
                     try:
                         realism_path = inter / f"slide_{idx:02d}_cand_{cand}_realism.png"
-                        up_base = client.upload_image(str(base_path))
+                        # Optimization: Use in-memory data for upload.
+                        up_base = client.upload_image_data(current_bytes, base_path.name)
                         wf_r = _inject_realism(realism_template, up_base,
                                                denoise=slide.get("ultra_denoise"),
                                                propagate_cache=False)
-                        _run_and_save(client, wf_r, realism_path, timeout=600)
-                        swap_src = realism_path
+                        realism_bytes = _run_and_get_data(client, wf_r, timeout=600)
+                        realism_path.write_bytes(realism_bytes)
+                        current_bytes = realism_bytes
+                        swap_src_name = realism_path.name
                         _dn = slide.get("ultra_denoise")
                         _dn_txt = f" denoise={_dn}" if _dn is not None else ""
                         console.print(f"  [magenta]ultra: selective realism pass applied{_dn_txt} (face left for ReActor)[/magenta]")
                     except Exception as e:
                         console.print(f"  [yellow]ultra realism failed: {e} — using plain base[/yellow]")
-                        swap_src = base_path
+                        # swap_src_name already defaults to base_path.name
 
                 # Stage 3: ReActor face swap — skipped for zero-face slides (faceswap=false).
                 # No Ananya face is visible (back of head / cropped torso / body-only), so a
                 # swap would only risk distortion.
                 # Performance Optimization: Keep image in memory between stages.
-                current_bytes = None
                 if slide.get("faceswap", True):
-                    uploaded_target = client.upload_image(str(swap_src))
+                    # Optimization: Use in-memory data for upload.
+                    uploaded_target = client.upload_image_data(current_bytes, swap_src_name)
                     # Optimization: Skip cache propagation on final injection to avoid extra dict copy in submit_workflow
                     wf3 = _inject_faceswap(
                         faceswap_template,
@@ -703,7 +714,7 @@ def main(prompts_file: str, face_ref: str, name: str, candidates: int,
                     current_bytes = _run_and_get_data(client, wf3, timeout=180)
                 else:
                     console.print("  [cyan]faceswap=false — skipping ReActor (zero-face slide)[/cyan]")
-                    current_bytes = swap_src.read_bytes()
+                    # current_bytes already holds the Stage 2/2.5 result
 
                 # Stage 3.5: Hand realism — SDXL inpaint on YOLO-detected hand bboxes.
                 # Fixes FLUX 6-finger / deformed-hand artefacts. Failures degrade gracefully
