@@ -198,3 +198,9 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 **Learning:** Performing multiple sequential image processing stages (ReActor faceswap, hand detailing, skin matching) by writing and reading from disk between each stage is a significant bottleneck. For 1080x1920 PNGs, redundant disk I/O accounts for ~1.3s per slide.
 
 **Action:** Implement in-memory data passing using raw bytes for API uploads and NumPy arrays for local CV operations. Use `ComfyUIClient.upload_image_data` to bypass disk persistence for intermediate results and refactor CV utilities to accept pre-loaded buffers. Only commit the final result to disk once at the end of the pipeline.
+
+## 2026-06-15 - Eliminating Redundant Model Inference in Post-Processing
+
+**Learning:** Redundant calls to heavy models (like YOLO for face detection) in image post-processing pipelines can silently bloat execution time by 50-100ms per frame. Often, these calls are leftovers from earlier versions or are duplicated across helper functions.
+
+**Action:** Audit pipeline entry points for unused variables derived from model outputs. Consolidate inline model logic into shared helpers that use confidence-based selection. Benchmarking with mocked model latency (e.g. 50ms sleep) is an effective way to verify the elimination of these redundant passes.

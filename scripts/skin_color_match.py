@@ -149,13 +149,7 @@ def _sample_face_skin_lab(face_ref_path: Path) -> tuple[float, float, float]:
     if bgr is None:
         raise FileNotFoundError(f"face_ref not found: {face_ref_path}")
 
-    model = _load_face_model()
-    results = model(bgr, verbose=False)
-    bbox = None
-    if results and results[0].boxes is not None and len(results[0].boxes.xyxy) > 0:
-        x1, y1, x2, y2 = results[0].boxes.xyxy[0].cpu().numpy().astype(int)
-        bbox = (int(x1), int(y1), int(x2), int(y2))
-
+    bbox = _detect_face_bbox(bgr)
     return _sample_cheek_lab_from_bgr(bgr, bbox)
 
 
@@ -335,7 +329,6 @@ def match_body_skin_to_face_ref(
         face_ref_resolved.stat().st_mtime_ns,
     )
 
-    face_bbox = _detect_face_bbox(img_bgr)
     pmask = _person_mask(img_bgr)
     skin_mask = _hsv_skin_filter(img_bgr, pmask)
 
