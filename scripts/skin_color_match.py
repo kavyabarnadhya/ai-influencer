@@ -95,14 +95,14 @@ def _sample_face_skin_lab_cached(face_ref_str: str, mtime_ns: int) -> tuple[floa
 
 
 def _bgr_to_lab(bgr: np.ndarray) -> np.ndarray:
-    return cv2.cvtColor(bgr.astype(np.float32) / 255.0, cv2.COLOR_BGR2Lab)
+    # Optimization: Multiplication is faster than division.
+    return cv2.cvtColor(bgr.astype(np.float32) * (1.0 / 255.0), cv2.COLOR_BGR2Lab)
 
 
 def _lab_to_bgr(lab: np.ndarray) -> np.ndarray:
     bgr = cv2.cvtColor(lab.astype(np.float32), cv2.COLOR_Lab2BGR)
-    # Optimization: In-place multiplication and clipping to reduce allocations.
-    bgr *= 255.0
-    return np.clip(bgr, 0, 255, out=bgr).astype(np.uint8)
+    # Optimization: cv2.convertScaleAbs is significantly faster than NumPy scale/clip/cast.
+    return cv2.convertScaleAbs(bgr, alpha=255.0)
 
 
 def _sample_cheek_lab_from_bgr(
@@ -132,14 +132,13 @@ def _sample_cheek_lab_from_bgr(
     roi_hsv = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2HSV)
     m1 = cv2.inRange(roi_hsv, _SKIN_HSV_LOWER1, _SKIN_HSV_UPPER1)
     m2 = cv2.inRange(roi_hsv, _SKIN_HSV_LOWER2, _SKIN_HSV_UPPER2)
-    skin_mask = cv2.bitwise_or(m1, m2).astype(bool)
+    skin_mask = cv2.bitwise_or(m1, m2)
 
-    if skin_mask.sum() < 50:
-        skin_mask = np.ones(roi_bgr.shape[:2], dtype=bool)
+    # Optimization: cv2.countNonZero and cv2.mean are significantly faster than NumPy equivalents.
+    if cv2.countNonZero(skin_mask) < 50:
+        skin_mask = None
 
-    # Optimization: Multi-channel vectorized mean calculation.
-    # One scan of skin_mask instead of three.
-    L, a, b = roi_lab[skin_mask].mean(axis=0)
+    L, a, b = cv2.mean(roi_lab, mask=skin_mask)[:3]
     return float(L), float(a), float(b)
 
 
@@ -224,7 +223,10 @@ def _apply_lab_delta(
     target_lab: tuple[float, float, float],
 ) -> np.ndarray:
     """Compute mean LAB of body_skin_mask pixels, compute delta to target, shift those pixels."""
-    n_pixels = int(body_skin_mask.sum())
+    # Optimization: cv2.countNonZero is significantly faster than NumPy .sum() on boolean masks.
+    # We use 255 for the "on" value to stay consistent with OpenCV conventions.
+    body_skin_mask_u8 = body_skin_mask.astype(np.uint8) * 255
+    n_pixels = cv2.countNonZero(body_skin_mask_u8)
     if n_pixels < _MIN_SKIN_PIXELS:
         return img_bgr  # nothing to correct
 
@@ -241,12 +243,11 @@ def _apply_lab_delta(
     cmax = min(w - 1, cmax + pad)
 
     roi_bgr = img_bgr[rmin:rmax+1, cmin:cmax+1]
-    roi_mask = body_skin_mask[rmin:rmax+1, cmin:cmax+1]
+    roi_mask_u8 = body_skin_mask_u8[rmin:rmax+1, cmin:cmax+1]
     roi_lab = _bgr_to_lab(roi_bgr)
 
-    # Optimization: Sample mean from the already-converted ROI buffer.
-    # Eliminates a redundant cvtColor call.
-    src_L, src_a, src_b = roi_lab[roi_mask].mean(axis=0)
+    # Optimization: cv2.mean is significantly faster than NumPy indexing.
+    src_L, src_a, src_b = cv2.mean(roi_lab, mask=roi_mask_u8)[:3]
 
     dL = float(np.clip(target_lab[0] - src_L, -_MAX_L_SHIFT, _MAX_L_SHIFT))
     da = float(np.clip(target_lab[1] - src_a, -_MAX_AB_SHIFT, _MAX_AB_SHIFT))
@@ -257,15 +258,16 @@ def _apply_lab_delta(
           f"delta ({dL:+.1f}, {da:+.1f}, {db:+.1f}) "
           f"pixels={n_pixels}")
 
-    mask_f = roi_mask.astype(np.float32)
-    mask_blur = cv2.GaussianBlur(
-        mask_f, (0, 0),
+    # Optimization: GaussianBlur on uint8 [0, 255] is significantly faster (~5x)
+    # than on float32 [0, 1]. We scale back to [0, 1] after the blur.
+    mask_blur_u8 = cv2.GaussianBlur(
+        roi_mask_u8, (0, 0),
         sigmaX=_MASK_FEATHER_SIGMA, sigmaY=_MASK_FEATHER_SIGMA,
     )
+    alpha_2d = mask_blur_u8.astype(np.float32) * (1.0 / 255.0)
 
     # Optimization: Use per-channel in-place additions with 1D alpha.
     # This avoids the large (H, W, 3) float allocation for (alpha * shift).
-    alpha_2d = mask_blur
     if dL != 0:
         roi_lab[..., 0] += alpha_2d * dL
     if da != 0:
