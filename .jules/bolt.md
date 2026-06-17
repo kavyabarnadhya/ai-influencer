@@ -204,3 +204,11 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 **Learning:** Redundant calls to heavy models (like YOLO for face detection) in image post-processing pipelines can silently bloat execution time by 50-100ms per frame. Often, these calls are leftovers from earlier versions or are duplicated across helper functions.
 
 **Action:** Audit pipeline entry points for unused variables derived from model outputs. Consolidate inline model logic into shared helpers that use confidence-based selection. Benchmarking with mocked model latency (e.g. 50ms sleep) is an effective way to verify the elimination of these redundant passes.
+
+## 2026-06-17 - OpenCV vs NumPy for Masked Operations and Blurring
+**Learning:**  and  are significantly faster (~5x) than NumPy's  and  on boolean/uint8 masks. Additionally,  is ~5x faster on  [0, 255] than on  [0, 1]. However,  is NOT a safe replacement for  because it uses absolute value for negative numbers instead of clipping to zero, which can cause artifacts in out-of-gamut color conversions.
+**Action:** Use  and  for masked statistics. Perform Gaussian blur on  data when possible, ensuring the input is scaled to [0, 255]. Avoid  for gamut clipping.
+
+## 2026-06-17 - OpenCV vs NumPy for Masked Operations and Blurring
+**Learning:** `cv2.mean(roi, mask=mask)` and `cv2.countNonZero(mask)` are significantly faster (~5x) than NumPy's `roi[mask].mean()` and `mask.sum()` on boolean/uint8 masks. Additionally, `cv2.GaussianBlur` is ~5x faster on `uint8` [0, 255] than on `float32` [0, 1]. However, `cv2.convertScaleAbs` is NOT a safe replacement for `np.clip(img * 255, 0, 255)` because it uses absolute value for negative numbers instead of clipping to zero, which can cause artifacts in out-of-gamut color conversions.
+**Action:** Use `cv2.mean` and `cv2.countNonZero` for masked statistics. Perform Gaussian blur on `uint8` data when possible, ensuring the input is scaled to [0, 255]. Avoid `cv2.convertScaleAbs` for gamut clipping.
