@@ -212,3 +212,11 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 ## 2026-06-17 - OpenCV vs NumPy for Masked Operations and Blurring
 **Learning:** `cv2.mean(roi, mask=mask)` and `cv2.countNonZero(mask)` are significantly faster (~5x) than NumPy's `roi[mask].mean()` and `mask.sum()` on boolean/uint8 masks. Additionally, `cv2.GaussianBlur` is ~5x faster on `uint8` [0, 255] than on `float32` [0, 1]. However, `cv2.convertScaleAbs` is NOT a safe replacement for `np.clip(img * 255, 0, 255)` because it uses absolute value for negative numbers instead of clipping to zero, which can cause artifacts in out-of-gamut color conversions.
 **Action:** Use `cv2.mean` and `cv2.countNonZero` for masked statistics. Perform Gaussian blur on `uint8` data when possible, ensuring the input is scaled to [0, 255]. Avoid `cv2.convertScaleAbs` for gamut clipping.
+
+## 2026-06-20 - Scandir for Faster Dataset Discovery and Regex Regression
+**Learning:**  is significantly faster than  for high-volume file discovery (e.g., training data validation) by avoiding unnecessary  object allocations. However, replacing multiple sequential `.replace()` calls with a single large regex alternation can be a performance anti-pattern (~3x slower) for short strings like image captions, as regex engine overhead outweighs the benefits of a single pass.
+**Action:** Use `os.scandir` for all hot-path directory traversals. Favor sequential string replacements for micro-filtering short text unless the term list is extremely large (O(100s)).
+
+## 2026-06-20 - Scandir for Faster Dataset Discovery and Regex Regression
+**Learning:** `os.scandir()` is significantly faster than `pathlib.Path.iterdir()` for high-volume file discovery (e.g., training data validation) by avoiding unnecessary `Path` object allocations. However, replacing multiple sequential `.replace()` calls with a single large regex alternation can be a performance anti-pattern (~3x slower) for short strings like image captions, as regex engine overhead outweighs the benefits of a single pass.
+**Action:** Use `os.scandir` for all hot-path directory traversals. Favor sequential string replacements for micro-filtering short text unless the term list is extremely large (O(100s)).

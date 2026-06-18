@@ -26,6 +26,7 @@ Usage:
     python scripts/auto_caption.py --input-dir "..." --mode florence2 --overwrite
 """
 
+import os
 import re
 import sys
 from pathlib import Path
@@ -105,7 +106,14 @@ def main(input_dir: str, mode: str, overwrite: bool):
     """Auto-generate first-pass captions for v2 seed images."""
 
     input_path = Path(input_dir)
-    images = sorted([p for p in input_path.iterdir() if p.suffix.lower() in SUPPORTED_EXTS])
+    # Optimization: os.scandir is faster than Path.iterdir in large directories
+    exts = tuple(e.lower() for e in SUPPORTED_EXTS)
+    with os.scandir(input_path) as it:
+        images = sorted([
+            Path(entry.path) for entry in it
+            if entry.is_file() and entry.name.lower().endswith(exts)
+        ])
+
     if not images:
         console.print(f"[red]No images in {input_path}[/red]")
         raise SystemExit(1)

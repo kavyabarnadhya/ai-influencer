@@ -1,3 +1,4 @@
+import os
 import re
 import shutil
 import zipfile
@@ -35,6 +36,10 @@ FLUX_FORBIDDEN_PATTERNS = {
     "body identity": re.compile(r"\b(body shape|slim body|curvy body|petite|tall woman|short woman)\b", re.IGNORECASE),
 }
 
+# Pre-compiled regex for duplicate key normalization
+_RE_DUP_VERSION = re.compile(r"\s*\(\d+\)$")
+_RE_DUP_COPY = re.compile(r"\s+copy$")
+
 FLUX_CAPTION_TEMPLATE = (
     "{shot_type} of {trigger}, seen from a three-quarter angle at eye level, "
     "with loose styled hair, wearing a contemporary fashion outfit. "
@@ -61,7 +66,13 @@ def get_seed_images(seeds_dir: Path, mode: str) -> list[Path]:
     mode_dir = seeds_dir / mode
     if not mode_dir.exists():
         return []
-    return sorted(path for path in mode_dir.iterdir() if path.suffix.lower() == ".png")
+    # Optimization: os.scandir is faster than Path.iterdir in large directories
+    with os.scandir(mode_dir) as it:
+        return sorted(
+            Path(entry.path)
+            for entry in it
+            if entry.name.lower().endswith(".png")
+        )
 
 
 def get_training_data_dir(char_cfg: dict) -> Path:
@@ -75,21 +86,27 @@ def get_training_data_dir(char_cfg: dict) -> Path:
 def get_flux_images(training_dir: Path) -> list[Path]:
     if not training_dir.exists():
         return []
-    return sorted(
-        path
-        for path in training_dir.iterdir()
-        if path.is_file() and path.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS
-    )
+    # Optimization: os.scandir is faster than Path.iterdir in large directories
+    exts = tuple(e.lower() for e in SUPPORTED_IMAGE_EXTENSIONS)
+    with os.scandir(training_dir) as it:
+        return sorted(
+            Path(entry.path)
+            for entry in it
+            if entry.is_file() and entry.name.lower().endswith(exts)
+        )
 
 
 def get_unsupported_images(training_dir: Path) -> list[Path]:
     if not training_dir.exists():
         return []
-    return sorted(
-        path
-        for path in training_dir.iterdir()
-        if path.is_file() and path.suffix.lower() in UNSUPPORTED_IMAGE_EXTENSIONS
-    )
+    # Optimization: os.scandir is faster than Path.iterdir in large directories
+    exts = tuple(e.lower() for e in UNSUPPORTED_IMAGE_EXTENSIONS)
+    with os.scandir(training_dir) as it:
+        return sorted(
+            Path(entry.path)
+            for entry in it
+            if entry.is_file() and entry.name.lower().endswith(exts)
+        )
 
 
 def choose_layout(char_cfg: dict, requested_layout: str) -> str:
@@ -101,8 +118,8 @@ def choose_layout(char_cfg: dict, requested_layout: str) -> str:
 
 def normalize_duplicate_key(path: Path) -> str:
     stem = path.stem.lower()
-    stem = re.sub(r"\s*\(\d+\)$", "", stem)
-    stem = re.sub(r"\s+copy$", "", stem)
+    stem = _RE_DUP_VERSION.sub("", stem)
+    stem = _RE_DUP_COPY.sub("", stem)
     return stem
 
 
