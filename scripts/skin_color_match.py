@@ -95,8 +95,10 @@ def _sample_face_skin_lab_cached(face_ref_str: str, mtime_ns: int) -> tuple[floa
 
 
 def _bgr_to_lab(bgr: np.ndarray) -> np.ndarray:
-    # Optimization: Multiplication is faster than division.
-    return cv2.cvtColor(bgr.astype(np.float32) * (1.0 / 255.0), cv2.COLOR_BGR2Lab)
+    # Optimization: In-place multiplication on f32 cast saves an O(H*W) allocation.
+    f32 = bgr.astype(np.float32)
+    f32 *= np.float32(1.0 / 255.0)
+    return cv2.cvtColor(f32, cv2.COLOR_BGR2Lab)
 
 
 def _lab_to_bgr(lab: np.ndarray) -> np.ndarray:
@@ -230,8 +232,8 @@ def _apply_lab_delta(
     if n_pixels < _MIN_SKIN_PIXELS:
         return img_bgr  # nothing to correct
 
-    # Optimization: Calculate ROI once and use for both sampling and shifting.
-    x, y, w_box, h_box = cv2.boundingRect(body_skin_mask.astype(np.uint8))
+    # Optimization: Reuse the already calculated uint8 mask for bounding box discovery.
+    x, y, w_box, h_box = cv2.boundingRect(body_skin_mask_u8)
     rmin, rmax, cmin, cmax = y, y + h_box - 1, x, x + w_box - 1
 
     # Add padding for Gaussian blur (3*sigma is safe)
@@ -264,7 +266,9 @@ def _apply_lab_delta(
         roi_mask_u8, (0, 0),
         sigmaX=_MASK_FEATHER_SIGMA, sigmaY=_MASK_FEATHER_SIGMA,
     )
-    alpha_2d = mask_blur_u8.astype(np.float32) * (1.0 / 255.0)
+    # Optimization: In-place scaling saves an allocation.
+    alpha_2d = mask_blur_u8.astype(np.float32)
+    alpha_2d *= np.float32(1.0 / 255.0)
 
     # Optimization: Use per-channel in-place additions with 1D alpha.
     # This avoids the large (H, W, 3) float allocation for (alpha * shift).
