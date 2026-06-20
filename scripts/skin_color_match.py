@@ -102,7 +102,8 @@ def _bgr_to_lab(bgr: np.ndarray) -> np.ndarray:
 
 
 def _lab_to_bgr(lab: np.ndarray) -> np.ndarray:
-    bgr = cv2.cvtColor(lab.astype(np.float32), cv2.COLOR_Lab2BGR)
+    # Optimization: lab is already float32 from _bgr_to_lab or shifts.
+    bgr = cv2.cvtColor(lab, cv2.COLOR_Lab2BGR)
     # Optimization: cv2.convertScaleAbs is significantly faster than NumPy scale/clip/cast.
     return cv2.convertScaleAbs(bgr, alpha=255.0)
 
@@ -168,7 +169,7 @@ def _detect_face_bbox(img_bgr: np.ndarray) -> tuple[int, int, int, int] | None:
 
 
 def _person_mask(img_bgr: np.ndarray) -> np.ndarray:
-    """Returns boolean mask of person pixels via yolov8n-seg. Falls back to full image if no person detected."""
+    """Returns uint8 mask [0, 255] of person pixels via yolov8n-seg. Falls back to full image if no person detected."""
     model = _load_seg_model()
     h, w = img_bgr.shape[:2]
     results = model(img_bgr, verbose=False)
@@ -182,33 +183,38 @@ def _person_mask(img_bgr: np.ndarray) -> np.ndarray:
             # Optimization: Combine all person masks into a single union mask
             # on the GPU/torch side before a single resize call. This avoids
             # the loop of individual CPU resizes and bitwise_or operations.
-            combined_mask = results[0].masks.data[person_indices].any(dim=0).float().cpu().numpy()
+            # Using byte() to get [0, 1] uint8 then scaling to [0, 255] on CPU is efficient.
+            combined_mask = results[0].masks.data[person_indices].any(dim=0).byte().cpu().numpy()
             mask_resized = cv2.resize(combined_mask, (w, h), interpolation=cv2.INTER_NEAREST)
-            return mask_resized > 0.5
+            mask_resized *= 255
+            return mask_resized
 
     # Fallback: treat whole image as person region
-    return np.ones((h, w), dtype=bool)
+    return np.full((h, w), 255, dtype=np.uint8)
 
 
-def _hsv_skin_filter(img_bgr: np.ndarray, person_mask: np.ndarray) -> np.ndarray:
-    """Restrict to person_mask pixels that also match HSV skin range."""
+def _hsv_skin_filter(img_bgr: np.ndarray, person_mask_u8: np.ndarray) -> np.ndarray:
+    """Restrict to person_mask pixels that also match HSV skin range. Returns uint8 [0, 255]."""
     # Optimization: ROI-based processing. Approx 3x speedup for typical portraits.
-    x, y, w_box, h_box = cv2.boundingRect(person_mask.astype(np.uint8))
+    x, y, w_box, h_box = cv2.boundingRect(person_mask_u8)
     if w_box == 0 or h_box == 0:
-        return np.zeros_like(person_mask)
+        return np.zeros_like(person_mask_u8)
 
     rmin, rmax, cmin, cmax = y, y + h_box - 1, x, x + w_box - 1
 
     roi_bgr = img_bgr[rmin:rmax+1, cmin:cmax+1]
-    roi_person = person_mask[rmin:rmax+1, cmin:cmax+1]
+    roi_person_u8 = person_mask_u8[rmin:rmax+1, cmin:cmax+1]
 
     hsv = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2HSV)
     m1 = cv2.inRange(hsv, _SKIN_HSV_LOWER1, _SKIN_HSV_UPPER1)
     m2 = cv2.inRange(hsv, _SKIN_HSV_LOWER2, _SKIN_HSV_UPPER2)
     skin_roi = cv2.bitwise_or(m1, m2)
 
-    full_skin_mask = np.zeros_like(person_mask)
-    full_skin_mask[rmin:rmax+1, cmin:cmax+1] = (skin_roi > 0) & roi_person
+    # Intersection of skin and person in ROI
+    skin_roi = cv2.bitwise_and(skin_roi, roi_person_u8)
+
+    full_skin_mask = np.zeros_like(person_mask_u8)
+    full_skin_mask[rmin:rmax+1, cmin:cmax+1] = skin_roi
     return full_skin_mask
 
 
@@ -221,13 +227,11 @@ def _hsv_skin_filter(img_bgr: np.ndarray, person_mask: np.ndarray) -> np.ndarray
 
 def _apply_lab_delta(
     img_bgr: np.ndarray,
-    body_skin_mask: np.ndarray,
+    body_skin_mask_u8: np.ndarray,
     target_lab: tuple[float, float, float],
 ) -> np.ndarray:
-    """Compute mean LAB of body_skin_mask pixels, compute delta to target, shift those pixels."""
+    """Compute mean LAB of body_skin_mask_u8 pixels, compute delta to target, shift those pixels."""
     # Optimization: cv2.countNonZero is significantly faster than NumPy .sum() on boolean masks.
-    # We use 255 for the "on" value to stay consistent with OpenCV conventions.
-    body_skin_mask_u8 = body_skin_mask.astype(np.uint8) * 255
     n_pixels = cv2.countNonZero(body_skin_mask_u8)
     if n_pixels < _MIN_SKIN_PIXELS:
         return img_bgr  # nothing to correct
@@ -286,6 +290,7 @@ def _apply_lab_delta(
 
     roi_result_bgr = _lab_to_bgr(roi_lab)
 
+    # Optimization: ROI-based patching into a copy avoids full-frame intermediate allocations.
     img_result = img_bgr.copy()
     img_result[rmin:rmax+1, cmin:cmax+1] = roi_result_bgr
     return img_result
