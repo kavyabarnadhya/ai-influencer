@@ -220,3 +220,7 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 ## 2026-06-20 - Scandir for Faster Dataset Discovery and Regex Regression
 **Learning:** `os.scandir()` is significantly faster than `pathlib.Path.iterdir()` for high-volume file discovery (e.g., training data validation) by avoiding unnecessary `Path` object allocations. However, replacing multiple sequential `.replace()` calls with a single large regex alternation can be a performance anti-pattern (~3x slower) for short strings like image captions, as regex engine overhead outweighs the benefits of a single pass.
 **Action:** Use `os.scandir` for all hot-path directory traversals. Favor sequential string replacements for micro-filtering short text unless the term list is extremely large (O(100s)).
+
+## 2026-06-20 - Optimized Skin Match Pipeline with uint8 Masks and In-Place Patching
+**Learning:** Consistently using `uint8` masks [0, 255] across a CV pipeline avoids redundant boolean-to-uint8 casts and enables direct usage in OpenCV functions like `cv2.boundingRect`, `cv2.mean`, and `cv2.bitwise_and`. Furthermore, in-place patching of ROIs back into the original high-resolution frame avoids an expensive O(H*W) full-frame copy.
+**Action:** Use `uint8` masks for all internal CV helpers. Perform in-place ROI assignments (`img[y:y+h, x:x+w] = roi`) to minimize memory bandwidth and allocation overhead for 1080p+ buffers.

@@ -33,21 +33,21 @@ def _skin_bgr(hue=10, s=120, v=200):
 
 def test_apply_lab_delta_skips_below_min_pixels():
     img = np.full((50, 50, 3), 150, np.uint8)
-    mask = np.zeros((50, 50), bool)
-    mask[:5, :5] = True  # 25 px < _MIN_SKIN_PIXELS (200)
-    out = scm._apply_lab_delta(img, mask, (60.0, 10.0, 15.0))
+    mask = np.zeros((50, 50), np.uint8)
+    mask[:5, :5] = 255  # 25 px < _MIN_SKIN_PIXELS (200)
+    out = scm._apply_lab_delta(img.copy(), mask, (60.0, 10.0, 15.0))
     assert np.array_equal(out, img), "below min-pixel mask must return image unchanged"
 
 
 def test_apply_lab_delta_shifts_toward_target():
     img = np.full((200, 200, 3), 0, np.uint8)
     img[50:150, 50:150] = _skin_bgr()           # 100x100 skin patch
-    mask = np.zeros((200, 200), bool)
-    mask[50:150, 50:150] = True
+    mask = np.zeros((200, 200), np.uint8)
+    mask[50:150, 50:150] = 255
 
     src_L = _lab_at(img, 100, 100)[0]
     target = (src_L + 8.0, 5.0, 10.0)            # +8 L is within _MAX_L_SHIFT (25)
-    out = scm._apply_lab_delta(img, mask, target)
+    out = scm._apply_lab_delta(img.copy(), mask, target)
 
     out_L = _lab_at(out, 100, 100)[0]            # centre = full alpha
     assert out_L > src_L + 4.0, "centre L should move up toward target"
@@ -57,11 +57,11 @@ def test_apply_lab_delta_shifts_toward_target():
 def test_apply_lab_delta_clamps_large_delta():
     img = np.full((200, 200, 3), 0, np.uint8)
     img[50:150, 50:150] = _skin_bgr()
-    mask = np.zeros((200, 200), bool)
-    mask[50:150, 50:150] = True
+    mask = np.zeros((200, 200), np.uint8)
+    mask[50:150, 50:150] = 255
 
     src_L = _lab_at(img, 100, 100)[0]
-    out = scm._apply_lab_delta(img, mask, (src_L + 100.0, 0.0, 0.0))  # absurd target
+    out = scm._apply_lab_delta(img.copy(), mask, (src_L + 100.0, 0.0, 0.0))  # absurd target
     out_L = _lab_at(out, 100, 100)[0]
     achieved = out_L - src_L
     assert achieved <= scm._MAX_L_SHIFT + 2.0, "L shift must be clamped to _MAX_L_SHIFT"
@@ -72,10 +72,10 @@ def test_apply_lab_delta_feathers_edge():
     """Feather: a pixel just outside the mask gets a partial shift; a far pixel none."""
     img = np.full((200, 200, 3), 0, np.uint8)
     img[50:150, 50:150] = _skin_bgr()
-    mask = np.zeros((200, 200), bool)
-    mask[50:150, 50:150] = True
+    mask = np.zeros((200, 200), np.uint8)
+    mask[50:150, 50:150] = 255
 
-    out = scm._apply_lab_delta(img, mask, (_lab_at(img, 100, 100)[0] + 20.0, 0.0, 0.0))
+    out = scm._apply_lab_delta(img.copy(), mask, (_lab_at(img, 100, 100)[0] + 20.0, 0.0, 0.0))
 
     # Just outside the mask edge (within ~σ): should change a little.
     near_before = _lab_at(img, 154, 100)[0]
@@ -97,8 +97,8 @@ def test_hsv_skin_filter_keeps_skin_drops_nonskin_and_offmask():
     img[:, 20:] = cv2.cvtColor(np.array([[[110, 200, 200]]], np.uint8),
                                cv2.COLOR_HSV2BGR)[0, 0]  # blue, non-skin
 
-    person = np.zeros((20, 30), bool)
-    person[:, :20] = True                        # covers both skin regions
+    person = np.zeros((20, 30), np.uint8)
+    person[:, :20] = 255                         # covers both skin regions
 
     out = scm._hsv_skin_filter(img, person)
     assert out[:, :20].all(), "skin pixels inside person mask kept"

@@ -11,9 +11,9 @@ from skin_color_match import _hsv_skin_filter, _apply_lab_delta
 def benchmark():
     h, w = 1920, 1080
     img = np.random.randint(0, 256, (h, w, 3), dtype=np.uint8)
-    person_mask = np.zeros((h, w), dtype=bool)
+    person_mask = np.zeros((h, w), dtype=np.uint8)
     # Simulate a person in the center-ish, 25% coverage (1200x500 = 600,000 pixels ~29%)
-    person_mask[400:1600, 300:800] = True
+    person_mask[400:1600, 300:800] = 255
     target_lab = (70.0, 15.0, 20.0)
 
     print(f"Benchmarking skin_color_match on {w}x{h} image...")
