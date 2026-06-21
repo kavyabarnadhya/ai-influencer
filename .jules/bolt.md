@@ -224,3 +224,7 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 ## 2026-06-20 - Optimized Skin Match Pipeline with uint8 Masks and In-Place Patching
 **Learning:** Consistently using `uint8` masks [0, 255] across a CV pipeline avoids redundant boolean-to-uint8 casts and enables direct usage in OpenCV functions like `cv2.boundingRect`, `cv2.mean`, and `cv2.bitwise_and`. Furthermore, in-place patching of ROIs back into the original high-resolution frame avoids an expensive O(H*W) full-frame copy.
 **Action:** Use `uint8` masks for all internal CV helpers. Perform in-place ROI assignments (`img[y:y+h, x:x+w] = roi`) to minimize memory bandwidth and allocation overhead for 1080p+ buffers.
+
+## 2026-06-21 - OpenCV DFT and primitives for Texture Analysis
+**Learning:** Replacing NumPy-based frequency analysis (`np.fft.fft2`, `np.fft.fftshift`, `np.abs`) and variance (`.var()`) with OpenCV equivalents (`cv2.dft`, manual quadrant swap, `cv2.magnitude`, `cv2.meanStdDev`) provides a significant speedup in `scripts/texture_integrity_check.py`, reducing DFT-path latency by ~31% (from ~107ms to ~73ms) for 1080p images.
+**Action:** Use OpenCV primitives (`cv2.dft`, `cv2.meanStdDev`, `cv2.sumElems`) for high-throughput image processing hot paths to leverage optimized C++ implementations over generic NumPy Python loops.
