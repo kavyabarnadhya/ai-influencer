@@ -66,7 +66,9 @@ def compute_texture_score(image_path: Path) -> dict:
 
         # Full image Laplacian
         lap = cv2.Laplacian(gray, cv2.CV_64F)
-        lap_var = float(lap.var())
+        # Optimization: cv2.meanStdDev is faster than NumPy .var()
+        _, std = cv2.meanStdDev(lap)
+        lap_var = float(std[0][0] ** 2)
 
         # Center crop (approx face / upper body region — top 60%, center 60%)
         h, w = gray.shape
@@ -74,12 +76,26 @@ def compute_texture_score(image_path: Path) -> dict:
         x1, x2 = int(w * 0.2), int(w * 0.8)
         face_crop = gray[y1:y2, x1:x2]
         face_lap = cv2.Laplacian(face_crop, cv2.CV_64F)
-        face_var = float(face_lap.var())
+        _, face_std = cv2.meanStdDev(face_lap)
+        face_var = float(face_std[0][0] ** 2)
 
-        # High-frequency energy via FFT magnitude
-        f_transform = np.fft.fft2(gray)
-        f_shift = np.fft.fftshift(f_transform)
-        magnitude = np.abs(f_shift)
+        # High-frequency energy via DFT magnitude
+        # Optimization: cv2.dft is faster than np.fft.fft2
+        gray_f32 = gray.astype(np.float32)
+        dft = cv2.dft(gray_f32, flags=cv2.DFT_COMPLEX_OUTPUT)
+
+        # Optimization: Manual quadrant swap is faster than np.fft.fftshift
+        cx, cy = w // 2, h // 2
+        q0 = dft[0:cy, 0:cx]
+        q1 = dft[0:cy, cx:w]
+        q2 = dft[cy:h, 0:cx]
+        q3 = dft[cy:h, cx:w]
+        top = np.hstack((q3, q2))
+        bottom = np.hstack((q1, q0))
+        dft_shift = np.vstack((top, bottom))
+
+        # Optimization: cv2.magnitude is faster than np.abs
+        magnitude = cv2.magnitude(dft_shift[..., 0], dft_shift[..., 1])
 
         # Ratio of high-freq to total (outer ring of magnitude spectrum)
         # Optimization: Use vectorized np.ogrid and inner-sum trick to avoid O(H*W) loops.
@@ -89,8 +105,9 @@ def compute_texture_score(image_path: Path) -> dict:
         # Optimization: Use LRU-cached mask lookup.
         low_freq_mask = _get_low_freq_mask(h2, w2, r_inner)
 
-        total_magnitude = magnitude.sum()
-        low_freq_sum = magnitude[low_freq_mask].sum()
+        # Optimization: cv2.sumElems is slightly faster than NumPy .sum()
+        total_magnitude = cv2.sumElems(magnitude)[0]
+        low_freq_sum = cv2.sumElems(magnitude[low_freq_mask])[0]
         hf_ratio = float((total_magnitude - low_freq_sum) / (total_magnitude + 1e-8))
 
         return {
