@@ -36,10 +36,12 @@ def _get_low_freq_mask(h: int, w: int, r_inner: int) -> np.ndarray:
     """
     Cached mask creation to avoid redundant O(H*W) coordinate math for images
     of the same dimensions (common in batch processing).
+    Returns a uint8 mask [0, 255] for optimized OpenCV sumElems.
     """
     cy, cx = h // 2, w // 2
     Y, X = np.ogrid[:h, :w]
-    return (Y - cy)**2 + (X - cx)**2 < r_inner**2
+    mask = (Y - cy)**2 + (X - cx)**2 < r_inner**2
+    return (mask.astype(np.uint8) * 255)
 
 
 def compute_texture_score(image_path: Path) -> dict:
@@ -64,8 +66,9 @@ def compute_texture_score(image_path: Path) -> dict:
         if gray is None:
             raise ValueError(f"Could not read image at {image_path}")
 
-        # Full image Laplacian
-        lap = cv2.Laplacian(gray, cv2.CV_64F)
+        # Full image Laplacian.
+        # Optimization: CV_32F is significantly faster than CV_64F and sufficient for variance.
+        lap = cv2.Laplacian(gray, cv2.CV_32F)
         # Optimization: cv2.meanStdDev is faster than NumPy .var()
         _, std = cv2.meanStdDev(lap)
         lap_var = float(std[0][0] ** 2)
@@ -75,7 +78,7 @@ def compute_texture_score(image_path: Path) -> dict:
         y1, y2 = 0, int(h * 0.6)
         x1, x2 = int(w * 0.2), int(w * 0.8)
         face_crop = gray[y1:y2, x1:x2]
-        face_lap = cv2.Laplacian(face_crop, cv2.CV_64F)
+        face_lap = cv2.Laplacian(face_crop, cv2.CV_32F)
         _, face_std = cv2.meanStdDev(face_lap)
         face_var = float(face_std[0][0] ** 2)
 
@@ -107,7 +110,10 @@ def compute_texture_score(image_path: Path) -> dict:
 
         # Optimization: cv2.sumElems is slightly faster than NumPy .sum()
         total_magnitude = cv2.sumElems(magnitude)[0]
-        low_freq_sum = cv2.sumElems(magnitude[low_freq_mask])[0]
+        # Optimization: Use cv2.mean + cv2.countNonZero with uint8 mask to avoid expensive boolean indexing.
+        low_freq_mean = cv2.mean(magnitude, mask=low_freq_mask)[0]
+        low_freq_count = cv2.countNonZero(low_freq_mask)
+        low_freq_sum = low_freq_mean * low_freq_count
         hf_ratio = float((total_magnitude - low_freq_sum) / (total_magnitude + 1e-8))
 
         return {
