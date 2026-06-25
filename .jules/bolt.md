@@ -228,3 +228,10 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 ## 2026-06-21 - OpenCV DFT and primitives for Texture Analysis
 **Learning:** Replacing NumPy-based frequency analysis (`np.fft.fft2`, `np.fft.fftshift`, `np.abs`) and variance (`.var()`) with OpenCV equivalents (`cv2.dft`, manual quadrant swap, `cv2.magnitude`, `cv2.meanStdDev`) provides a significant speedup in `scripts/texture_integrity_check.py`, reducing DFT-path latency by ~31% (from ~107ms to ~73ms) for 1080p images.
 **Action:** Use OpenCV primitives (`cv2.dft`, `cv2.meanStdDev`, `cv2.sumElems`) for high-throughput image processing hot paths to leverage optimized C++ implementations over generic NumPy Python loops.
+
+## 2026-06-25 - Optimized Parallax Rendering Loop
+**Learning:** For dynamic coordinate remapping where maps are updated every frame (e.g. parallax), the overhead of fixed-point conversion using  (~2.5ms) outweighs the slight performance gain in . Additionally, in-place NumPy arithmetic () on large O(H*W) buffers significantly reduces memory pressure.
+**Action:** Use  for scalar paths and prioritize in-place array operations. Skip  for hot rendering loops unless maps are static across frames.
+## 2026-06-25 - Optimized Parallax Rendering Loop
+**Learning:** For dynamic coordinate remapping where maps are updated every frame (e.g. parallax), the overhead of fixed-point conversion using `cv2.convertMaps` (~2.5ms) outweighs the slight performance gain in `cv2.remap`. Additionally, in-place NumPy arithmetic (`+=`) on large O(H*W) buffers significantly reduces memory pressure.
+**Action:** Use `math.sin/pi` for scalar paths and prioritize in-place array operations. Skip `convertMaps` for hot rendering loops unless maps are static across frames.

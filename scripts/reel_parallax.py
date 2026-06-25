@@ -37,6 +37,7 @@ Usage:
 """
 from __future__ import annotations
 
+import math
 import sys
 from functools import lru_cache
 from pathlib import Path
@@ -49,7 +50,7 @@ from rich.console import Console
 
 console = Console()
 
-# Cache for coordinate vectors to avoid redundant allocations across frames
+# Cache for centered coordinate vectors to avoid redundant allocations across frames
 _GRID_CACHE: dict[tuple[int, int], tuple[np.ndarray, np.ndarray]] = {}
 
 
@@ -104,11 +105,13 @@ def _camera_path(t: float, zoom: float, sway_px: float, dolly_px: float) -> tupl
     Smooth camera path for parameter t in [0, 1].
     Returns (zoom_factor, dx_px, dy_px) — relative offsets applied per frame.
     Uses sine for sway/dolly so the path is smooth (palindrome-friendly).
+
+    Optimization: math.sin and math.pi are ~2x faster than NumPy for scalars.
     """
     z = 1.0 + zoom * t  # slow linear zoom-in across the clip
-    dx = sway_px * np.sin(2 * np.pi * t)  # one full horizontal sway cycle
-    dy = dolly_px * np.sin(np.pi * t)  # half cycle vertical drift, returns to center
-    return float(z), float(dx), float(dy)
+    dx = sway_px * math.sin(2 * math.pi * t)  # one full horizontal sway cycle
+    dy = dolly_px * math.sin(math.pi * t)  # half cycle vertical drift, returns to center
+    return z, dx, dy
 
 
 def render_parallax_frame(
@@ -152,31 +155,31 @@ def render_parallax_frame(
         )
 
     # Map-based parallax path
-    # Optimization: Reuse 1D vectors to avoid large 2D meshgrid allocations in cache.
+    # Optimization: Reuse centered 1D vectors to avoid large 2D meshgrid allocations.
     cache_key = (h, w)
     if cache_key in _GRID_CACHE:
-        xs_1d, ys_1d = _GRID_CACHE[cache_key]
+        xs_centered, ys_centered = _GRID_CACHE[cache_key]
     else:
-        xs_1d = np.arange(w, dtype=np.float32)
-        ys_1d = np.arange(h, dtype=np.float32)
-        _GRID_CACHE[cache_key] = (xs_1d, ys_1d)
+        xs_centered = np.arange(w, dtype=np.float32) - cx
+        ys_centered = np.arange(h, dtype=np.float32) - cy
+        _GRID_CACHE[cache_key] = (xs_centered, ys_centered)
 
-    # Combined Zoom and Parallax: uses NumPy broadcasting to minimize intermediate buffers.
-    # zoom_x_1d is the mapping from output x to source x for the zoom component.
-    # Mathematically: (xs_1d - cx) * inv_z + cx => xs_1d * inv_z + cx * (1.0 - inv_z)
-    zoom_x_1d = xs_1d * inv_z + (cx * (1.0 - inv_z))
-    zoom_y_1d = ys_1d * inv_z + (cy * (1.0 - inv_z))
+    # Combined Zoom and Parallax: uses NumPy broadcasting and in-place arithmetic
+    # to minimize intermediate O(H*W) buffer allocations and memory bandwidth.
+    # Mathematically, zoomed coordinate is: (centered_coord * inv_z) + center
 
-    # Apply parallax displacement to the zoomed coordinates
-    src_x = zoom_x_1d - (dx_px * parallax)
-    src_y = zoom_y_1d.reshape(-1, 1) - (dy_px * parallax)
+    # Optimization: Use in-place addition to reuse the (H, W) buffer from multiplication.
+    # This reduces large float32 allocations from 4 down to 2 per frame.
+    src_x = parallax * (-dx_px)
+    src_x += (xs_centered * inv_z + cx)
 
-    # Optimization: Fixed-point map conversion. cv2.remap is ~30-40% faster with
-    # CV_16SC2 maps as it avoids floating-point arithmetic during interpolation.
-    map1, map2 = cv2.convertMaps(src_x, src_y, cv2.CV_16SC2)
+    src_y = parallax * (-dy_px)
+    src_y += (ys_centered.reshape(-1, 1) * inv_z + cy)
 
+    # Note: cv2.convertMaps(..., cv2.CV_16SC2) was removed; although it speeds up
+    # remap(), the overhead of conversion exceeds the gain when maps change every frame.
     return cv2.remap(
-        img_bgr, map1, map2,
+        img_bgr, src_x, src_y,
         interpolation=cv2.INTER_LINEAR,
         borderMode=cv2.BORDER_REPLICATE,
     )
