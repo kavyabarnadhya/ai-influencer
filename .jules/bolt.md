@@ -235,3 +235,11 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 ## 2026-06-25 - Optimized Parallax Rendering Loop
 **Learning:** For dynamic coordinate remapping where maps are updated every frame (e.g. parallax), the overhead of fixed-point conversion using `cv2.convertMaps` (~2.5ms) outweighs the slight performance gain in `cv2.remap`. Additionally, in-place NumPy arithmetic (`+=`) on large O(H*W) buffers significantly reduces memory pressure.
 **Action:** Use `math.sin/pi` for scalar paths and prioritize in-place array operations. Skip `convertMaps` for hot rendering loops unless maps are static across frames.
+
+## 2026-06-26 - Downsampled Gaussian Blur for Depth Maps
+**Learning:** Smoothing large 1080p+ depth maps with Gaussian blur (large sigma) is computationally expensive. Downsampling the depth map 4x before blurring and upscaling back provides a ~10x speedup with negligible impact on parallax smoothness.
+**Action:** Use the "downsample -> blur -> upscale" pattern for low-frequency masks or depth maps when using large sigmas.
+
+## 2026-06-26 - OpenCV addWeighted Anti-pattern with Slices
+**Learning:** cv2.addWeighted fails with a 'Bad argument' error if the 'dst' array is a non-contiguous NumPy slice (e.g., img[..., 0]).
+**Action:** Use standard NumPy arithmetic (+=) for channel-wise operations on interleaved buffers unless the slice is made contiguous.
