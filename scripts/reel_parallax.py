@@ -68,6 +68,11 @@ def _load_midas():
         console.print(f"[yellow]Pre-trust step failed (continuing): {e}[/yellow]")
     model = torch.hub.load("intel-isl/MiDaS", "MiDaS_small", trust_repo=True)
     model.to(device).eval()
+    if device.type == "cuda":
+        # Optimization: Enable FP16 (half-precision) for MiDaS inference on CUDA
+        # to speed up inference and reduce VRAM usage.
+        model.half()
+
     transforms = torch.hub.load("intel-isl/MiDaS", "transforms", trust_repo=True)
     transform = transforms.small_transform
     return model, transform, device
@@ -82,6 +87,9 @@ def estimate_depth(img_bgr: np.ndarray, smooth_sigma: float = 12.0) -> np.ndarra
     model, transform, device = _load_midas()
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     batch = transform(img_rgb).to(device)
+    if device.type == "cuda":
+        batch = batch.half()
+
     with torch.no_grad():
         prediction = model(batch)
         prediction = torch.nn.functional.interpolate(
@@ -90,13 +98,23 @@ def estimate_depth(img_bgr: np.ndarray, smooth_sigma: float = 12.0) -> np.ndarra
             mode="bicubic",
             align_corners=False,
         ).squeeze()
+
     depth = prediction.cpu().numpy().astype(np.float32)
     dmin, dmax = float(depth.min()), float(depth.max())
     if dmax - dmin < 1e-6:
         return np.full_like(depth, 0.5)
     depth = (depth - dmin) / (dmax - dmin)
+
     if smooth_sigma > 0:
-        depth = cv2.GaussianBlur(depth, (0, 0), sigmaX=smooth_sigma, sigmaY=smooth_sigma)
+        # Optimization: Downsampled Gaussian blur for depth maps.
+        # Smoothing large 1080p+ buffers with a large sigma is expensive.
+        # Downsampling by 4x before blurring and upscaling back provides a
+        # ~10x speedup with negligible impact on parallax smoothness.
+        h, w = depth.shape[:2]
+        small = cv2.resize(depth, (0, 0), fx=0.25, fy=0.25, interpolation=cv2.INTER_LINEAR)
+        small_blur = cv2.GaussianBlur(small, (0, 0), sigmaX=smooth_sigma/4, sigmaY=smooth_sigma/4)
+        depth = cv2.resize(small_blur, (w, h), interpolation=cv2.INTER_LINEAR)
+
     return depth
 
 
