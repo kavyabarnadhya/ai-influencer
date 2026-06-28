@@ -238,7 +238,7 @@ def test_parse_ultra_denoise_clamped(tmp_path):
 def test_inject_realism_overrides_denoise():
     wf = {
         "2": {"_meta": {"title": "_claude_inject_input_image"}, "class_type": "LoadImage", "inputs": {"image": ""}},
-        "7": {"_meta": {"title": "Subject detail pass"}, "class_type": "DetailerForEach", "inputs": {"denoise": 0.38}},
+        "7": {"_meta": {"title": "Subject detail pass (skin/hair/fabric, BG clean)"}, "class_type": "DetailerForEach", "inputs": {"denoise": 0.38}},
     }
     out = fc._inject_realism(wf, "base.png", denoise=0.44, propagate_cache=False)
     assert out["7"]["inputs"]["denoise"] == 0.44
