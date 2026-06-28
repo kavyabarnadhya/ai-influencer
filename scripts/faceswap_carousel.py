@@ -149,15 +149,15 @@ def _inject_realism(wf: dict, input_image_name: str, denoise: float | None = Non
         None = keep the workflow default (0.38, the validated sweet spot). Higher (~0.44)
         gives more skin micro-texture for hero closeups; >0.50 over-processes fabric.
     """
-    wf = inject_workflow_values(
-        wf, {"_claude_inject_input_image": {"inputs.image": input_image_name}},
-        propagate_cache=propagate_cache,
-    )
+    overrides = {
+        "_claude_inject_input_image": {"inputs.image": input_image_name}
+    }
     if denoise is not None:
-        for node in wf.values():
-            if node.get("class_type") == "DetailerForEach":
-                node["inputs"]["denoise"] = float(denoise)
-    return wf
+        # Optimization: Target the specific node title for O(1) lookup via inject_workflow_values,
+        # avoiding the O(N) full-workflow scan and fixing cache poisoning (state leakage).
+        overrides["Subject detail pass (skin/hair/fabric, BG clean)"] = {"inputs.denoise": float(denoise)}
+
+    return inject_workflow_values(wf, overrides, propagate_cache=propagate_cache)
 
 
 def _run_and_get_data(client: ComfyUIClient, wf: dict, timeout: int = 300) -> bytes:
