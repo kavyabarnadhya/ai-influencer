@@ -14,6 +14,7 @@ Usage:
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -73,7 +74,15 @@ def main(input_dir: str, threshold: float, save_matrix: bool,
     import torch
 
     input_path = Path(input_dir)
-    images = sorted([p for p in input_path.iterdir() if p.suffix.lower() in SUPPORTED_EXTS])
+    # Optimization: os.scandir() is significantly faster than Path.iterdir() for high-volume
+    # file discovery by avoiding redundant Path object allocations and suffix checks.
+    exts = tuple(e.lower() for e in SUPPORTED_EXTS)
+    with os.scandir(input_path) as it:
+        images = sorted([
+            Path(entry.path) for entry in it
+            if entry.is_file() and entry.name.lower().endswith(exts)
+        ])
+
     if len(images) < 2:
         console.print(f"[red]Need at least 2 images, found {len(images)}[/red]")
         raise SystemExit(1)
