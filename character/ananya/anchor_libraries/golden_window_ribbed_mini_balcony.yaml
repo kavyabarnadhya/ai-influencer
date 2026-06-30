@@ -1,0 +1,36 @@
+# Anchor: sage/olive-grey ribbed knit sleeveless bodycon mini dress, golden-hour arched window interior.
+# Vibe: warm backlit editorial OOTD, three-quarter back-angle hero + profile sensual stretch variant.
+# Lens: editorial (warm golden bokeh) via lens_profile key — NO inline lens text.
+# Tier: premium (slide_02 profile/stretch angle shows cleavage glimpse — intentional).
+# Used with: --flux-dev --kontext flags (MANDATORY)
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/golden_window_ribbed_mini_balcony.yaml --prompts character/ananya/carousel_prompts/golden_window_ribbed_mini_balcony.txt --name golden_window_balcony_v1 --flux-dev --kontext --ultra
+
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
+lens_profile: editorial
+
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure,
+  pronounced hourglass with hips noticeably wider than waist, fuller chest and décolletage,
+  defined cinched narrow waist with soft curves at hips and bust, healthy curvy M-size Indian woman build,
+  NOT slim editorial NOT model-thin NOT plus-size NOT oversized,
+  balanced M-size proportions like a real event-goer with natural feminine curves not exaggerated,
+  long dark brown hair NOT auburn NOT blonde NOT highlighted, hair worn long and loose with soft waves past the shoulders,
+  wearing a fitted sage olive-grey ribbed knit sleeveless mini dress, one single uninterrupted piece of fabric running continuously from the underarm down past the hips,
+  square scoop neckline cut straight across the chest, fitted through the torso and waist hugging natural curves,
+  short mini dress with hemline ending at the middle of her thigh, the hemline stops at mid-thigh, well above the knee, NOT floor length NOT a maxi dress NOT ankle length, no sleeves, fitted ribbed texture visible on the knit,
+  thin delicate gold pendant chain at neckline, small gold hoop earrings, gold ring on right hand,
+  bare arms bare legs,
+  standing with weight shifted onto one hip, body angled three-quarter away from camera toward a tall arched sunlit window,
+  head turned back over her shoulder toward camera with a soft smile,
+  both hands raised gently up near her own hair at shoulder height, fingers gently tangled in her loose dark waves, both elbows bent and raised away from her body, both hands kept high near her hair and face, NO hand anywhere near her waist NO hand near her hip NO hand near her hem NO hand below her chest,
+  in front of a tall arched sunlit window with white-painted wooden window frame and multiple glass panes,
+  warm golden-hour sunlight streaming through the window creating a soft backlit glow and warm rim light on her hair and shoulders,
+  smooth warm cream-toned interior wall beside the window, polished warm wood flooring,
+  clean spotless wood flooring no stains no scuffs no dirt no marks,
+  full-body environmental portrait, subject framed center occupying the central two-thirds of the vertical frame,
+  full legs and floor visible at bottom of frame, headroom above her head,
+  both arms hands and elbows fully contained within frame edges,
+  authentic skin texture with visible pores, natural skin imperfections, no plasticky skin,
+  asymmetric facial features, slightly off-center composition, candid golden-hour moment not posed

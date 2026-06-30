@@ -1,0 +1,12 @@
+# Delta-only fix: golden_window_ribbed_mini_balcony — slide_07 hand defect (ball-shaped blob) + slide_09 person-not-removed (ambiance).
+# Anchor YAML: character/ananya/anchor_libraries/golden_window_ribbed_mini_balcony.yaml
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/golden_window_ribbed_mini_balcony.yaml --prompts character/ananya/carousel_prompts/_golden_window_balcony_v1_fix.txt --name golden_window_balcony_v1_fix --flux-dev --kontext --ultra
+#
+# fix/slide_00 -> target slide_07 (walk-away, hand defect fix, higher cands for pick)
+# fix/slide_01 -> target slide_09 (ambiance empty room, raised denoise to let Kontext actually drop the person)
+
+# fix_00: walk-away back view, hand defect fix
+anchor=default | faceswap=false | cands=3 | same woman in same sage olive-grey ribbed knit sleeveless bodycon mini dress with square scoop neckline, captured from behind walking slowly away toward the tall arched sunlit window, mid-stride with one foot forward, body and head facing away from camera, face NOT visible only the back of her long dark brown loose wavy hair and her back visible, both arms swinging naturally with her stride, both hands fully open and relaxed with five separate natural fingers each, NO object NO prop NO ball NO sphere in either hand, clear visible gap between each hand and her hips, NOT touching the dress, warm golden-hour sunlight glowing through the window ahead of her, warm cream wall and polished wood floor, keeping exact same ribbed knit bodycon mini with square neckline and mid-thigh hem
+
+# fix_01: ambiance empty room, no person, higher denoise to drop the anchor's subject
+anchor=default | faceswap=false | ultra=false | denoise=0.9 | cands=2 | a completely empty sunlit interior room with absolutely no person no woman no human figure no body anywhere in the frame, the tall arched window with white-painted wooden frame and multiple glass panes, warm golden-hour sunlight streaming through creating long warm light beams across the bare floor, warm cream interior wall, polished warm wood flooring receding into the light, clean uncluttered elegant empty space, editorial interior photography, warm golden atmospheric mood, the room is completely vacant, no human figure no person no woman no silhouette
