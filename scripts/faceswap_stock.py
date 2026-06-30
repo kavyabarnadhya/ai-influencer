@@ -17,6 +17,7 @@ Usage:
     python scripts/faceswap_stock.py --face-ref "path/to/face_ref.png" --dry-run
 """
 
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -69,7 +70,14 @@ def main(face_ref: str, input_dir: str, workflow: str, dry_run: bool, limit: int
         console.print(f"[red]Input dir not found: {input_path}[/red]")
         raise SystemExit(1)
 
-    stock_images = sorted([p for p in input_path.iterdir() if p.suffix.lower() in SUPPORTED_EXTS])
+    # Optimization: os.scandir() is significantly faster than Path.iterdir() for high-volume
+    # file discovery by avoiding redundant Path object allocations and suffix checks.
+    exts = tuple(e.lower() for e in SUPPORTED_EXTS)
+    with os.scandir(input_path) as it:
+        stock_images = sorted([
+            Path(entry.path) for entry in it
+            if entry.is_file() and entry.name.lower().endswith(exts)
+        ])
 
     if files:
         allowed = {f.strip() for f in files.split(",")}
