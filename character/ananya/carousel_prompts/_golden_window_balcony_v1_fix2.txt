@@ -1,0 +1,8 @@
+# Delta-only fix2: golden_window_ribbed_mini_balcony — slide_07 still showed face (Kontext kept the anchor's look-back head turn). Force zero-face + raise denoise to break from anchor pose bias.
+# Anchor YAML: character/ananya/anchor_libraries/golden_window_ribbed_mini_balcony.yaml
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/golden_window_ribbed_mini_balcony.yaml --prompts character/ananya/carousel_prompts/_golden_window_balcony_v1_fix2.txt --name golden_window_balcony_v1_fix2 --flux-dev --kontext --ultra
+#
+# fix2/slide_00 -> target slide_07 (walk-away, zero-face)
+
+# fix2_00: walk-away back view, head pointed straight ahead, zero face visible
+anchor=default | faceswap=false | denoise=0.75 | cands=3 | same woman in same sage olive-grey ribbed knit sleeveless bodycon mini dress with square scoop neckline, captured from directly behind walking slowly away toward the tall arched sunlit window, mid-stride with one foot forward, head pointed straight ahead away from camera NOT turned NOT tilted NOT in profile, completely 100 percent back of her head only, zero percent of her face visible from any angle, only the back of her long dark brown loose wavy hair and her bare back and shoulders visible, both arms swinging naturally with her stride, both hands fully open and relaxed with five separate natural fingers each, NO object NO prop in either hand, clear visible gap between each hand and her hips, NOT touching the dress, warm golden-hour sunlight glowing through the window ahead of her, warm cream wall and polished wood floor, keeping exact same ribbed knit bodycon mini with square neckline and mid-thigh hem
