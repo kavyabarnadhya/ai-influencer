@@ -9,11 +9,16 @@ ROOT = Path(__file__).parent.parent
 
 
 @functools.lru_cache(maxsize=4)
-def _load_presets_file(path: Path) -> dict:
-    """Cached raw load of a presets YAML file."""
+def _load_presets_file(path: Path) -> dict[str, str]:
+    """
+    Cached raw load of a presets YAML file.
+    Optimization: Pre-serializes each preset to a JSON string to avoid
+    redundant json.dumps() calls in load_preset().
+    """
     if not path.exists():
         raise FileNotFoundError(f"No presets file: {path}")
-    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return {name: json.dumps(val) for name, val in data.items()}
 
 
 def load_preset(character: str, preset_name: str) -> dict:
@@ -23,15 +28,15 @@ def load_preset(character: str, preset_name: str) -> dict:
     Returns a deep copy to ensure state isolation.
     """
     path = ROOT / "character" / character / "presets.yaml"
-    data = _load_presets_file(path)
+    serialized_data = _load_presets_file(path)
 
-    if preset_name not in data:
+    if preset_name not in serialized_data:
         raise KeyError(
-            f"Preset '{preset_name}' not in {path}. Available: {sorted(data.keys())}"
+            f"Preset '{preset_name}' not in {path}. Available: {sorted(serialized_data.keys())}"
         )
 
-    # Performance Optimization: Use json-based deep copy for speed (~3.5x faster than deepcopy)
-    preset = json.loads(json.dumps(data[preset_name]))
+    # Performance Optimization: Use pre-serialized JSON string to avoid json.dumps().
+    preset = json.loads(serialized_data[preset_name])
 
     preset.setdefault("kind", "single")
     preset.setdefault("overrides", {})
