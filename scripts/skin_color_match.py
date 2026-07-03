@@ -183,10 +183,10 @@ def _person_mask(img_bgr: np.ndarray) -> np.ndarray:
             # Optimization: Combine all person masks into a single union mask
             # on the GPU/torch side before a single resize call. This avoids
             # the loop of individual CPU resizes and bitwise_or operations.
-            # Using byte() to get [0, 1] uint8 then scaling to [0, 255] on CPU is efficient.
-            combined_mask = results[0].masks.data[person_indices].any(dim=0).byte().cpu().numpy()
-            mask_resized = cv2.resize(combined_mask, (w, h), interpolation=cv2.INTER_NEAREST)
-            mask_resized *= 255
+            # Scaling to [0, 255] on the GPU before moving to CPU avoids a
+            # full-resolution O(H*W) multiplication.
+            combined_mask_u8 = (results[0].masks.data[person_indices].any(dim=0).byte() * 255).cpu().numpy()
+            mask_resized = cv2.resize(combined_mask_u8, (w, h), interpolation=cv2.INTER_NEAREST)
             return mask_resized
 
     # Fallback: treat whole image as person region
