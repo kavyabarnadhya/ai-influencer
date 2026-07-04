@@ -34,13 +34,19 @@ def benchmark_bolt_skin():
         mock_conf.argmax.return_value = 0
         mock_result.boxes.conf = mock_conf
 
-        mock_result.masks.data = MagicMock()
-        mock_result.masks.data.__len__.return_value = 1
-        mock_result.masks.data.__getitem__.return_value.any.return_value.float.return_value.cpu.return_value.numpy.return_value = np.zeros((1920, 1080))
+        # Mocking results[0].masks.data[person_indices].any(dim=0).byte() * 255).cpu().numpy()
+        mock_mask_data = MagicMock()
+        mock_any = mock_mask_data.__getitem__.return_value.any.return_value
+        mock_byte = mock_any.byte.return_value
+        mock_mul = mock_byte.__mul__.return_value
+        mock_cpu = mock_mul.cpu.return_value
+        # Mocking mask data to be the same size as the input image
+        mock_cpu.numpy.return_value = np.zeros((1920, 1080), dtype=np.uint8)
+        mock_result.masks.data = mock_mask_data
 
         # Mocking classes as a torch-like tensor
         mock_cls = MagicMock()
-        mock_cls.__eq__.return_value.nonzero.return_value = [np.array([0])]
+        mock_cls.__eq__.return_value.nonzero.return_value = (np.array([0]),)
         mock_result.boxes.cls = mock_cls
 
         return [mock_result]
@@ -51,8 +57,9 @@ def benchmark_bolt_skin():
     scm._load_face_model = MagicMock(return_value=mock_yolo_instance)
     scm._load_seg_model = MagicMock(return_value=mock_yolo_instance)
 
-    # Dummy inputs
-    dummy_img = np.zeros((1920, 1080, 3), dtype=np.uint8)
+    # Dummy inputs: 1080p
+    h, w = 1920, 1080
+    dummy_img = np.zeros((h, w, 3), dtype=np.uint8)
     dummy_img[400:1600, 300:800] = [100, 120, 150] # Some "skin"
 
     # Create a dummy face_ref file
