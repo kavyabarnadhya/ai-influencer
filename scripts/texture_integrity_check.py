@@ -33,15 +33,19 @@ SUPPORTED_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
 
 
 @functools.lru_cache(maxsize=16)
-def _get_low_freq_mask(h: int, w: int, r_inner: int) -> np.ndarray:
+def _get_unshifted_low_freq_mask(h: int, w: int, r_inner: int) -> np.ndarray:
     """
-    Cached mask creation to avoid redundant O(H*W) coordinate math for images
-    of the same dimensions (common in batch processing).
-    Returns a uint8 mask [0, 255] for optimized OpenCV sumElems.
+    Cached mask for unshifted DFT magnitude. Low frequencies are in the corners.
+    Returns uint8 mask [0, 255].
     """
-    cy, cx = h // 2, w // 2
     Y, X = np.ogrid[:h, :w]
-    mask = (Y - cy)**2 + (X - cx)**2 < r_inner**2
+    # Distances to the four corners
+    d00 = Y**2 + X**2
+    d01 = Y**2 + (X - w)**2
+    d10 = (Y - h)**2 + X**2
+    d11 = (Y - h)**2 + (X - w)**2
+
+    mask = (d00 < r_inner**2) | (d01 < r_inner**2) | (d10 < r_inner**2) | (d11 < r_inner**2)
     return (mask.astype(np.uint8) * 255)
 
 
@@ -78,8 +82,9 @@ def compute_texture_score(image_path: Path) -> dict:
         h, w = gray.shape
         y1, y2 = 0, int(h * 0.6)
         x1, x2 = int(w * 0.2), int(w * 0.8)
-        face_crop = gray[y1:y2, x1:x2]
-        face_lap = cv2.Laplacian(face_crop, cv2.CV_32F)
+        # Optimization: Reuse the full-image Laplacian for the face-region variance
+        # instead of re-calculating it from a crop, saving an O(H*W) pass.
+        face_lap = lap[y1:y2, x1:x2]
         _, face_std = cv2.meanStdDev(face_lap)
         face_var = float(face_std[0][0] ** 2)
 
@@ -88,26 +93,16 @@ def compute_texture_score(image_path: Path) -> dict:
         gray_f32 = gray.astype(np.float32)
         dft = cv2.dft(gray_f32, flags=cv2.DFT_COMPLEX_OUTPUT)
 
-        # Optimization: Manual quadrant swap is faster than np.fft.fftshift
-        cx, cy = w // 2, h // 2
-        q0 = dft[0:cy, 0:cx]
-        q1 = dft[0:cy, cx:w]
-        q2 = dft[cy:h, 0:cx]
-        q3 = dft[cy:h, cx:w]
-        top = np.hstack((q3, q2))
-        bottom = np.hstack((q1, q0))
-        dft_shift = np.vstack((top, bottom))
-
-        # Optimization: cv2.magnitude is faster than np.abs
-        magnitude = cv2.magnitude(dft_shift[..., 0], dft_shift[..., 1])
+        # Optimization: Use magnitude directly on the unshifted dft output to avoid
+        # expensive quadrant swap (np.hstack/vstack) memory allocations.
+        magnitude = cv2.magnitude(dft[..., 0], dft[..., 1])
 
         # Ratio of high-freq to total (outer ring of magnitude spectrum)
         # Optimization: Use vectorized np.ogrid and inner-sum trick to avoid O(H*W) loops.
-        h2, w2 = magnitude.shape
-        r_inner = min(h2, w2) // 6
+        r_inner = min(h, w) // 6
 
-        # Optimization: Use LRU-cached mask lookup.
-        low_freq_mask = _get_low_freq_mask(h2, w2, r_inner)
+        # Optimization: Use unshifted low-frequency mask matched to raw DFT corners.
+        low_freq_mask = _get_unshifted_low_freq_mask(h, w, r_inner)
 
         # Optimization: cv2.sumElems is slightly faster than NumPy .sum()
         total_magnitude = cv2.sumElems(magnitude)[0]

@@ -243,3 +243,7 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 ## 2026-06-26 - OpenCV addWeighted Anti-pattern with Slices
 **Learning:** cv2.addWeighted fails with a 'Bad argument' error if the 'dst' array is a non-contiguous NumPy slice (e.g., img[..., 0]).
 **Action:** Use standard NumPy arithmetic (+=) for channel-wise operations on interleaved buffers unless the slice is made contiguous.
+
+## 2026-07-05 - Avoiding DFT Shift and Redundant Laplacian in Texture Checks
+**Learning:** In frequency-domain analysis, the $O(H \times W)$ cost of manual quadrant swapping (dft_shift) can be avoided by matching the low-frequency mask to the corners of the raw DFT output. Additionally, reusing a full-image Laplacian for sub-region variance calculations avoids a redundant convolution pass with negligible impact on precision.
+**Action:** Skip `dft_shift` in hot paths by using unshifted corner masks. Reuse global intermediate buffers (like Laplacians) for localized ROI metrics to eliminate redundant O(N) passes.
