@@ -84,7 +84,7 @@ class ComfyUIClient:
         compared to exponential backoff.
         """
         deadline = time.time() + timeout
-        polling_interval = 0.2
+        polling_interval = 0.1
         # /history poll uses 60s HTTP timeout — ComfyUI stalls during heavy model loads
         # (e.g. FLUX ControlNet 4GB on first inference). Other _get calls keep 10s default.
         while time.time() < deadline:
