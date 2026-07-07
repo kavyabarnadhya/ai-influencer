@@ -1,4 +1,5 @@
 import json
+import os
 import time
 import random
 import functools
@@ -48,7 +49,7 @@ class ComfyUIClient:
 
     def is_running(self) -> bool:
         try:
-            self._get("/system_stats")
+            self._get("/system_stats", timeout=2.0)
             return True
         except ComfyUIError:
             return False
@@ -131,10 +132,11 @@ class ComfyUIClient:
         Uses a local cache to avoid re-uploading the same file multiple times.
         """
         # Optimization: Use cached resolution to avoid expensive syscalls in hot loops.
-        path = _resolve_path(image_path)
+        abs_path = _resolve_path(image_path)
         try:
-            stat = path.stat()
-            cache_key = (str(path), stat.st_mtime, stat.st_size)
+            # Use os.stat for faster performance in hot loops compared to Path.stat()
+            stat = os.stat(abs_path)
+            cache_key = (abs_path, stat.st_mtime, stat.st_size)
         except OSError as e:
             raise ComfyUIError(f"Failed to access image {image_path}: {e}")
 
@@ -142,16 +144,17 @@ class ComfyUIClient:
             return self._upload_cache[cache_key]
 
         url = f"{self.base_url}/upload/image"
+        filename = os.path.basename(abs_path)
         try:
-            with open(path, "rb") as f:
-                files = {"image": (path.name, f, "image/png")}
+            with open(abs_path, "rb") as f:
+                files = {"image": (filename, f, "image/png")}
                 resp = self.session.post(url, files=files, timeout=30)
                 resp.raise_for_status()
                 remote_name = resp.json()["name"]
                 self._upload_cache[cache_key] = remote_name
                 return remote_name
         except requests.exceptions.RequestException as e:
-            raise ComfyUIError(f"Failed to upload image {path.name}: {e}")
+            raise ComfyUIError(f"Failed to upload image {filename}: {e}")
 
     def upload_image_data(self, image_data: bytes, filename: str) -> str:
         """
@@ -205,12 +208,13 @@ def _scan_workflow_titles(workflow: dict) -> dict[str, list[str]]:
 
 
 @functools.lru_cache(maxsize=128)
-def _resolve_path(image_path: str) -> Path:
+def _resolve_path(image_path: str) -> str:
     """
     Cached path resolution to avoid redundant filesystem overhead.
-    Optimization: Returns a Path object from the cache (approx 300x faster than .resolve()).
+    Optimization: Returns a real path string from the cache (faster than Path.resolve()).
+    Uses realpath to resolve symlinks, ensuring consistent cache keys for deduplication.
     """
-    return Path(image_path).resolve()
+    return os.path.realpath(image_path)
 
 
 @functools.lru_cache(maxsize=128)
