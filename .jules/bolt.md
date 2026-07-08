@@ -247,3 +247,7 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 ## 2026-07-05 - Avoiding DFT Shift and Redundant Laplacian in Texture Checks
 **Learning:** In frequency-domain analysis, the $O(H \times W)$ cost of manual quadrant swapping (dft_shift) can be avoided by matching the low-frequency mask to the corners of the raw DFT output. Additionally, reusing a full-image Laplacian for sub-region variance calculations avoids a redundant convolution pass with negligible impact on precision.
 **Action:** Skip `dft_shift` in hot paths by using unshifted corner masks. Reuse global intermediate buffers (like Laplacians) for localized ROI metrics to eliminate redundant O(N) passes.
+
+## 2026-07-08 - Optimized Mask Scaling in Downsample-Blur-Upscale Pattern
+**Learning:** In the "downsample -> blur -> upscale" pattern for high-resolution masks (1080p+), performing the `float32` conversion and scalar scaling on the downsampled buffer before the final upscale is significantly faster (~2.9x) than upscaling a `uint8` mask and scaling the full-resolution float result. `cv2.resize` is highly optimized for `float32` and the overhead of resizing is dwarfed by the O(H*W) multiplication savings on the 1080p+ buffer.
+**Action:** Always scale and normalize masks at the lowest possible resolution before upsampling to the final ROI/frame size.

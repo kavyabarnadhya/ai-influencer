@@ -270,6 +270,10 @@ def _apply_lab_delta(
     da = float(np.clip(target_lab[1] - src_a, -_MAX_AB_SHIFT, _MAX_AB_SHIFT))
     db = float(np.clip(target_lab[2] - src_b, -_MAX_AB_SHIFT, _MAX_AB_SHIFT))
 
+    # Optimization: Early return if no shift is needed.
+    if dL == 0 and da == 0 and db == 0:
+        return img_bgr
+
     print(f"  [skin_color_match] src LAB ({src_L:.1f}, {src_a:.1f}, {src_b:.1f}) "
           f"→ target ({target_lab[0]:.1f}, {target_lab[1]:.1f}, {target_lab[2]:.1f}) "
           f"delta ({dL:+.1f}, {da:+.1f}, {db:+.1f}) "
@@ -285,11 +289,11 @@ def _apply_lab_delta(
         mask_small, (0, 0),
         sigmaX=_MASK_FEATHER_SIGMA / 4.0, sigmaY=_MASK_FEATHER_SIGMA / 4.0,
     )
-    mask_blur_u8 = cv2.resize(mask_small_blur, (w_roi, h_roi), interpolation=cv2.INTER_LINEAR)
-
-    # Optimization: In-place scaling saves an allocation.
-    alpha_2d = mask_blur_u8.astype(np.float32)
-    alpha_2d *= np.float32(1.0 / 255.0)
+    # Optimization: Convert to f32 and scale on the downsampled mask.
+    # cv2.resize on f32 is faster than full-res O(H*W) multiplication.
+    mask_small_f32 = mask_small_blur.astype(np.float32)
+    mask_small_f32 *= np.float32(1.0 / 255.0)
+    alpha_2d = cv2.resize(mask_small_f32, (w_roi, h_roi), interpolation=cv2.INTER_LINEAR)
 
     # Optimization: Use per-channel in-place additions with 1D alpha.
     # This avoids the large (H, W, 3) float allocation for (alpha * shift).
