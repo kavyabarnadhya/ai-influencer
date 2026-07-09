@@ -19,6 +19,7 @@ import sys
 from pathlib import Path
 
 import click
+import numpy as np
 from rich.console import Console
 from rich.table import Table
 
@@ -42,19 +43,46 @@ def load_clip():
         raise SystemExit(1)
 
 
-def encode_images(image_paths: list[Path], model, preprocess, device, torch) -> "torch.Tensor":
+def encode_images(image_paths: list[Path], model, preprocess, device, torch, batch_size: int = 16) -> list:
+    """
+    Encode images in batches to reduce GPU overhead and improve throughput.
+    Optimization: Batching reduces kernel launch overhead and improves VRAM utilization.
+    """
     from PIL import Image
-    features_list = []
-    for p in image_paths:
+    features_list = [None] * len(image_paths)
+
+    for i in range(0, len(image_paths), batch_size):
+        batch_paths = image_paths[i:i + batch_size]
+        batch_imgs = []
+        valid_indices = []
+
+        for j, p in enumerate(batch_paths):
+            try:
+                img = preprocess(Image.open(p).convert("RGB"))
+                batch_imgs.append(img)
+                valid_indices.append(i + j)
+            except Exception as e:
+                console.print(f"  [yellow]Skip {p.name}: {e}[/yellow]")
+
+        if not batch_imgs:
+            continue
+
         try:
-            img = preprocess(Image.open(p).convert("RGB")).unsqueeze(0).to(device)
-            with torch.no_grad(), torch.cuda.amp.autocast():
-                feats = model.encode_image(img)
+            imgs_tensor = torch.stack(batch_imgs).to(device)
+            # Use AMP only if on CUDA. device can be string or torch.device.
+            is_cuda = str(device).startswith("cuda")
+            autocast_ctx = torch.amp.autocast("cuda" if is_cuda else "cpu", enabled=is_cuda)
+
+            with torch.no_grad(), autocast_ctx:
+                feats = model.encode_image(imgs_tensor)
                 feats = feats / feats.norm(dim=-1, keepdim=True)
-            features_list.append(feats.cpu())
+                feats_cpu = feats.cpu()
+
+            for k, idx in enumerate(valid_indices):
+                features_list[idx] = feats_cpu[k].unsqueeze(0)
         except Exception as e:
-            console.print(f"  [yellow]Skip {p.name}: {e}[/yellow]")
-            features_list.append(None)
+            console.print(f"  [red]Batch processing error at index {i}: {e}[/red]")
+
     return features_list
 
 
@@ -109,23 +137,26 @@ def main(input_dir: str, threshold: float, save_matrix: bool,
     sim_matrix = (feat_matrix @ feat_matrix.T).numpy()
 
     n = len(valid_paths)
-    flagged = []
-    for i in range(n):
-        for j in range(i + 1, n):
-            sim = float(sim_matrix[i, j])
-            if sim > threshold:
-                flagged.append((sim, valid_paths[i], valid_paths[j]))
+    # Optimization: Use NumPy vectorized operations for similarity analysis.
+    # Replace O(N^2) Python loops for average similarity and flagged pairs.
 
-    flagged.sort(reverse=True)
+    # Calculate average pairwise similarity (off-diagonal only)
+    # n*(n-1)/2 pairs in the upper triangle (excluding diagonal)
+    triu_indices = np.triu_indices(n, k=1)
+    upper_tri_sims = sim_matrix[triu_indices]
+    avg_sim = float(np.mean(upper_tri_sims)) if n > 1 else 0.0
 
-    # Average pairwise similarity (off-diagonal)
-    total_sim = 0.0
-    count = 0
-    for i in range(n):
-        for j in range(i + 1, n):
-            total_sim += float(sim_matrix[i, j])
-            count += 1
-    avg_sim = total_sim / count if count > 0 else 0.0
+    # Find flagged pairs using vectorized comparison
+    flagged_mask = upper_tri_sims > threshold
+    flagged_indices_i = triu_indices[0][flagged_mask]
+    flagged_indices_j = triu_indices[1][flagged_mask]
+    flagged_sims = upper_tri_sims[flagged_mask]
+
+    flagged = [
+        (float(sim), valid_paths[i], valid_paths[j])
+        for sim, i, j in zip(flagged_sims, flagged_indices_i, flagged_indices_j)
+    ]
+    flagged.sort(key=lambda x: x[0], reverse=True)
 
     console.print(f"\nAverage pairwise similarity: [bold]{avg_sim:.4f}[/bold] (target < 0.85)")
     if avg_sim > 0.85:
