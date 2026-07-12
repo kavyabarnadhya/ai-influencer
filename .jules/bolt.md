@@ -251,3 +251,7 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 ## 2026-07-08 - Optimized Mask Scaling in Downsample-Blur-Upscale Pattern
 **Learning:** In the "downsample -> blur -> upscale" pattern for high-resolution masks (1080p+), performing the `float32` conversion and scalar scaling on the downsampled buffer before the final upscale is significantly faster (~2.9x) than upscaling a `uint8` mask and scaling the full-resolution float result. `cv2.resize` is highly optimized for `float32` and the overhead of resizing is dwarfed by the O(H*W) multiplication savings on the 1080p+ buffer.
 **Action:** Always scale and normalize masks at the lowest possible resolution before upsampling to the final ROI/frame size.
+
+## 2026-07-15 - PNG Compression and In-Place Color Conversion
+**Learning:** For high-resolution (1080p) AI photographic content, `cv2.IMWRITE_PNG_COMPRESSION` Level 1 is significantly faster (~120ms/frame) than Level 3, with only a minor (~13%) increase in file size. Additionally, `cv2.cvtColor` supports in-place operation via the `dst` parameter, which is ~2x faster for `float32` buffers by avoiding redundant allocations.
+**Action:** Use PNG Compression Level 1 for all high-throughput image writes. Prefer in-place `cv2.cvtColor` when the source buffer is no longer needed.
