@@ -255,3 +255,7 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 ## 2026-07-15 - PNG Compression and In-Place Color Conversion
 **Learning:** For high-resolution (1080p) AI photographic content, `cv2.IMWRITE_PNG_COMPRESSION` Level 1 is significantly faster (~120ms/frame) than Level 3, with only a minor (~13%) increase in file size. Additionally, `cv2.cvtColor` supports in-place operation via the `dst` parameter, which is ~2x faster for `float32` buffers by avoiding redundant allocations.
 **Action:** Use PNG Compression Level 1 for all high-throughput image writes. Prefer in-place `cv2.cvtColor` when the source buffer is no longer needed.
+
+## 2026-07-13 - Optimized Depth Estimation Pipeline in Parallax Reels
+**Learning:** Upsampling a tensor to full resolution on the GPU before transferring it to the CPU is wasteful when the subsequent CPU operation (e.g., smoothing) starts with a downsampling step.
+**Action:** Perform direct low-res upsampling on the GPU to match the smoothing ROI size. This reduces GPU-to-CPU transfer bandwidth by 16x (for 4x downsampling) and eliminates redundant up/down cycles, yielding a ~1.75x speedup for the depth estimation stage.

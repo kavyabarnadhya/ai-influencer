@@ -90,11 +90,17 @@ def estimate_depth(img_bgr: np.ndarray, smooth_sigma: float = 12.0) -> np.ndarra
     if device.type == "cuda":
         batch = batch.half()
 
+    h, w = img_rgb.shape[:2]
     with torch.no_grad():
         prediction = model(batch)
+        # Optimization: Direct low-res upsampling for smoothed depth.
+        # If smoothing is enabled, we upsample directly to the 0.25x resolution
+        # on the GPU before moving to CPU. This avoids redundant high-res
+        # upsampling and minimizes GPU-to-CPU transfer bandwidth.
+        target_size = (h // 4, w // 4) if smooth_sigma > 0 else (h, w)
         prediction = torch.nn.functional.interpolate(
             prediction.unsqueeze(1),
-            size=img_rgb.shape[:2],
+            size=target_size,
             mode="bicubic",
             align_corners=False,
         ).squeeze()
@@ -102,17 +108,15 @@ def estimate_depth(img_bgr: np.ndarray, smooth_sigma: float = 12.0) -> np.ndarra
     depth = prediction.cpu().numpy().astype(np.float32)
     dmin, dmax = float(depth.min()), float(depth.max())
     if dmax - dmin < 1e-6:
-        return np.full_like(depth, 0.5)
-    depth = (depth - dmin) / (dmax - dmin)
+        depth = np.full_like(depth, 0.5)
+    else:
+        depth = (depth - dmin) / (dmax - dmin)
 
     if smooth_sigma > 0:
         # Optimization: Downsampled Gaussian blur for depth maps.
-        # Smoothing large 1080p+ buffers with a large sigma is expensive.
-        # Downsampling by 4x before blurring and upscaling back provides a
-        # ~10x speedup with negligible impact on parallax smoothness.
-        h, w = depth.shape[:2]
-        small = cv2.resize(depth, (0, 0), fx=0.25, fy=0.25, interpolation=cv2.INTER_LINEAR)
-        small_blur = cv2.GaussianBlur(small, (0, 0), sigmaX=smooth_sigma/4, sigmaY=smooth_sigma/4)
+        # Smoothing is performed on the already downsampled buffer.
+        # We upsample to full resolution exactly once after blurring.
+        small_blur = cv2.GaussianBlur(depth, (0, 0), sigmaX=smooth_sigma/4, sigmaY=smooth_sigma/4)
         depth = cv2.resize(small_blur, (w, h), interpolation=cv2.INTER_LINEAR)
 
     return depth
