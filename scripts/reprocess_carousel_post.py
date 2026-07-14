@@ -10,6 +10,7 @@ overwriting current finals.
 from __future__ import annotations
 
 import hashlib
+import os
 import sys
 from pathlib import Path
 
@@ -45,7 +46,17 @@ def main(carousel_dir: str, face_ref: str, cand: int, seed_base: int) -> None:
         raise click.ClickException(f"No _intermediate/ in {out_dir}")
 
     face_ref_path = (ROOT / face_ref).resolve()
-    bases = sorted(inter.glob(f"slide_*_cand_{cand}_base.png"))
+    # Optimization: os.scandir() is significantly faster than Path.glob() for high-volume
+    # file discovery by avoiding redundant Path object allocations.
+    pattern = "slide_"
+    suffix = f"_cand_{cand}_base.png"
+    bases = []
+    with os.scandir(inter) as it:
+        for entry in it:
+            if entry.is_file() and entry.name.startswith(pattern) and entry.name.endswith(suffix):
+                bases.append(Path(entry.path))
+    bases.sort()
+
     if not bases:
         raise click.ClickException(f"No slide_*_cand_{cand}_base.png in {inter}")
 
