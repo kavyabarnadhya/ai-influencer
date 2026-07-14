@@ -16,6 +16,7 @@ Standalone smoke test:
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from functools import lru_cache
 from pathlib import Path
@@ -25,7 +26,8 @@ import numpy as np
 import yaml
 
 DEFAULT_FACE_REF = Path("character/ananya/seeds_v2/face_ref_v2.png")
-_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.yaml"
+# Optimization: os.path.abspath is significantly faster than Path.resolve().
+_CONFIG_PATH = Path(os.path.abspath(__file__)).parent.parent / "config.yaml"
 
 
 @lru_cache(maxsize=1)
@@ -86,6 +88,15 @@ def _load_face_model():
 def _load_seg_model():
     from ultralytics import YOLO
     return YOLO(str(_model_path("yolo_person_seg")))
+
+
+@lru_cache(maxsize=128)
+def _resolve_path(path: str | Path) -> str:
+    """
+    Cached path resolution to avoid redundant filesystem overhead.
+    Optimization: Returns a real path string from the cache (faster than Path.resolve()).
+    """
+    return os.path.realpath(path)
 
 
 @lru_cache(maxsize=8)
@@ -357,10 +368,11 @@ def match_body_skin_to_face_ref(
     # face both get pulled toward this. The in-slide sampling option (tried on
     # 2026-05-29 v9c) was wrong-direction: it locked body to the dark-rendered
     # face, but the user actually wants both to be at the fair face_ref tone.
-    face_ref_resolved = face_ref_path.resolve()
+    # Optimization: Use cached realpath and os.stat for faster performance in hot loops.
+    face_ref_resolved = _resolve_path(face_ref_path)
     target_lab = _sample_face_skin_lab_cached(
-        str(face_ref_resolved),
-        face_ref_resolved.stat().st_mtime_ns,
+        face_ref_resolved,
+        os.stat(face_ref_resolved).st_mtime_ns,
     )
 
     pmask = _person_mask(img_bgr)
