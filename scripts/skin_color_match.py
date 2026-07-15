@@ -147,7 +147,8 @@ def _sample_cheek_lab_from_bgr(
     roi_hsv = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2HSV)
     m1 = cv2.inRange(roi_hsv, _SKIN_HSV_LOWER1, _SKIN_HSV_UPPER1)
     m2 = cv2.inRange(roi_hsv, _SKIN_HSV_LOWER2, _SKIN_HSV_UPPER2)
-    skin_mask = cv2.bitwise_or(m1, m2)
+    # Optimization: In-place bitwise_or via dst parameter.
+    skin_mask = cv2.bitwise_or(m1, m2, dst=m1)
 
     # Optimization: cv2.countNonZero and cv2.mean are significantly faster than NumPy equivalents.
     if cv2.countNonZero(skin_mask) < 50:
@@ -229,13 +230,15 @@ def _hsv_skin_filter(img_bgr: np.ndarray, person_mask_u8: np.ndarray) -> np.ndar
     hsv_small = cv2.cvtColor(roi_small, cv2.COLOR_BGR2HSV, dst=roi_small)
     m1 = cv2.inRange(hsv_small, _SKIN_HSV_LOWER1, _SKIN_HSV_UPPER1)
     m2 = cv2.inRange(hsv_small, _SKIN_HSV_LOWER2, _SKIN_HSV_UPPER2)
-    skin_roi_small = cv2.bitwise_or(m1, m2)
+    # Optimization: In-place bitwise_or via dst parameter.
+    skin_roi_small = cv2.bitwise_or(m1, m2, dst=m1)
 
     # Upsample the skin mask back to original ROI size
     skin_roi = cv2.resize(skin_roi_small, (w_roi, h_roi), interpolation=cv2.INTER_NEAREST)
 
     # Intersection of skin and person in ROI
-    skin_roi = cv2.bitwise_and(skin_roi, roi_person_u8)
+    # Optimization: In-place bitwise_and via dst parameter.
+    skin_roi = cv2.bitwise_and(skin_roi, roi_person_u8, dst=skin_roi)
 
     full_skin_mask = np.zeros_like(person_mask_u8)
     full_skin_mask[rmin:rmax+1, cmin:cmax+1] = skin_roi
@@ -298,10 +301,13 @@ def _apply_lab_delta(
     # ~10x speedup with negligible impact on feathering quality.
     h_roi, w_roi = roi_mask_u8.shape[:2]
     mask_small = cv2.resize(roi_mask_u8, (0, 0), fx=0.25, fy=0.25, interpolation=cv2.INTER_LINEAR)
-    mask_small_blur = cv2.GaussianBlur(
+    # Optimization: In-place GaussianBlur via dst parameter.
+    cv2.GaussianBlur(
         mask_small, (0, 0),
         sigmaX=_MASK_FEATHER_SIGMA / 4.0, sigmaY=_MASK_FEATHER_SIGMA / 4.0,
+        dst=mask_small,
     )
+    mask_small_blur = mask_small
     # Optimization: Convert to f32 and scale on the downsampled mask.
     # cv2.resize on f32 is faster than full-res O(H*W) multiplication.
     mask_small_f32 = mask_small_blur.astype(np.float32)
