@@ -161,6 +161,20 @@ def render_parallax_frame(
     cx, cy = w / 2.0, h / 2.0
     inv_z = 1.0 / zoom
 
+    if dx_px == 0 and dy_px == 0:
+        # Optimization: When there is no camera translation (pure zoom), we can use the warpAffine
+        # fast path regardless of whether parallax is a scalar or an array. This completely
+        # bypasses coordinate map generation and cv2.remap.
+        M = np.float32([
+            [inv_z, 0, cx * (1.0 - inv_z)],
+            [0, inv_z, cy * (1.0 - inv_z)]
+        ])
+        return cv2.warpAffine(
+            img_bgr, M, (w, h),
+            flags=cv2.INTER_LINEAR + cv2.WARP_INVERSE_MAP,
+            borderMode=cv2.BORDER_REPLICATE,
+        )
+
     if isinstance(parallax, (float, int)):
         # Optimization: When parallax is scalar (depth_scale=0), we can use warpAffine
         # with the WARP_INVERSE_MAP flag. This is significantly faster (~4x) than
@@ -190,13 +204,19 @@ def render_parallax_frame(
     # to minimize intermediate O(H*W) buffer allocations and memory bandwidth.
     # Mathematically, zoomed coordinate is: (centered_coord * inv_z) + center
 
-    # Optimization: Use in-place addition to reuse the (H, W) buffer from multiplication.
-    # This reduces large float32 allocations from 4 down to 2 per frame.
-    src_x = parallax * (-dx_px)
-    src_x += (xs_centered * inv_z + cx)
+    # Optimization: When one axis shift is zero, use np.broadcast_to to create
+    # the coordinate map in O(1) time and space, bypassing large-array float multiplication.
+    if dx_px == 0:
+        src_x = np.broadcast_to(xs_centered * inv_z + cx, (h, w))
+    else:
+        src_x = parallax * (-dx_px)
+        src_x += (xs_centered * inv_z + cx)
 
-    src_y = parallax * (-dy_px)
-    src_y += (ys_centered.reshape(-1, 1) * inv_z + cy)
+    if dy_px == 0:
+        src_y = np.broadcast_to(ys_centered.reshape(-1, 1) * inv_z + cy, (h, w))
+    else:
+        src_y = parallax * (-dy_px)
+        src_y += (ys_centered.reshape(-1, 1) * inv_z + cy)
 
     # Note: cv2.convertMaps(..., cv2.CV_16SC2) was removed; although it speeds up
     # remap(), the overhead of conversion exceeds the gain when maps change every frame.

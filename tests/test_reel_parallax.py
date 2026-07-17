@@ -74,9 +74,40 @@ def test_render_parallax_frame_correctness():
 
     print("Correctness test passed.")
 
+
+def test_render_parallax_frame_axis_optimizations():
+    np.random.seed(42)
+    h, w = 128, 64  # Small size for quick test
+    img = np.random.randint(0, 256, (h, w, 3), dtype=np.uint8)
+    depth = np.random.rand(h, w).astype(np.float32)
+
+    zoom = 1.05
+    depth_scale = 0.3
+    parallax = (1.0 - depth_scale) + depth_scale * depth
+
+    # Case 1: dx_px == 0 and dy_px == 0
+    dx_px, dy_px = 0.0, 0.0
+    opt_out = render_parallax_frame(img, parallax, zoom, dx_px, dy_px)
+    ref_out = render_parallax_frame_reference(img, depth, zoom, dx_px, dy_px, depth_scale)
+    assert np.max(np.abs(opt_out.astype(np.float32) - ref_out.astype(np.float32))) < 5
+
+    # Case 2: dx_px == 0 but dy_px != 0
+    dx_px, dy_px = 0.0, 3.0
+    opt_out = render_parallax_frame(img, parallax, zoom, dx_px, dy_px)
+    ref_out = render_parallax_frame_reference(img, depth, zoom, dx_px, dy_px, depth_scale)
+    assert np.max(np.abs(opt_out.astype(np.float32) - ref_out.astype(np.float32))) < 5
+
+    # Case 3: dx_px != 0 but dy_px == 0
+    dx_px, dy_px = 3.0, 0.0
+    opt_out = render_parallax_frame(img, parallax, zoom, dx_px, dy_px)
+    ref_out = render_parallax_frame_reference(img, depth, zoom, dx_px, dy_px, depth_scale)
+    assert np.max(np.abs(opt_out.astype(np.float32) - ref_out.astype(np.float32))) < 5
+
+
 if __name__ == "__main__":
     try:
         test_render_parallax_frame_correctness()
+        test_render_parallax_frame_axis_optimizations()
     except Exception as e:
         import traceback
         traceback.print_exc()
