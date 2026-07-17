@@ -259,3 +259,7 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 ## 2026-07-13 - Optimized Depth Estimation Pipeline in Parallax Reels
 **Learning:** Upsampling a tensor to full resolution on the GPU before transferring it to the CPU is wasteful when the subsequent CPU operation (e.g., smoothing) starts with a downsampling step.
 **Action:** Perform direct low-res upsampling on the GPU to match the smoothing ROI size. This reduces GPU-to-CPU transfer bandwidth by 16x (for 4x downsampling) and eliminates redundant up/down cycles, yielding a ~1.75x speedup for the depth estimation stage.
+
+## 2026-07-20 - Parallax Axis-Aware Warp Bypasses and O(1) Broadcasting
+**Learning:** When camera translations are zero on one or both axes during 2.5D parallax rendering, generating full 2D coordinate maps for `cv2.remap` is highly wasteful. If both translations are zero, the operation is a pure zoom, making it mathematically identical to `cv2.warpAffine` which is ~2.5x faster. If only one translation is zero, we can use `np.broadcast_to` on 1D coordinate vectors to create the zero-shift coordinate map in O(1) time and memory, avoiding expensive array multiplications.
+**Action:** Detect zero camera translations (`dx_px`, `dy_px`) in `render_parallax_frame`. Use the `cv2.warpAffine` fast-path for pure zoom (`dx_px == 0 and dy_px == 0`), and use `np.broadcast_to` to construct static coordinate axes on the zero-shift axis.
