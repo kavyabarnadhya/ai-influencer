@@ -1,0 +1,35 @@
+# Anchor: tropical floral off-shoulder puff-sleeve corset mini dress, stone waterfront pier, deep blue sea BG.
+# Structured boned bodice, off-shoulder wide sweetheart neckline, flared gathered mini skirt.
+# Used with: --flux-dev --kontext flags (MANDATORY — do not run without these)
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/floral_puff_corset_waterfront.yaml --prompts character/ananya/carousel_prompts/floral_puff_corset_waterfront.txt --name floral_puff_corset_waterfront_vN --flux-dev --kontext
+
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
+lens_profile: editorial
+
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure,
+  moderate hourglass with waist visibly narrower than hips and bust, NOT heavy NOT thick thighs NOT wide hips,
+  slim-to-average toned build with a defined waist, healthy proportionate Indian woman build,
+  NOT slim editorial NOT model-thin NOT plus-size NOT oversized NOT curvy NOT thick,
+  natural proportionate build like a real everyday woman, legs and thighs toned and slender not thick not heavy,
+  long dark brown hair NOT auburn NOT blonde NOT highlighted, hair worn long and loose with soft waves past the shoulders,
+  wearing a structured fitted corset bodice with visible vertical boning seam lines running from bust to waist, wide sweetheart off-shoulder neckline exposing shoulders,
+  large rounded balloon-shaped puff sleeves ballooning outward from the arm, gathered into a tight elastic cuff band at the bicep, sleeve fabric puffed and rounded NOT fitted NOT tight to the arm, sitting below the shoulder line not on top of it,
+  tropical floral print with purple lilac green and white flowers on a cream base fabric covering the entire dress,
+  skirt flares outward from the waist into a full round shape with visible gathered fullness and volume, NOT bodycon NOT pencil-skirt NOT tight-fitting NOT hugging the hips, flared mini skirt with a longer hemline ending at the middle of her thigh, the hemline stops exactly at mid-thigh covering more than half the thigh, NOT a short romper length NOT upper-thigh length NOT floor length NOT a maxi dress NOT ankle length,
+  bare shoulders bare arms bare legs,
+  no visible jewelry, clean bare neckline,
+  standing with weight shifted onto one hip, body angled three-quarter toward camera near the edge of a stone pier,
+  one hand raised gently near her own hair, fingers softly tangled in her loose dark waves, elbow bent and raised away from her body, NO hand anywhere near her waist NO hand near her hip NO hand near the hem,
+  other arm relaxed and slightly away from the body, hand open and relaxed,
+  standing on a rough weathered stone pier surface at the water's edge,
+  deep blue sea water filling the background behind her, distant horizon line,
+  harsh outdoor sunlight casting hard-edged shadows, strong directional side light,
+  clean weathered stone underfoot, no visible dirt no clutter,
+  full-body environmental portrait, subject framed center occupying the central two-thirds of the vertical frame,
+  full legs and stone surface visible at bottom of frame, headroom above her head,
+  both arms hands and elbows fully contained within frame edges,
+  authentic skin texture with visible pores, natural skin imperfections, no plasticky skin,
+  asymmetric facial features, slightly off-center composition, candid moment not posed

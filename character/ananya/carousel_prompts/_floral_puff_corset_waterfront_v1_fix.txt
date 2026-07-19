@@ -1,0 +1,12 @@
+# Delta-only fix: floral_puff_corset_waterfront — slide_06 shipped without faceswap (visible profile face never went through ReActor identity lock) + slide_08 shipped a hallucinated hand prop and a visible chin sliver (violates NO hands/NO prop, head-out-of-frame rule).
+# Anchor YAML: character/ananya/anchor_libraries/floral_puff_corset_waterfront.yaml
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/floral_puff_corset_waterfront.yaml --prompts character/ananya/carousel_prompts/_floral_puff_corset_waterfront_v1_fix.txt --name floral_puff_corset_waterfront_v1_fix --flux-dev --kontext --ultra
+#
+# fix/slide_00 -> target slide_06 (side profile, faceswap corrected to ON)
+# fix/slide_01 -> target slide_08 (detail crop, NO hands NO prop, head further out of frame)
+
+# fix_00: strict side profile facing the sea, chin up — faceswap ON (face is visible in profile)
+anchor=default | cands=2 | same woman in same structured fitted corset bodice with visible vertical boning and wide sweetheart off-shoulder neckline, large voluminous puff sleeves gathered at the upper arms, tropical floral print with purple lilac green and white flowers, standing in strict side profile facing the sea, face in profile toward the horizon not at camera, chin lifted slightly, both hands resting lightly on the stone ledge in front of her, deep blue sea water filling the frame ahead of her, harsh outdoor sunlight, rough weathered stone pier surface, long dark brown loose wavy hair, full body, keeping exact same floral corset bodice with off-shoulder puff sleeves
+
+# fix_01: detail crop, chest to waist only, NO hands NO arms in frame, head fully out
+anchor=default | faceswap=false | cands=3 | tight cropped fashion detail shot framed from well below the chin down to the waist only, the entire head chin and neck completely OUT of frame above, absolutely NO face NO chin NO neck visible anywhere in frame, showing only the structured fitted corset bodice with visible vertical boning and wide sweetheart off-shoulder neckline in sharp detail, tropical floral print with purple lilac green and white flowers in crisp detail, completely NO hands NO arms NO fingers NO prop NO object visible anywhere in frame, only the bodice and shoulders visible, deep blue sea softly blurred behind, harsh outdoor sunlight, editorial single-garment detail shot
