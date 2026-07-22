@@ -1,3 +1,4 @@
+import functools
 import os
 import re
 import shutil
@@ -59,6 +60,7 @@ FLUX_CAPTION_TEMPLATE = (
 )
 
 
+@functools.lru_cache(maxsize=1)
 def load_config() -> dict:
     with open(ROOT / "config.yaml", "r") as f:
         return yaml.safe_load(f)
@@ -201,8 +203,33 @@ def validate_sdxl(cfg: dict, char_cfg: dict) -> bool:
 def validate_flux(cfg: dict, char_cfg: dict) -> bool:
     training_dir = get_training_data_dir(char_cfg)
     trigger = char_cfg["trigger_word"]
-    images = get_flux_images(training_dir)
-    unsupported = get_unsupported_images(training_dir)
+
+    # Performance Optimization: Single-pass directory scan using os.scandir()
+    # 1. Combines supported (flux) and unsupported image checks to avoid redundant directory scanning.
+    # 2. Gathers existing caption (.txt) filenames into a set for O(1) in-memory lookups,
+    #    completely eliminating expensive stat/exists system calls for every image.
+    supported_exts = tuple(e.lower() for e in SUPPORTED_IMAGE_EXTENSIONS)
+    unsupported_exts = tuple(e.lower() for e in UNSUPPORTED_IMAGE_EXTENSIONS)
+
+    images = []
+    unsupported = []
+    existing_captions = set()
+
+    if training_dir.exists():
+        with os.scandir(training_dir) as it:
+            for entry in it:
+                if entry.is_file():
+                    name_low = entry.name.lower()
+                    if name_low.endswith(supported_exts):
+                        images.append(Path(entry.path))
+                    elif name_low.endswith(unsupported_exts):
+                        unsupported.append(Path(entry.path))
+                    elif name_low.endswith(".txt"):
+                        existing_captions.add(entry.name)
+
+    images.sort()
+    unsupported.sort()
+
     duplicate_keys = [
         key
         for key, count in Counter(normalize_duplicate_key(path) for path in images).items()
@@ -243,7 +270,12 @@ def validate_flux(cfg: dict, char_cfg: dict) -> bool:
         ", ".join(duplicate_keys) or "none",
     )
 
-    missing_captions = [img.name for img in images if not img.with_suffix(".txt").exists()]
+    # Optimization: Use O(1) set membership check instead of cap_path.exists() stat call
+    # Use fast string rsplit to avoid the slow Path.with_suffix() object creation
+    missing_captions = [
+        img.name for img in images
+        if (img.name.rsplit(".", 1)[0] + ".txt") not in existing_captions
+    ]
     missing_ok = not missing_captions
     if not missing_ok:
         all_ok = False
@@ -257,9 +289,11 @@ def validate_flux(cfg: dict, char_cfg: dict) -> bool:
     forbidden_terms = []
     unreadable = []
     for img in images:
-        cap_path = img.with_suffix(".txt")
-        if not cap_path.exists():
+        cap_name = img.name.rsplit(".", 1)[0] + ".txt"
+        # Optimization: Use O(1) set membership check instead of cap_path.exists() stat call
+        if cap_name not in existing_captions:
             continue
+        cap_path = img.with_suffix(".txt")
         try:
             caption = cap_path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
