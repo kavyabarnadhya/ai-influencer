@@ -158,16 +158,24 @@ def main(input_dir: str, mode: str, overwrite: bool):
             console.print(f"[red]Failed to load Florence-2: {e}[/red]")
             raise SystemExit(1)
 
+    existing_captions = set()
+    if input_path.exists():
+        with os.scandir(input_path) as it:
+            for entry in it:
+                if entry.is_file() and entry.name.lower().endswith(".txt"):
+                    existing_captions.add(entry.name)
+
     skipped = 0
     written = 0
     for img_path in images:
-        txt_path = img_path.with_suffix(".txt")
-        if txt_path.exists() and not overwrite:
-            console.print(f"  [dim]Skip (exists): {txt_path.name}[/dim]")
+        txt_name = img_path.name.rsplit(".", 1)[0] + ".txt"
+        if txt_name in existing_captions and not overwrite:
+            console.print(f"  [dim]Skip (exists): {txt_name}[/dim]")
             skipped += 1
             continue
 
-        console.print(f"  {img_path.name} -> {txt_path.name}")
+        txt_path = input_path / txt_name
+        console.print(f"  {img_path.name} -> {txt_name}")
 
         if mode == "stub":
             caption = f"{TRIGGER}, [FILL IN]\n\n{CAPTION_TEMPLATE_REMINDER}"
