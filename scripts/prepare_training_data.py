@@ -163,8 +163,23 @@ def validate_sdxl(cfg: dict, char_cfg: dict) -> bool:
 
     all_ok = True
     for mode in MODES:
+        mode_dir = seeds_dir / mode
         images = get_seed_images(seeds_dir, mode)
-        captions = [img.with_suffix(".txt") for img in images if img.with_suffix(".txt").exists()]
+
+        # Performance Optimization: Single-pass scan of mode_dir to get captions.
+        # This avoids executing many exists() system calls and with_suffix() object creations.
+        existing_captions = set()
+        if mode_dir.exists():
+            with os.scandir(mode_dir) as it:
+                for entry in it:
+                    if entry.is_file() and entry.name.lower().endswith(".txt"):
+                        existing_captions.add(entry.name)
+
+        captions = []
+        for img in images:
+            cap_name = img.name.rsplit(".", 1)[0] + ".txt"
+            if cap_name in existing_captions:
+                captions.append(mode_dir / cap_name)
 
         img_count = len(images)
         cap_count = len(captions)
@@ -293,7 +308,8 @@ def validate_flux(cfg: dict, char_cfg: dict) -> bool:
         # Optimization: Use O(1) set membership check instead of cap_path.exists() stat call
         if cap_name not in existing_captions:
             continue
-        cap_path = img.with_suffix(".txt")
+        # Performance Optimization: Avoid slow Path.with_suffix() object creation
+        cap_path = training_dir / cap_name
         try:
             caption = cap_path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
@@ -351,9 +367,18 @@ def generate_sdxl_captions(cfg: dict, char_cfg: dict) -> None:
     base_without_trigger = base_prompt.replace(f"{trigger}, ", "").replace(trigger, "").strip().strip(",").strip()
 
     for mode in MODES:
+        mode_dir = seeds_dir / mode
         images = get_seed_images(seeds_dir, mode)
         if not images:
             continue
+
+        # Performance Optimization: Single-pass scan to find existing captions to avoid exists() in loop
+        existing_captions = set()
+        if mode_dir.exists():
+            with os.scandir(mode_dir) as it:
+                for entry in it:
+                    if entry.is_file() and entry.name.lower().endswith(".txt"):
+                        existing_captions.add(entry.name)
 
         for img_path in images:
             with Image.open(img_path) as im:
@@ -362,11 +387,12 @@ def generate_sdxl_captions(cfg: dict, char_cfg: dict) -> None:
                     resized.save(img_path, "PNG")
                     console.print(f"[dim]Resized {img_path.name} to 1024x1024[/dim]")
 
-            cap_path = img_path.with_suffix(".txt")
-            if cap_path.exists():
+            cap_name = img_path.name.rsplit(".", 1)[0] + ".txt"
+            if cap_name in existing_captions:
                 console.print(f"[dim]Skipping caption for {img_path.name} (already exists)[/dim]")
                 continue
 
+            cap_path = mode_dir / cap_name
             mode_prefix = MODE_CAPTION_PREFIX[mode]
             caption = f"{mode_prefix}, {base_without_trigger}, neutral background, studio lighting, natural pose"
             cap_path.write_text(caption, encoding="utf-8")
@@ -403,13 +429,22 @@ def generate_flux_captions(cfg: dict, char_cfg: dict) -> None:
         console.print(f"[red]No supported images found in {training_dir}[/red]")
         raise SystemExit(1)
 
+    # Performance Optimization: Single-pass scan to find existing captions to avoid exists() in loop
+    existing_captions = set()
+    if training_dir.exists():
+        with os.scandir(training_dir) as it:
+            for entry in it:
+                if entry.is_file() and entry.name.lower().endswith(".txt"):
+                    existing_captions.add(entry.name)
+
     trigger = char_cfg["trigger_word"]
     for img_path in images:
-        cap_path = img_path.with_suffix(".txt")
-        if cap_path.exists():
+        cap_name = img_path.name.rsplit(".", 1)[0] + ".txt"
+        if cap_name in existing_captions:
             console.print(f"[dim]Skipping caption for {img_path.name} (already exists)[/dim]")
             continue
 
+        cap_path = training_dir / cap_name
         caption = FLUX_CAPTION_TEMPLATE.format(
             shot_type=infer_flux_shot_type(img_path),
             trigger=trigger,
@@ -429,12 +464,23 @@ def zip_sdxl_dataset(cfg: dict, char_cfg: dict, character: str) -> None:
 
     all_images = []
     for mode in MODES:
+        mode_dir = seeds_dir / mode
         images = get_seed_images(seeds_dir, mode)
+
+        # Performance Optimization: Gather existing captions in a single pass to avoid exists() in loop
+        existing_captions = set()
+        if mode_dir.exists():
+            with os.scandir(mode_dir) as it:
+                for entry in it:
+                    if entry.is_file() and entry.name.lower().endswith(".txt"):
+                        existing_captions.add(entry.name)
+
         for img in images:
-            cap = img.with_suffix(".txt")
-            if not cap.exists():
+            cap_name = img.name.rsplit(".", 1)[0] + ".txt"
+            if cap_name not in existing_captions:
                 console.print(f"[red]Missing caption for {img.name} - run --caption-style sdxl first[/red]")
                 raise SystemExit(1)
+            cap = mode_dir / cap_name
             all_images.append((img, cap))
 
     if not all_images:
@@ -516,14 +562,29 @@ def zip_flux_dataset(cfg: dict, char_cfg: dict, character: str) -> None:
         raise SystemExit(1)
 
     output_zip = ROOT / f"training_data_{character}_flux.zip"
-    missing = [img.name for img in images if not img.with_suffix(".txt").exists()]
+
+    # Performance Optimization: Single-pass scan to find existing captions to avoid exists() in loop
+    existing_captions = set()
+    if training_dir.exists():
+        with os.scandir(training_dir) as it:
+            for entry in it:
+                if entry.is_file() and entry.name.lower().endswith(".txt"):
+                    existing_captions.add(entry.name)
+
+    missing = []
+    for img in images:
+        cap_name = img.name.rsplit(".", 1)[0] + ".txt"
+        if cap_name not in existing_captions:
+            missing.append(img.name)
+
     if missing:
         console.print(f"[red]Missing captions: {', '.join(missing[:8])}[/red]")
         raise SystemExit(1)
 
     with zipfile.ZipFile(output_zip, "w", zipfile.ZIP_DEFLATED) as zf:
         for img_path in images:
-            cap_path = img_path.with_suffix(".txt")
+            cap_name = img_path.name.rsplit(".", 1)[0] + ".txt"
+            cap_path = training_dir / cap_name
             zf.write(img_path, f"training_images/{img_path.name}")
             zf.write(cap_path, f"training_images/{cap_path.name}")
         write_flux_ai_toolkit_config(zf, char_cfg)
