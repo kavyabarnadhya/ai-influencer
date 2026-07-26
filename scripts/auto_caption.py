@@ -116,13 +116,21 @@ def main(input_dir: str, mode: str, overwrite: bool):
     """Auto-generate first-pass captions for v2 seed images."""
 
     input_path = Path(input_dir)
-    # Optimization: os.scandir is faster than Path.iterdir in large directories
+    # Optimization: Single-pass os.scandir to find both images and captions
+    # This completely avoids scanning the directory twice.
+    images = []
+    existing_captions = set()
     exts = tuple(e.lower() for e in SUPPORTED_EXTS)
-    with os.scandir(input_path) as it:
-        images = sorted([
-            Path(entry.path) for entry in it
-            if entry.is_file() and entry.name.lower().endswith(exts)
-        ])
+    if input_path.exists():
+        with os.scandir(input_path) as it:
+            for entry in it:
+                if entry.is_file():
+                    name_low = entry.name.lower()
+                    if name_low.endswith(exts):
+                        images.append(Path(entry.path))
+                    elif name_low.endswith(".txt"):
+                        existing_captions.add(entry.name)
+    images.sort()
 
     if not images:
         console.print(f"[red]No images in {input_path}[/red]")
@@ -157,13 +165,6 @@ def main(input_dir: str, mode: str, overwrite: bool):
         except Exception as e:
             console.print(f"[red]Failed to load Florence-2: {e}[/red]")
             raise SystemExit(1)
-
-    existing_captions = set()
-    if input_path.exists():
-        with os.scandir(input_path) as it:
-            for entry in it:
-                if entry.is_file() and entry.name.lower().endswith(".txt"):
-                    existing_captions.add(entry.name)
 
     skipped = 0
     written = 0

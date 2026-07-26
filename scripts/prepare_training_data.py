@@ -164,16 +164,21 @@ def validate_sdxl(cfg: dict, char_cfg: dict) -> bool:
     all_ok = True
     for mode in MODES:
         mode_dir = seeds_dir / mode
-        images = get_seed_images(seeds_dir, mode)
 
-        # Performance Optimization: Single-pass scan of mode_dir to get captions.
-        # This avoids executing many exists() system calls and with_suffix() object creations.
+        # Performance Optimization: Single-pass scan to find both images and captions
+        # This completely avoids scanning the directory twice.
+        images = []
         existing_captions = set()
         if mode_dir.exists():
             with os.scandir(mode_dir) as it:
                 for entry in it:
-                    if entry.is_file() and entry.name.lower().endswith(".txt"):
-                        existing_captions.add(entry.name)
+                    if entry.is_file():
+                        name_low = entry.name.lower()
+                        if name_low.endswith(".png"):
+                            images.append(Path(entry.path))
+                        elif name_low.endswith(".txt"):
+                            existing_captions.add(entry.name)
+        images.sort()
 
         captions = []
         for img in images:
@@ -368,17 +373,23 @@ def generate_sdxl_captions(cfg: dict, char_cfg: dict) -> None:
 
     for mode in MODES:
         mode_dir = seeds_dir / mode
-        images = get_seed_images(seeds_dir, mode)
-        if not images:
-            continue
 
-        # Performance Optimization: Single-pass scan to find existing captions to avoid exists() in loop
+        # Performance Optimization: Single-pass scan to find both images and captions
+        # This completely avoids scanning the directory twice.
+        images = []
         existing_captions = set()
         if mode_dir.exists():
             with os.scandir(mode_dir) as it:
                 for entry in it:
-                    if entry.is_file() and entry.name.lower().endswith(".txt"):
-                        existing_captions.add(entry.name)
+                    if entry.is_file():
+                        name_low = entry.name.lower()
+                        if name_low.endswith(".png"):
+                            images.append(Path(entry.path))
+                        elif name_low.endswith(".txt"):
+                            existing_captions.add(entry.name)
+        images.sort()
+        if not images:
+            continue
 
         for img_path in images:
             with Image.open(img_path) as im:
@@ -424,18 +435,26 @@ def infer_flux_shot_type(img_path: Path) -> str:
 
 def generate_flux_captions(cfg: dict, char_cfg: dict) -> None:
     training_dir = get_training_data_dir(char_cfg)
-    images = get_flux_images(training_dir)
-    if not images:
-        console.print(f"[red]No supported images found in {training_dir}[/red]")
-        raise SystemExit(1)
 
-    # Performance Optimization: Single-pass scan to find existing captions to avoid exists() in loop
+    # Performance Optimization: Single-pass scan to find both images and captions
+    # This completely avoids scanning the directory twice.
+    images = []
     existing_captions = set()
+    supported_exts = tuple(e.lower() for e in SUPPORTED_IMAGE_EXTENSIONS)
     if training_dir.exists():
         with os.scandir(training_dir) as it:
             for entry in it:
-                if entry.is_file() and entry.name.lower().endswith(".txt"):
-                    existing_captions.add(entry.name)
+                if entry.is_file():
+                    name_low = entry.name.lower()
+                    if name_low.endswith(supported_exts):
+                        images.append(Path(entry.path))
+                    elif name_low.endswith(".txt"):
+                        existing_captions.add(entry.name)
+    images.sort()
+
+    if not images:
+        console.print(f"[red]No supported images found in {training_dir}[/red]")
+        raise SystemExit(1)
 
     trigger = char_cfg["trigger_word"]
     for img_path in images:
@@ -465,15 +484,21 @@ def zip_sdxl_dataset(cfg: dict, char_cfg: dict, character: str) -> None:
     all_images = []
     for mode in MODES:
         mode_dir = seeds_dir / mode
-        images = get_seed_images(seeds_dir, mode)
 
-        # Performance Optimization: Gather existing captions in a single pass to avoid exists() in loop
+        # Performance Optimization: Single-pass scan to find both images and captions
+        # This completely avoids scanning the directory twice.
+        images = []
         existing_captions = set()
         if mode_dir.exists():
             with os.scandir(mode_dir) as it:
                 for entry in it:
-                    if entry.is_file() and entry.name.lower().endswith(".txt"):
-                        existing_captions.add(entry.name)
+                    if entry.is_file():
+                        name_low = entry.name.lower()
+                        if name_low.endswith(".png"):
+                            images.append(Path(entry.path))
+                        elif name_low.endswith(".txt"):
+                            existing_captions.add(entry.name)
+        images.sort()
 
         for img in images:
             cap_name = img.name.rsplit(".", 1)[0] + ".txt"
@@ -556,20 +581,28 @@ meta:
 
 def zip_flux_dataset(cfg: dict, char_cfg: dict, character: str) -> None:
     training_dir = get_training_data_dir(char_cfg)
-    images = get_flux_images(training_dir)
+
+    # Performance Optimization: Single-pass scan to find both images and captions
+    # This completely avoids scanning the directory twice.
+    images = []
+    existing_captions = set()
+    supported_exts = tuple(e.lower() for e in SUPPORTED_IMAGE_EXTENSIONS)
+    if training_dir.exists():
+        with os.scandir(training_dir) as it:
+            for entry in it:
+                if entry.is_file():
+                    name_low = entry.name.lower()
+                    if name_low.endswith(supported_exts):
+                        images.append(Path(entry.path))
+                    elif name_low.endswith(".txt"):
+                        existing_captions.add(entry.name)
+    images.sort()
+
     if not images:
         console.print(f"[red]No supported images found in {training_dir}[/red]")
         raise SystemExit(1)
 
     output_zip = ROOT / f"training_data_{character}_flux.zip"
-
-    # Performance Optimization: Single-pass scan to find existing captions to avoid exists() in loop
-    existing_captions = set()
-    if training_dir.exists():
-        with os.scandir(training_dir) as it:
-            for entry in it:
-                if entry.is_file() and entry.name.lower().endswith(".txt"):
-                    existing_captions.add(entry.name)
 
     missing = []
     for img in images:
