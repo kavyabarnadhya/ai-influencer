@@ -106,9 +106,9 @@ def _sample_face_skin_lab_cached(face_ref_str: str, mtime_ns: int) -> tuple[floa
 
 
 def _bgr_to_lab(bgr: np.ndarray) -> np.ndarray:
-    # Optimization: In-place multiplication on f32 cast saves an O(H*W) allocation.
-    f32 = bgr.astype(np.float32)
-    f32 *= np.float32(1.0 / 255.0)
+    # Optimization: Single-pass cast and multiply via np.multiply with dtype=np.float32.
+    # This avoids intermediate array allocations and performs the operation in a single C-loop.
+    f32 = np.multiply(bgr, np.float32(1.0 / 255.0), dtype=np.float32)
     # Optimization: In-place cvtColor via dst parameter (approx 2x faster).
     return cv2.cvtColor(f32, cv2.COLOR_BGR2Lab, dst=f32)
 
@@ -310,8 +310,9 @@ def _apply_lab_delta(
     mask_small_blur = mask_small
     # Optimization: Convert to f32 and scale on the downsampled mask.
     # cv2.resize on f32 is faster than full-res O(H*W) multiplication.
-    mask_small_f32 = mask_small_blur.astype(np.float32)
-    mask_small_f32 *= np.float32(1.0 / 255.0)
+    # Optimization: Single-pass cast and multiply via np.multiply with dtype=np.float32.
+    # This avoids intermediate array allocations and performs the operation in a single C-loop.
+    mask_small_f32 = np.multiply(mask_small_blur, np.float32(1.0 / 255.0), dtype=np.float32)
     alpha_2d = cv2.resize(mask_small_f32, (w_roi, h_roi), interpolation=cv2.INTER_LINEAR)
 
     # Optimization: Use per-channel in-place additions with 1D alpha.
