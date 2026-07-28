@@ -75,19 +75,6 @@ def load_character(cfg: dict, character: str) -> dict:
     return chars[character]
 
 
-def get_seed_images(seeds_dir: Path, mode: str) -> list[Path]:
-    mode_dir = seeds_dir / mode
-    if not mode_dir.exists():
-        return []
-    # Optimization: os.scandir is faster than Path.iterdir in large directories
-    with os.scandir(mode_dir) as it:
-        return sorted(
-            Path(entry.path)
-            for entry in it
-            if entry.name.lower().endswith(".png")
-        )
-
-
 def get_training_data_dir(char_cfg: dict) -> Path:
     configured = char_cfg.get("training_data_dir")
     if configured:
@@ -162,6 +149,7 @@ def validate_sdxl(cfg: dict, char_cfg: dict) -> bool:
     table.add_column("Status")
 
     all_ok = True
+    total_images = 0
     for mode in MODES:
         mode_dir = seeds_dir / mode
 
@@ -187,6 +175,7 @@ def validate_sdxl(cfg: dict, char_cfg: dict) -> bool:
                 captions.append(mode_dir / cap_name)
 
         img_count = len(images)
+        total_images += img_count
         cap_count = len(captions)
         missing_caps = img_count - cap_count
         size_issues = []
@@ -215,8 +204,7 @@ def validate_sdxl(cfg: dict, char_cfg: dict) -> bool:
         table.add_row(mode, str(img_count), str(cap_count), status)
 
     console.print(table)
-    total = sum(len(get_seed_images(seeds_dir, m)) for m in MODES)
-    console.print(f"Total images: {total} (target: {MIN_IMAGES_PER_MODE * len(MODES)}+)")
+    console.print(f"Total images: {total_images} (target: {MIN_IMAGES_PER_MODE * len(MODES)}+)")
     return all_ok
 
 
