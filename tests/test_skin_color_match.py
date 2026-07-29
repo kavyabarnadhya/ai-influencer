@@ -123,3 +123,42 @@ def test_face_exclusion_removed():
         "face-inclusion: _face_exclusion_mask must stay removed"
     assert not hasattr(scm, "_FACE_EXCLUSION_DILATE"), \
         "face-inclusion: _FACE_EXCLUSION_DILATE must stay removed"
+
+
+def test_detect_face_bbox_cached(tmp_path, monkeypatch):
+    # Setup dummy face reference image
+    img_path = tmp_path / "test_ref.png"
+    dummy_img = np.zeros((100, 100, 3), dtype=np.uint8)
+    cv2.imwrite(str(img_path), dummy_img)
+
+    # Mock face bbox detector and count calls
+    detect_calls = 0
+    def mock_detect(img):
+        nonlocal detect_calls
+        detect_calls += 1
+        return (10, 20, 80, 90)
+
+    monkeypatch.setattr(scm, "_detect_face_bbox", mock_detect)
+
+    # 1. First call: Cache miss, detector should be called once, JSON sidecar should be created
+    bbox1 = scm._detect_face_bbox_cached(img_path)
+    assert bbox1 == (10, 20, 80, 90)
+    assert detect_calls == 1
+
+    cache_path = tmp_path / "test_ref.png.face_bbox.json"
+    assert cache_path.exists()
+
+    # 2. Second call: Cache hit, loads from file, detector should NOT be called again
+    bbox2 = scm._detect_face_bbox_cached(img_path)
+    assert bbox2 == (10, 20, 80, 90)
+    assert detect_calls == 1
+
+    # 3. Third call after modifying modification time (cache invalidation)
+    import os
+    import time
+    stat = img_path.stat()
+    os.utime(img_path, (stat.st_atime, stat.st_mtime + 5))
+
+    bbox3 = scm._detect_face_bbox_cached(img_path)
+    assert bbox3 == (10, 20, 80, 90)
+    assert detect_calls == 2
