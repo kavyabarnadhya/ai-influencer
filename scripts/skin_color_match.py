@@ -16,6 +16,7 @@ Standalone smoke test:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from functools import lru_cache
@@ -158,13 +159,66 @@ def _sample_cheek_lab_from_bgr(
     return float(L), float(a), float(b)
 
 
+def _detect_face_bbox_cached(face_ref_path: Path) -> tuple[int, int, int, int] | None:
+    """
+    Load face bbox from a sidecar cache file if valid, otherwise perform YOLO
+    face detection and save it to the sidecar cache.
+    This bypasses loading and running the YOLO face detection model face_yolov8m.pt
+    on subsequent runs, saving ~300ms of cold-start latency.
+    """
+    ref_str = os.path.realpath(face_ref_path)
+    try:
+        stat = os.stat(ref_str)
+        mtime_ns = stat.st_mtime_ns
+        size = stat.st_size
+    except OSError:
+        # Fall back to standard detection if the file can't be stat'd
+        bgr = cv2.imread(ref_str)
+        if bgr is None:
+            return None
+        return _detect_face_bbox(bgr)
+
+    # Use a sidecar cache file next to the image
+    cache_path = face_ref_path.with_name(face_ref_path.name + ".face_bbox.json")
+    if cache_path.exists():
+        try:
+            with open(cache_path, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+            if data.get("mtime_ns") == mtime_ns and data.get("size") == size:
+                bbox_val = data.get("bbox")
+                return tuple(bbox_val) if bbox_val is not None else None
+        except Exception:
+            pass
+
+    # Cache miss / invalid cache -> detect
+    bgr = cv2.imread(ref_str)
+    if bgr is None:
+        return None
+    bbox = _detect_face_bbox(bgr)
+
+    # Write to sidecar cache
+    try:
+        bbox_val = list(bbox) if bbox is not None else None
+        cache_data = {
+            "mtime_ns": mtime_ns,
+            "size": size,
+            "bbox": bbox_val
+        }
+        with open(cache_path, "w", encoding="utf-8") as fh:
+            json.dump(cache_data, fh, indent=2)
+    except Exception:
+        pass
+
+    return bbox
+
+
 def _sample_face_skin_lab(face_ref_path: Path) -> tuple[float, float, float]:
     """Sample target skin tone from lower-cheek ROI of face_ref (avoids eyes/lips/hair)."""
     bgr = cv2.imread(str(face_ref_path))
     if bgr is None:
         raise FileNotFoundError(f"face_ref not found: {face_ref_path}")
 
-    bbox = _detect_face_bbox(bgr)
+    bbox = _detect_face_bbox_cached(face_ref_path)
     return _sample_cheek_lab_from_bgr(bgr, bbox)
 
 
