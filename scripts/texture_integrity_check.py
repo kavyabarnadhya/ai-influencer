@@ -50,7 +50,7 @@ def _get_unshifted_low_freq_mask(h: int, w: int, r_inner: int) -> np.ndarray:
     return (mask.astype(np.uint8) * 255)
 
 
-def compute_texture_score(image_path: Path) -> dict:
+def compute_texture_score(image_path: str | Path) -> dict:
     """
     Returns texture metrics for a single image.
 
@@ -68,6 +68,7 @@ def compute_texture_score(image_path: Path) -> dict:
     """
     try:
         # Optimization: Read directly as grayscale to skip color space conversion.
+        # accepts both str and Path.
         gray = cv2.imread(str(image_path), cv2.IMREAD_GRAYSCALE)
         if gray is None:
             raise ValueError(f"Could not read image at {image_path}")
@@ -145,11 +146,11 @@ def main(input_dir: str, threshold: float, face_threshold: float,
 
     input_path = Path(input_dir)
     # Optimization: os.scandir() is significantly faster than Path.iterdir() for high-volume
-    # file discovery by avoiding redundant Path object allocations and suffix checks.
+    # file discovery by tracking raw string paths and avoiding redundant Path object allocations.
     exts = tuple(e.lower() for e in SUPPORTED_EXTS)
     with os.scandir(input_path) as it:
         images = sorted([
-            Path(entry.path) for entry in it
+            entry.path for entry in it
             if entry.is_file() and entry.name.lower().endswith(exts)
         ])
 
@@ -189,8 +190,10 @@ def main(input_dir: str, threshold: float, face_threshold: float,
             if metrics["face_region_var"] < face_threshold:
                 flagged = True
                 reasons.append(f"waxy_face({metrics['face_region_var']:.1f}<{face_threshold})")
+
+        img_name = os.path.basename(img_path)
         results.append({
-            "file": img_path.name,
+            "file": img_name,
             "path": img_path,
             "flagged": flagged,
             "reasons": reasons,
@@ -223,12 +226,13 @@ def main(input_dir: str, threshold: float, face_threshold: float,
         reject_path.mkdir(parents=True, exist_ok=True)
         for r in flagged_items:
             src = r["path"]
-            dst = reject_path / src.name
+            src_name = r["file"]
+            dst = reject_path / src_name
             if dry_run:
-                console.print(f"[dim]Would move: {src.name} → {reject_path.name}/[/dim]")
+                console.print(f"[dim]Would move: {src_name} → {reject_path.name}/[/dim]")
             else:
-                src.rename(dst)
-                console.print(f"Moved: {src.name} → {reject_path.name}/")
+                os.rename(src, str(dst))
+                console.print(f"Moved: {src_name} → {reject_path.name}/")
 
     if save_report:
         report = [{k: v for k, v in r.items() if k != "path"} for r in results]
