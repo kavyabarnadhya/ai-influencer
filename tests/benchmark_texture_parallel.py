@@ -14,7 +14,7 @@ def benchmark_parallel():
     exts = tuple(e.lower() for e in SUPPORTED_EXTS)
     with os.scandir(input_path) as it:
         images = sorted([
-            Path(entry.path) for entry in it
+            entry.path for entry in it
             if entry.is_file() and entry.name.lower().endswith(exts)
         ])
 
