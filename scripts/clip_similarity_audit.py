@@ -43,7 +43,7 @@ def load_clip():
         raise SystemExit(1)
 
 
-def encode_images(image_paths: list[Path], model, preprocess, device, torch, batch_size: int = 16) -> list:
+def encode_images(image_paths: list[str], model, preprocess, device, torch, batch_size: int = 16) -> list:
     """
     Encode images in batches to reduce GPU overhead and improve throughput.
     Optimization: Batching reduces kernel launch overhead and improves VRAM utilization.
@@ -62,7 +62,7 @@ def encode_images(image_paths: list[Path], model, preprocess, device, torch, bat
                 batch_imgs.append(img)
                 valid_indices.append(i + j)
             except Exception as e:
-                console.print(f"  [yellow]Skip {p.name}: {e}[/yellow]")
+                console.print(f"  [yellow]Skip {os.path.basename(p)}: {e}[/yellow]")
 
         if not batch_imgs:
             continue
@@ -103,11 +103,11 @@ def main(input_dir: str, threshold: float, save_matrix: bool,
 
     input_path = Path(input_dir)
     # Optimization: os.scandir() is significantly faster than Path.iterdir() for high-volume
-    # file discovery by avoiding redundant Path object allocations and suffix checks.
+    # file discovery by tracking raw string paths and avoiding redundant Path object allocations.
     exts = tuple(e.lower() for e in SUPPORTED_EXTS)
     with os.scandir(input_path) as it:
         images = sorted([
-            Path(entry.path) for entry in it
+            entry.path for entry in it
             if entry.is_file() and entry.name.lower().endswith(exts)
         ])
 
@@ -172,8 +172,8 @@ def main(input_dir: str, threshold: float, save_matrix: bool,
         table.add_column("Reject", width=30)
         for sim, pa, pb in flagged:
             # Suggest rejecting whichever sorts later alphabetically (heuristic: keep earlier curation choice)
-            reject = pb.name
-            table.add_row(f"{sim:.4f}", pa.name, pb.name, f"→ reject {reject}")
+            reject = os.path.basename(pb)
+            table.add_row(f"{sim:.4f}", os.path.basename(pa), os.path.basename(pb), f"→ reject {reject}")
         console.print(table)
     else:
         console.print(f"\n[green]No flagged pairs — all pairs below {threshold}[/green]")
@@ -183,20 +183,21 @@ def main(input_dir: str, threshold: float, save_matrix: bool,
         reject_path.mkdir(parents=True, exist_ok=True)
         for sim, pa, pb in flagged:
             reject_file = pb  # reject the second of each pair
+            reject_name = os.path.basename(reject_file)
             if dry_run:
-                console.print(f"[dim]Would move: {reject_file.name} → {reject_path.name}/[/dim]")
+                console.print(f"[dim]Would move: {reject_name} → {reject_path.name}/[/dim]")
             else:
-                dest = reject_path / reject_file.name
-                reject_file.rename(dest)
-                console.print(f"Moved: {reject_file.name} → {reject_path.name}/")
+                dest = reject_path / reject_name
+                os.rename(reject_file, str(dest))
+                console.print(f"Moved: {reject_name} → {reject_path.name}/")
 
     if save_matrix:
         matrix_data = {
-            "images": [str(p.name) for p in valid_paths],
+            "images": [os.path.basename(p) for p in valid_paths],
             "avg_similarity": avg_sim,
             "threshold": threshold,
             "flagged_pairs": [
-                {"sim": sim, "a": pa.name, "b": pb.name}
+                {"sim": sim, "a": os.path.basename(pa), "b": os.path.basename(pb)}
                 for sim, pa, pb in flagged
             ],
             "matrix": sim_matrix.tolist(),

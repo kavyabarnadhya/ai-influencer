@@ -71,17 +71,17 @@ def main(face_ref: str, input_dir: str, workflow: str, dry_run: bool, limit: int
         raise SystemExit(1)
 
     # Optimization: os.scandir() is significantly faster than Path.iterdir() for high-volume
-    # file discovery by avoiding redundant Path object allocations and suffix checks.
+    # file discovery by tracking raw string paths and avoiding redundant Path object allocations.
     exts = tuple(e.lower() for e in SUPPORTED_EXTS)
     with os.scandir(input_path) as it:
         stock_images = sorted([
-            Path(entry.path) for entry in it
+            entry.path for entry in it
             if entry.is_file() and entry.name.lower().endswith(exts)
         ])
 
     if files:
         allowed = {f.strip() for f in files.split(",")}
-        stock_images = [p for p in stock_images if p.name in allowed]
+        stock_images = [p for p in stock_images if os.path.basename(p) in allowed]
         if not stock_images:
             console.print(f"[red]None of the --files entries found in {input_path}[/red]")
             raise SystemExit(1)
@@ -99,7 +99,7 @@ def main(face_ref: str, input_dir: str, workflow: str, dry_run: bool, limit: int
 
     if dry_run:
         for img in stock_images:
-            console.print(f"  [dim]-> {img.name}[/dim]")
+            console.print(f"  [dim]-> {os.path.basename(img)}[/dim]")
         console.print(f"\n[yellow]Dry run — no images processed[/yellow]")
         return
 
@@ -137,27 +137,30 @@ def main(face_ref: str, input_dir: str, workflow: str, dry_run: bool, limit: int
 
     # Stage 1: Submit all jobs to the ComfyUI queue
     for i, stock_img in enumerate(stock_images, 1):
-        console.print(f"\n[dim]Submitting {i}/{len(stock_images)} — {stock_img.name}[/dim]")
+        stock_name = os.path.basename(stock_img)
+        console.print(f"\n[dim]Submitting {i}/{len(stock_images)} — {stock_name}[/dim]")
         try:
-            uploaded_target = client.upload_image(str(stock_img))
+            uploaded_target = client.upload_image(stock_img)
             # Optimization: Skip cache propagation on final injection to avoid extra dict copy in submit_workflow
             wf = _inject_faceswap(wf_template, face_ref_name=uploaded_face, target_name=uploaded_target, propagate_cache=False)
 
             prompt_id = client.submit_workflow(wf)
-            out_file = out_path / f"swap_{i:03d}_{stock_img.stem}.png"
+            stock_stem = os.path.splitext(stock_name)[0]
+            out_file = out_path / f"swap_{i:03d}_{stock_stem}.png"
             pending.append((prompt_id, stock_img, out_file))
         except ComfyUIError as e:
             console.print(f"  [red]Submission failed: {e}[/red]")
-            failed.append(stock_img.name)
+            failed.append(stock_name)
 
     # Stage 2: Wait for completion and download results
     for prompt_id, stock_img, out_file in pending:
-        console.print(f"\n[dim]Processing {stock_img.name} (prompt {prompt_id})...[/dim]")
+        stock_name = os.path.basename(stock_img)
+        console.print(f"\n[dim]Processing {stock_name} (prompt {prompt_id})...[/dim]")
         try:
             image_refs = client.wait_for_completion(prompt_id, timeout=120)
             if not image_refs:
                 console.print(f"  [yellow]No output[/yellow]")
-                failed.append(stock_img.name)
+                failed.append(stock_name)
                 continue
 
             img_bytes = client.download_image(
@@ -171,7 +174,7 @@ def main(face_ref: str, input_dir: str, workflow: str, dry_run: bool, limit: int
 
         except ComfyUIError as e:
             console.print(f"  [red]Generation failed: {e}[/red]")
-            failed.append(stock_img.name)
+            failed.append(stock_name)
 
     console.print(f"\n[bold green]Done.[/bold green] {len(stock_images) - len(failed)}/{len(stock_images)} swapped.")
     if failed:
