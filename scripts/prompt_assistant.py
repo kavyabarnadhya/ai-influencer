@@ -155,12 +155,51 @@ def _clean_response(text: str) -> str:
     return text.strip()
 
 
+_CACHE_FILE = LOGS_DIR / ".prompt_cache.json"
+
+
+def _load_disk_cache() -> dict:
+    """
+    Load persistent LLM prompt cache from disk.
+    Ensures high reliability by catching all read and parsing exceptions.
+    """
+    if not _CACHE_FILE.exists():
+        return {}
+    try:
+        with open(_CACHE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _save_disk_cache(cache: dict) -> None:
+    """
+    Save persistent LLM prompt cache to disk.
+    Ensures high reliability by catching all write exceptions.
+    """
+    try:
+        LOGS_DIR.mkdir(exist_ok=True)
+        with open(_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(cache, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+# Load persistent disk cache once into a global memory dictionary at module import time
+# to eliminate redundant disk reads and provide O(1) in-memory lookups.
+_DISK_CACHE = _load_disk_cache()
+
+
 @functools.lru_cache(maxsize=128)
 def polish_prompt(user_input: str) -> str:
     """
     Polishes a natural language description into a ComfyUI prompt using an LLM.
-    Optimization: Cached via LRU to avoid redundant LLM calls (saves ~1-5s per hit).
+    Optimization: Cached via LRU and persistent disk cache to avoid redundant LLM calls (saves ~1-5s per hit).
     """
+    cache_key = f"polish:{user_input}"
+    if cache_key in _DISK_CACHE:
+        return _DISK_CACHE[cache_key]
+
     payload = {
         "model": MODEL,
         "system": SYSTEM_PROMPT,
@@ -170,15 +209,25 @@ def polish_prompt(user_input: str) -> str:
     }
     r = session.post(OLLAMA_URL, json=payload, timeout=120)
     r.raise_for_status()
-    return _clean_response(r.json()["response"])
+    response_text = _clean_response(r.json()["response"])
+
+    # Update cache and save to disk
+    _DISK_CACHE[cache_key] = response_text
+    _save_disk_cache(_DISK_CACHE)
+
+    return response_text
 
 
 @functools.lru_cache(maxsize=128)
 def extract_bg_prompt(polished_prompt: str) -> str:
     """
     Extracts the background/setting portion of a prompt for use in multi-pass workflows.
-    Optimization: Cached via LRU to avoid redundant LLM calls (saves ~1-5s per hit).
+    Optimization: Cached via LRU and persistent disk cache to avoid redundant LLM calls (saves ~1-5s per hit).
     """
+    cache_key = f"bg:{polished_prompt}"
+    if cache_key in _DISK_CACHE:
+        return _DISK_CACHE[cache_key]
+
     system_instruction = "You are a prompt editor. Given a ComfyUI prompt, remove ALL mentions of people, body parts, clothing, jewelry, hair, skin, and pose. Keep ONLY the setting, lighting, background details, camera style, and mood. Output the remaining tags as a comma-separated list."
     payload = {
         "model": MODEL,
@@ -191,7 +240,13 @@ def extract_bg_prompt(polished_prompt: str) -> str:
         r = session.post(OLLAMA_URL, json=payload, timeout=120)
         r.raise_for_status()
         bg_tags = _clean_response(r.json()["response"])
-        return f"empty scene, no people, no humans, {bg_tags}"
+        result = f"empty scene, no people, no humans, {bg_tags}"
+
+        # Update cache and save to disk
+        _DISK_CACHE[cache_key] = result
+        _save_disk_cache(_DISK_CACHE)
+
+        return result
     except Exception as e:
         console.print(f"[red]Failed to extract BG prompt: {e}[/red]")
         return "empty scene, no people, no humans, highly detailed realistic background, 8k"
