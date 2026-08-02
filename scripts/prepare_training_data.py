@@ -10,6 +10,11 @@ import click
 import yaml
 from PIL import Image
 from rich.console import Console
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:
+    from yaml import SafeLoader
 from rich.table import Table
 
 console = Console()
@@ -63,7 +68,8 @@ FLUX_CAPTION_TEMPLATE = (
 @functools.lru_cache(maxsize=1)
 def load_config() -> dict:
     with open(ROOT / "config.yaml", "r") as f:
-        return yaml.safe_load(f)
+        # Optimization: Use CSafeLoader when available for ~10x faster YAML loading
+        return yaml.load(f, Loader=SafeLoader)
 
 
 def load_character(cfg: dict, character: str) -> dict:
