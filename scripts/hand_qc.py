@@ -34,6 +34,11 @@ from pathlib import Path
 import click
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:
+    from yaml import SafeLoader
+
 ROOT = Path(__file__).resolve().parent.parent
 
 # --- locate the hand YOLO model (same one Stage 3.5 uses) --------------------
@@ -48,7 +53,8 @@ def _find_hand_model() -> Path | None:
     cfg = ROOT / "config.yaml"
     if cfg.exists():
         try:
-            data = yaml.safe_load(cfg.read_text(encoding="utf-8")) or {}
+            # Optimization: Use CSafeLoader when available for ~10x faster YAML loading
+            data = yaml.load(cfg.read_text(encoding="utf-8"), Loader=SafeLoader) or {}
             p = data.get("models", {}).get("hand_yolo")
             if p and Path(p).exists():
                 return Path(p)

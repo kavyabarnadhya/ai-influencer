@@ -12,6 +12,11 @@ import requests
 import yaml
 from mcp.server.fastmcp import FastMCP
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:
+    from yaml import SafeLoader
+
 ROOT = Path(__file__).parent.parent
 OLLAMA_URL = "http://localhost:11434/api/generate"
 MODEL = "dolphin-llama3"
@@ -83,7 +88,8 @@ def _load_config() -> dict:
     Optimization: Cached via LRU to avoid redundant disk I/O and YAML parsing.
     """
     with open(ROOT / "config.yaml", "r") as f:
-        return yaml.safe_load(f)
+        # Optimization: Use CSafeLoader when available for ~10x faster YAML loading
+        return yaml.load(f, Loader=SafeLoader)
 
 
 def _ollama_running() -> bool:

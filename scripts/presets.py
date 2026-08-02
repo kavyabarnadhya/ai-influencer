@@ -5,6 +5,11 @@ from pathlib import Path
 
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:
+    from yaml import SafeLoader
+
 ROOT = Path(__file__).parent.parent
 
 
@@ -17,7 +22,8 @@ def _load_presets_file(path: Path) -> dict[str, str]:
     """
     if not path.exists():
         raise FileNotFoundError(f"No presets file: {path}")
-    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    # Optimization: Use CSafeLoader when available for ~10x faster YAML loading
+    data = yaml.load(path.read_text(encoding="utf-8"), Loader=SafeLoader) or {}
     return {name: json.dumps(val) for name, val in data.items()}
 
 

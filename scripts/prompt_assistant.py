@@ -9,6 +9,11 @@ import click
 import requests
 import yaml
 from rich.console import Console
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:
+    from yaml import SafeLoader
 from rich.panel import Panel
 
 console = Console()
@@ -109,7 +114,8 @@ def load_config() -> dict:
     Optimization: Cached via LRU to avoid redundant disk I/O and YAML parsing.
     """
     with open(ROOT / "config.yaml", "r") as f:
-        return yaml.safe_load(f)
+        # Optimization: Use CSafeLoader when available for ~10x faster YAML loading
+        return yaml.load(f, Loader=SafeLoader)
 
 
 def ensure_hand_position(prompt: str) -> str:

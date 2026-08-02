@@ -42,6 +42,11 @@ import yaml
 from PIL import Image
 from rich.console import Console
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:
+    from yaml import SafeLoader
+
 sys.path.insert(0, str(Path(__file__).parent))
 from comfyui_api import ComfyUIClient, ComfyUIError, find_comfyui_port, load_workflow, inject_workflow_values
 from skin_color_match import match_body_skin_to_face_ref
@@ -294,7 +299,8 @@ def load_anchor_config(path: Path) -> dict:
     Returns cfg dict with added 'mode' key: 'single' or 'multi'.
     """
     with open(path, encoding="utf-8") as f:
-        cfg = yaml.safe_load(f)
+        # Optimization: Use CSafeLoader when available for ~10x faster YAML loading
+        cfg = yaml.load(f, Loader=SafeLoader)
     if not isinstance(cfg, dict):
         raise ValueError(f"{path}: root must be a mapping")
 
