@@ -351,8 +351,9 @@ def load_workflow(path: str) -> dict:
 @functools.lru_cache(maxsize=16)
 def _load_workflow_cached(path: str) -> tuple[str, dict[str, list[str]]]:
     with open(path, "r", encoding="utf-8") as f:
-        workflow = json.load(f)
+        wf_json_str = f.read()
+    workflow = json.loads(wf_json_str)
     # Warm up the title cache on load so the very first injection is O(1)
     title_cache = _scan_workflow_titles(workflow)
-    # Pre-serialize to JSON string to avoid redundant json.dumps() on every hit.
-    return json.dumps(workflow), title_cache
+    # Return the raw string and title cache, avoiding redundant json.dumps()
+    return wf_json_str, title_cache
