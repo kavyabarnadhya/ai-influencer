@@ -26,6 +26,11 @@ import cv2
 import numpy as np
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:
+    from yaml import SafeLoader
+
 DEFAULT_FACE_REF = Path("character/ananya/seeds_v2/face_ref_v2.png")
 # Optimization: os.path.abspath is significantly faster than Path.resolve().
 _CONFIG_PATH = Path(os.path.abspath(__file__)).parent.parent / "config.yaml"
@@ -34,7 +39,8 @@ _CONFIG_PATH = Path(os.path.abspath(__file__)).parent.parent / "config.yaml"
 @lru_cache(maxsize=1)
 def _load_config() -> dict:
     with open(_CONFIG_PATH, "r", encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
+        # Optimization: Use CSafeLoader when available for ~10x faster YAML loading
+        return yaml.load(fh, Loader=SafeLoader)
 
 
 def _model_path(key: str) -> Path:
