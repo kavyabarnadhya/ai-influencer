@@ -102,6 +102,25 @@ def get_flux_images(training_dir: Path) -> list[Path]:
         )
 
 
+def has_flux_images(training_dir: Path) -> bool:
+    """
+    Check if there is at least one supported FLUX image in the training directory.
+    Optimization: O(1) early-exit check to avoid scanning, sorting, and instantiating
+    Path objects for all files in the directory.
+    """
+    if not training_dir.exists():
+        return False
+    exts = tuple(e.lower() for e in SUPPORTED_IMAGE_EXTENSIONS)
+    try:
+        with os.scandir(training_dir) as it:
+            for entry in it:
+                if entry.is_file() and entry.name.lower().endswith(exts):
+                    return True
+    except OSError:
+        pass
+    return False
+
+
 def get_unsupported_images(training_dir: Path) -> list[Path]:
     if not training_dir.exists():
         return []
@@ -119,7 +138,7 @@ def choose_layout(char_cfg: dict, requested_layout: str) -> str:
     if requested_layout != "auto":
         return requested_layout
     training_dir = get_training_data_dir(char_cfg)
-    return "flux" if get_flux_images(training_dir) else "sdxl"
+    return "flux" if has_flux_images(training_dir) else "sdxl"
 
 
 def normalize_duplicate_key(path: Path) -> str:

@@ -49,3 +49,36 @@ def test_choose_layout_prefers_flux_when_training_data_exists(tmp_path, monkeypa
     }
 
     assert prep.choose_layout(char_cfg, "auto") == "flux"
+
+
+def test_has_flux_images_non_existent():
+    assert prep.has_flux_images(Path("non_existent_directory_12345")) is False
+
+
+def test_has_flux_images_empty(tmp_path):
+    assert prep.has_flux_images(tmp_path) is False
+
+
+def test_has_flux_images_with_supported_image(tmp_path):
+    (tmp_path / "image.png").write_bytes(b"placeholder")
+    assert prep.has_flux_images(tmp_path) is True
+
+
+def test_has_flux_images_with_only_unsupported_files(tmp_path):
+    (tmp_path / "notes.txt").write_text("AnanyaAI draft caption")
+    (tmp_path / "image.bmp").write_bytes(b"placeholder")
+    assert prep.has_flux_images(tmp_path) is False
+
+
+def test_choose_layout_prefers_sdxl_when_no_flux_images(tmp_path, monkeypatch):
+    monkeypatch.setattr(prep, "ROOT", tmp_path)
+    training_dir = tmp_path / "character" / "ananya" / "training_data"
+    training_dir.mkdir(parents=True)
+    (training_dir / "notes.txt").write_text("no images here")
+
+    char_cfg = {
+        "seeds_dir": "character/ananya/seeds",
+        "training_data_dir": "character/ananya/training_data",
+    }
+
+    assert prep.choose_layout(char_cfg, "auto") == "sdxl"
