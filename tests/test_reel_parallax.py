@@ -104,6 +104,50 @@ def test_render_parallax_frame_axis_optimizations():
     assert np.max(np.abs(opt_out.astype(np.float32) - ref_out.astype(np.float32))) < 5
 
 
+def test_estimate_depth_caching(tmp_path, monkeypatch):
+    import torch
+    from reel_parallax import _load_midas, estimate_depth
+
+    # Create a dummy image file and read it
+    img_path = tmp_path / "slide_test.png"
+    img_bgr = np.zeros((128, 64, 3), dtype=np.uint8)
+    cv2.imwrite(str(img_path), img_bgr)
+
+    midas_calls = 0
+    def mock_load_midas():
+        nonlocal midas_calls
+        midas_calls += 1
+        # Model returns a 3D tensor
+        model = lambda x: torch.zeros((1, 32, 16), dtype=torch.float32)
+        transform = lambda x: torch.zeros((1, 3, 32, 16), dtype=torch.float32)
+        device = torch.device("cpu")
+        return model, transform, device
+
+    _load_midas.cache_clear()
+    monkeypatch.setattr("reel_parallax._load_midas", mock_load_midas)
+
+    # First call: Cache miss, should trigger MiDaS load and run
+    depth1 = estimate_depth(img_bgr, smooth_sigma=0.0, img_path=img_path)
+    assert midas_calls == 1
+    assert depth1.shape == (128, 64)
+
+    cache_path = tmp_path / "slide_test.png.depth.npz"
+    assert cache_path.exists()
+
+    # Second call: Cache hit, should load from sidecar directly and NOT call _load_midas
+    depth2 = estimate_depth(img_bgr, smooth_sigma=0.0, img_path=img_path)
+    assert midas_calls == 1  # Still 1 call!
+    assert np.array_equal(depth1, depth2)
+
+    # Third call after changing mtime (cache invalidation)
+    import os
+    stat = img_path.stat()
+    os.utime(img_path, (stat.st_atime, stat.st_mtime + 5))
+
+    depth3 = estimate_depth(img_bgr, smooth_sigma=0.0, img_path=img_path)
+    assert midas_calls == 2  # Recomputed!
+
+
 if __name__ == "__main__":
     try:
         test_render_parallax_frame_correctness()

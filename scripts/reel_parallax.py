@@ -38,6 +38,7 @@ Usage:
 from __future__ import annotations
 
 import math
+import os
 import sys
 from functools import lru_cache
 from pathlib import Path
@@ -45,7 +46,6 @@ from pathlib import Path
 import click
 import cv2
 import numpy as np
-import torch
 from rich.console import Console
 
 console = Console()
@@ -57,6 +57,7 @@ _GRID_CACHE: dict[tuple[int, int], tuple[np.ndarray, np.ndarray]] = {}
 @lru_cache(maxsize=1)
 def _load_midas():
     """Load MiDaS small via torch.hub. Auto-downloads on first call (~16MB)."""
+    import torch
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     console.print(f"[cyan]Loading MiDaS small ({device})...[/cyan]")
     # MiDaS pulls in rwightman/gen-efficientnet-pytorch as a backbone. Pre-trust it
@@ -78,12 +79,30 @@ def _load_midas():
     return model, transform, device
 
 
-def estimate_depth(img_bgr: np.ndarray, smooth_sigma: float = 12.0) -> np.ndarray:
+def estimate_depth(img_bgr: np.ndarray, smooth_sigma: float = 12.0, img_path: Path | None = None) -> np.ndarray:
     """Returns depth map (H, W) float32 in [0, 1] where 1 = closest, 0 = farthest.
 
     Gaussian-blur smooths depth-boundary discontinuities (face/hair vs BG) that would
     otherwise produce UV cracks and pixel smearing in the parallax remap.
     """
+    if img_path is not None:
+        img_path = Path(img_path)
+        cache_path = img_path.with_name(img_path.name + ".depth.npz")
+        try:
+            stat = os.stat(img_path)
+            mtime_ns = stat.st_mtime_ns
+            size = stat.st_size
+            if cache_path.exists():
+                with np.load(cache_path) as data:
+                    if (data.get("mtime_ns") == mtime_ns and
+                            data.get("size") == size and
+                            "depth" in data):
+                        console.print(f"[green]Using cached depth map from {cache_path.name}[/green]")
+                        return data["depth"]
+        except Exception as e:
+            console.print(f"[yellow]Failed to read depth cache: {e}[/yellow]")
+
+    import torch
     model, transform, device = _load_midas()
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     batch = transform(img_rgb).to(device)
@@ -118,6 +137,19 @@ def estimate_depth(img_bgr: np.ndarray, smooth_sigma: float = 12.0) -> np.ndarra
         # We upsample to full resolution exactly once after blurring.
         small_blur = cv2.GaussianBlur(depth, (0, 0), sigmaX=smooth_sigma/4, sigmaY=smooth_sigma/4)
         depth = cv2.resize(small_blur, (w, h), interpolation=cv2.INTER_LINEAR)
+
+    if img_path is not None:
+        try:
+            stat = os.stat(img_path)
+            np.savez_compressed(
+                cache_path,
+                depth=depth,
+                mtime_ns=stat.st_mtime_ns,
+                size=stat.st_size,
+            )
+            console.print(f"[green]Saved depth map cache to {cache_path.name}[/green]")
+        except Exception as e:
+            console.print(f"[yellow]Failed to save depth cache: {e}[/yellow]")
 
     return depth
 
@@ -280,7 +312,7 @@ def main(input_path: str, output_path: str, duration: float, fps: int,
 
     # Optimization: Skip expensive MiDaS depth estimation if depth_scale is 0 (pure Ken Burns).
     if depth_scale > 0:
-        depth = estimate_depth(img, smooth_sigma=depth_smooth)
+        depth = estimate_depth(img, smooth_sigma=depth_smooth, img_path=src)
         console.print(f"[bold]Depth:[/bold] range=[{depth.min():.3f}, {depth.max():.3f}], "
                       f"mean={depth.mean():.3f}")
 
