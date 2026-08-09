@@ -267,3 +267,7 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 ## 2026-07-25 - Disk-Based Bounding Box Caching for Cold-Start Latency Savings
 **Learning:** Loading and running deep learning models like YOLO face detection (`face_yolov8m.pt`) during script initialization introduces a significant cold-start delay (~300ms) on every run. When these models are only used to detect coordinates on static assets like the face reference image (`face_ref_v2.png`), we can completely bypass the model load and inference step by caching the bounding box coordinates on disk in a JSON sidecar file.
 **Action:** Always check if a static asset has its model outputs cached to disk (using file size and modification time validation) to skip expensive model imports and inference passes, reducing setup time from ~300ms to <1ms.
+
+## 2026-07-26 - Early-Exit os.scandir for Truthiness Check in Layout Selection
+**Learning:** Performing a full-directory listing, sorting, and Path object allocation ($O(N \log N)$) is highly wasteful when the caller only checks for the existence of any matching file (`if get_flux_images(...)`). A dedicated early-exit helper with `os.scandir` runs in $O(1)$ time, completely avoiding memory allocation and sorting.
+**Action:** Implement a fast early-exit helper (`has_flux_images`) to replace expensive directory listing truthiness checks.
