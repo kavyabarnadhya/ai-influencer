@@ -1,3 +1,4 @@
+import functools
 import random
 import sys
 from pathlib import Path
@@ -97,6 +98,7 @@ VARIETY_POOL = {
 }
 
 
+@functools.lru_cache(maxsize=1)
 def load_config() -> dict:
     with open(ROOT / "config.yaml", "r") as f:
         # Optimization: Use CSafeLoader when available for ~10x faster YAML loading
