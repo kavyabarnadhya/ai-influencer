@@ -1,3 +1,4 @@
+import functools
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -18,6 +19,7 @@ console = Console()
 ROOT = Path(__file__).parent.parent
 
 
+@functools.lru_cache(maxsize=1)
 def load_config() -> dict:
     with open(ROOT / "config.yaml", "r") as f:
         # Optimization: Use CSafeLoader when available for ~10x faster YAML loading
