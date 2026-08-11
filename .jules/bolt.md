@@ -271,3 +271,7 @@ If a proposed PR cannot show ≥100ms/slide wall-clock savings AND clears all ha
 ## 2026-07-26 - Early-Exit os.scandir for Truthiness Check in Layout Selection
 **Learning:** Performing a full-directory listing, sorting, and Path object allocation ($O(N \log N)$) is highly wasteful when the caller only checks for the existence of any matching file (`if get_flux_images(...)`). A dedicated early-exit helper with `os.scandir` runs in $O(1)$ time, completely avoiding memory allocation and sorting.
 **Action:** Implement a fast early-exit helper (`has_flux_images`) to replace expensive directory listing truthiness checks.
+
+## 2026-07-27 - Zero-Copy Multi-Core ThreadPool for GIL-Releasing CV operations
+**Learning:** In Python, multi-threading is typically bottlenecked by the Global Interpreter Lock (GIL). However, for heavy computer vision/image processing operations inside compiled libraries like OpenCV (e.g., `cv2.remap` and `cv2.warpAffine`), the GIL is released during underlying C++ execution. Using `concurrent.futures.ThreadPoolExecutor` achieves true native multi-core speedups without the massive memory footprint and inter-process serialization/deserialization overhead of a `ProcessPoolExecutor`.
+**Action:** Use a thread pool (instead of process pool) for CPU-bound computer vision loops that process large images using GIL-releasing C++ primitives, and pre-warm any shared caches sequentially to guarantee thread-safe read-only access.

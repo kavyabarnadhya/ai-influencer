@@ -339,12 +339,26 @@ def main(input_path: str, output_path: str, duration: float, fps: int,
         raise click.ClickException(f"Could not open VideoWriter (codec={codec})")
     console.print(f"[bold]Codec:[/bold] {codec}")
 
-    forward_frames: list[np.ndarray] = []
-    for i in range(n_forward):
+    import concurrent.futures
+
+    # Pre-warm the grid cache to guarantee thread-safe read-only cache hits
+    _ = render_parallax_frame(img, parallax, 1.0, 1.0, 1.0)
+
+    console.print(f"[cyan]Rendering {n_forward} frames in parallel (multi-threaded)...[/cyan]")
+
+    def render_one(i: int) -> tuple[int, np.ndarray]:
         t = i / max(1, n_forward - 1)
         z, dx, dy = _camera_path(t, zoom, sway_px, dolly_px)
-        frame = render_parallax_frame(img, parallax, z, dx, dy)
-        forward_frames.append(frame)
+        return i, render_parallax_frame(img, parallax, z, dx, dy)
+
+    forward_frames = [None] * n_forward
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = executor.map(render_one, range(n_forward))
+        for idx, frame in results:
+            forward_frames[idx] = frame
+
+    # Write the pre-rendered frames sequentially to the video writer
+    for i, frame in enumerate(forward_frames):
         writer.write(frame)
         if (i + 1) % 30 == 0:
             console.print(f"  forward {i + 1}/{n_forward}")
