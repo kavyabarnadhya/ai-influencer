@@ -37,6 +37,7 @@ Usage:
 """
 from __future__ import annotations
 
+import concurrent.futures
 import math
 import os
 import sys
@@ -343,22 +344,31 @@ def main(input_path: str, output_path: str, duration: float, fps: int,
         raise click.ClickException(f"Could not open VideoWriter (codec={codec})")
     console.print(f"[bold]Codec:[/bold] {codec}")
 
-    forward_frames: list[np.ndarray] = []
-    for i in range(n_forward):
+    # Pre-warm _GRID_CACHE to ensure thread-safe read-only hits during parallel rendering
+    _ = render_parallax_frame(img, parallax, 1.0, 0.0, 0.0)
+
+    # Performance Optimization: Use ThreadPoolExecutor to render frames in parallel.
+    # Because OpenCV's cv2.remap and cv2.warpAffine release the Python Global Interpreter Lock (GIL)
+    # during their pixel-wise operations, this achieves true multi-core parallelization with
+    # zero array copy overhead.
+    max_workers = os.cpu_count() or 4
+    console.print(f"[cyan]Rendering {n_forward} forward frames in parallel (workers={max_workers})...[/cyan]")
+
+    def render_idx(i: int) -> np.ndarray:
         t = i / max(1, n_forward - 1)
         z, dx, dy = _camera_path(t, zoom, sway_px, dolly_px)
-        frame = render_parallax_frame(img, parallax, z, dx, dy)
-        forward_frames.append(frame)
+        return render_parallax_frame(img, parallax, z, dx, dy)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        forward_frames = list(executor.map(render_idx, range(n_forward)))
+
+    for frame in forward_frames:
         writer.write(frame)
-        if (i + 1) % 30 == 0:
-            console.print(f"  forward {i + 1}/{n_forward}")
 
     if loop == "palindrome":
         # Reverse without first + last to avoid duplicate frames at seam
-        for i, frame in enumerate(reversed(forward_frames[1:-1])):
+        for frame in reversed(forward_frames[1:-1]):
             writer.write(frame)
-            if (i + 1) % 30 == 0:
-                console.print(f"  reverse {i + 1}/{n_forward - 2}")
 
     writer.release()
     size_mb = dst.stat().st_size / 1024 / 1024
