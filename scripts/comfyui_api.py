@@ -1,8 +1,9 @@
+import functools
+import hashlib
 import json
 import os
-import time
 import random
-import functools
+import time
 import requests
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,9 @@ class ComfyUIClient:
         # Cache for uploaded images to avoid redundant network IO/disk reads.
         # Key: (abs_path, mtime, size), Value: remote_filename
         self._upload_cache: dict[tuple[str, float, int], str] = {}
+        # Cache for in-memory image byte uploads to avoid redundant network IO.
+        # Key: (filename, size, md5_head), Value: remote_filename
+        self._upload_data_cache: dict[tuple[str, int, str], str] = {}
 
     def _get(self, path: str, timeout: float = 10.0) -> Any:
         url = f"{self.base_url}{path}"
@@ -160,13 +164,24 @@ class ComfyUIClient:
         """
         Upload image bytes to ComfyUI's input folder. Returns the filename ComfyUI assigned.
         Used for intermediate results in multi-stage pipelines to avoid redundant disk I/O.
+        Uses a local cache to avoid re-uploading identical byte buffers multiple times.
         """
+        cache_key = (
+            filename,
+            len(image_data),
+            hashlib.md5(image_data).hexdigest(),
+        )
+        if cache_key in self._upload_data_cache:
+            return self._upload_data_cache[cache_key]
+
         url = f"{self.base_url}/upload/image"
         try:
             files = {"image": (filename, image_data, "image/png")}
             resp = self.session.post(url, files=files, timeout=30)
             resp.raise_for_status()
-            return resp.json()["name"]
+            remote_name = resp.json()["name"]
+            self._upload_data_cache[cache_key] = remote_name
+            return remote_name
         except requests.exceptions.RequestException as e:
             raise ComfyUIError(f"Failed to upload image data {filename}: {e}")
 

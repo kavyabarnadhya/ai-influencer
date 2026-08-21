@@ -124,3 +124,30 @@ def test_upload_image_caching(tmp_path):
     assert name3 == "remote_test.png"
     assert client.session.post.call_count == 2
 
+
+def test_upload_image_data_caching():
+    from unittest.mock import MagicMock
+    from comfyui_api import ComfyUIClient
+
+    client = ComfyUIClient()
+    client.session.post = MagicMock()
+    client.session.post.return_value.json.return_value = {"name": "remote_data.png"}
+    client.session.post.return_value.status_code = 200
+
+    data1 = b"test byte buffer 12345"
+    data2 = b"modified byte buffer 67890"
+
+    # First upload
+    name1 = client.upload_image_data(data1, "buffer.png")
+    assert name1 == "remote_data.png"
+    assert client.session.post.call_count == 1
+
+    # Second upload with identical bytes and filename (should hit cache)
+    name2 = client.upload_image_data(data1, "buffer.png")
+    assert name2 == "remote_data.png"
+    assert client.session.post.call_count == 1
+
+    # Third upload with modified bytes (should trigger re-upload)
+    name3 = client.upload_image_data(data2, "buffer.png")
+    assert name3 == "remote_data.png"
+    assert client.session.post.call_count == 2
