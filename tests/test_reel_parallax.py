@@ -105,6 +105,8 @@ def test_render_parallax_frame_axis_optimizations():
 
 
 def test_estimate_depth_caching(tmp_path, monkeypatch):
+    import pytest
+    pytest.importorskip("torch")
     import torch
     from reel_parallax import _load_midas, estimate_depth
 

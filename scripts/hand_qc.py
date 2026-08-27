@@ -25,6 +25,7 @@ Lower score = cleaner. score 0 = no hand flags.
 """
 from __future__ import annotations
 
+import functools
 import os
 import re
 import sys
@@ -48,6 +49,7 @@ _DEFAULT_HAND_MODELS = [
 ]
 
 
+@functools.lru_cache(maxsize=1)
 def _find_hand_model() -> Path | None:
     # allow config override
     cfg = ROOT / "config.yaml"
@@ -219,11 +221,13 @@ def main(target: Path, expected_max: int, pick: bool, strict: bool):
     # Optimization: Batched YOLO inference reduces wall-clock time by ~70-80% for large
     # carousel folders by processing all images in a single call to the model.
     click.echo(f"Running batched YOLO detection on {len(imgs)} images...")
+    # Pre-compute real paths once to avoid redundant syscalls during prediction and lookup
+    real_paths = [os.path.realpath(p) for p in imgs]
     try:
         # Convert Path objects to absolute strings for robust matching in path_to_confs.
         # Optimization: Use os.path.realpath() as it is significantly faster (~3x)
         # than Path.resolve() while still resolving symlinks for robust mapping.
-        results = _yolo().predict([os.path.realpath(p) for p in imgs], conf=0.40, verbose=False)
+        results = _yolo().predict(real_paths, conf=0.40, verbose=False)
         # Map path string to list of confidences
         path_to_confs: dict[str, list[float]] = {}
         for r in results:
@@ -237,12 +241,12 @@ def main(target: Path, expected_max: int, pick: bool, strict: bool):
         sys.exit(1)
 
     by_slide: dict[str, list[dict]] = defaultdict(list)
-    for img in imgs:
+    for img, real_p in zip(imgs, real_paths):
         m = _SLIDE_CAND.search(img.name)
         if not m:
             continue
         # Use pre-calculated confidences to skip redundant internal model calls
-        confs = path_to_confs.get(os.path.realpath(img))
+        confs = path_to_confs.get(real_p)
         r = score_image(img, expected_max, yolo_confs=confs)
         by_slide[m.group(1)].append(r)
 
