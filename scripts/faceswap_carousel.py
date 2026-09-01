@@ -293,17 +293,6 @@ def _lens_suffix(anchor_cfg: dict | None) -> str:
 
 
 @functools.lru_cache(maxsize=32)
-def _load_anchor_config_raw_cached(path_str: str, mtime_ns: int, file_size: int) -> str:
-    """
-    Private cached helper for reading raw anchor YAML config file content.
-    Optimization: Caching raw anchor YAML strings eliminates redundant disk I/O.
-    Keying on (path_str, mtime_ns, file_size) ensures cache freshness across fast writes.
-    """
-    with open(path_str, encoding="utf-8") as f:
-        return f.read()
-
-
-@functools.lru_cache(maxsize=32)
 def _parse_anchor_yaml_cached(content: str) -> dict:
     """
     Private cached helper for parsing raw anchor YAML content string.
@@ -330,16 +319,7 @@ def load_anchor_config(path: Path) -> dict:
 
     Returns cfg dict with added 'mode' key: 'single' or 'multi'.
     """
-    path_str = str(path)
-    try:
-        st = os.stat(path_str)
-        mtime_ns = st.st_mtime_ns
-        file_size = st.st_size
-    except OSError:
-        mtime_ns = 0
-        file_size = 0
-
-    content = _load_anchor_config_raw_cached(path_str, mtime_ns, file_size)
+    content = path.read_text(encoding="utf-8")
     raw_cfg = _parse_anchor_yaml_cached(content)
     if not isinstance(raw_cfg, dict):
         raise ValueError(f"{path}: root must be a mapping")
@@ -381,7 +361,7 @@ def load_anchor_config(path: Path) -> dict:
 
     if "anchor_body_lora_strength" in cfg:
         v = cfg["anchor_body_lora_strength"]
-        if not isinstance(v, (int, float)) or not (0.0 <= float(v) <= 1.0):
+        if not isinstance(v, (int, float)) or isinstance(v, bool) or not (0.0 <= float(v) <= 1.0):
             raise ValueError(f"{path}: 'anchor_body_lora_strength' must be float between 0.0 and 1.0")
 
     if "lens_profile" in cfg and cfg["lens_profile"] not in LENS_PROFILES:
