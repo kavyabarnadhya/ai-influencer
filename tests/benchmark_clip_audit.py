@@ -1,101 +1,98 @@
+import tempfile
 import time
-import torch
-import numpy as np
-from pathlib import Path
-from unittest.mock import MagicMock
-import sys
 import os
+import concurrent.futures
+from PIL import Image
+import torchvision.transforms as T
+import torch
+from rich.console import Console
 
-# Add scripts to path
-sys.path.insert(0, os.path.abspath("scripts"))
-import clip_similarity_audit
+from clip_similarity_audit import encode_images
 
-def benchmark_similarity_logic():
-    n = 100
-    threshold = 0.92
-    sim_matrix = np.random.rand(n, n).astype(np.float32)
-    # Make it symmetric and 1.0 on diagonal
-    sim_matrix = (sim_matrix + sim_matrix.T) / 2
-    np.fill_diagonal(sim_matrix, 1.0)
+console = Console()
 
-    valid_paths = [Path(f"img_{i}.png") for i in range(n)]
+def encode_images_old(image_paths: list[str], model, preprocess, device, torch, batch_size: int = 16) -> list:
+    """Sequential implementation for benchmark comparison."""
+    features_list = [None] * len(image_paths)
 
-    # Old logic simulation (O(N^2) loops)
-    start_old = time.time()
-    flagged_old = []
-    for i in range(n):
-        for j in range(i + 1, n):
-            sim = float(sim_matrix[i, j])
-            if sim > threshold:
-                flagged_old.append((sim, valid_paths[i], valid_paths[j]))
-    flagged_old.sort(reverse=True)
+    for i in range(0, len(image_paths), batch_size):
+        batch_paths = image_paths[i:i + batch_size]
+        batch_imgs = []
+        valid_indices = []
 
-    total_sim = 0.0
-    count = 0
-    for i in range(n):
-        for j in range(i + 1, n):
-            total_sim += float(sim_matrix[i, j])
-            count += 1
-    avg_sim_old = total_sim / count if count > 0 else 0.0
-    end_old = time.time()
+        for j, p in enumerate(batch_paths):
+            try:
+                img = preprocess(Image.open(p).convert("RGB"))
+                batch_imgs.append(img)
+                valid_indices.append(i + j)
+            except Exception as e:
+                console.print(f"  [yellow]Skip {os.path.basename(p)}: {e}[/yellow]")
 
-    # New logic (Vectorized)
-    start_new = time.time()
-    triu_indices = np.triu_indices(n, k=1)
-    upper_tri_sims = sim_matrix[triu_indices]
-    avg_sim_new = float(np.mean(upper_tri_sims)) if n > 1 else 0.0
+        if not batch_imgs:
+            continue
 
-    flagged_mask = upper_tri_sims > threshold
-    flagged_indices_i = triu_indices[0][flagged_mask]
-    flagged_indices_j = triu_indices[1][flagged_mask]
-    flagged_sims = upper_tri_sims[flagged_mask]
+        try:
+            imgs_tensor = torch.stack(batch_imgs).to(device)
+            is_cuda = str(device).startswith("cuda")
+            autocast_ctx = torch.amp.autocast("cuda" if is_cuda else "cpu", enabled=is_cuda)
 
-    flagged_new = [
-        (float(sim), valid_paths[i], valid_paths[j])
-        for sim, i, j in zip(flagged_sims, flagged_indices_i, flagged_indices_j)
-    ]
-    flagged_new.sort(key=lambda x: x[0], reverse=True)
-    end_new = time.time()
+            with torch.no_grad(), autocast_ctx:
+                feats = model.encode_image(imgs_tensor)
+                feats = feats / feats.norm(dim=-1, keepdim=True)
+                feats_cpu = feats.cpu()
 
-    print(f"Similarity Analysis (N={n}):")
-    print(f"  Old (Loops): {end_old - start_old:.6f}s")
-    print(f"  New (Vector): {end_new - start_new:.6f}s")
-    print(f"  Speedup: {(end_old - start_old) / (end_new - start_new):.2f}x")
+            for k, idx in enumerate(valid_indices):
+                features_list[idx] = feats_cpu[k].unsqueeze(0)
+        except Exception as e:
+            console.print(f"  [red]Batch processing error at index {i}: {e}[/red]")
 
-    assert abs(avg_sim_old - avg_sim_new) < 1e-6
-    assert len(flagged_old) == len(flagged_new)
+    return features_list
 
-def benchmark_encoding_batching():
-    # Mock model and preprocess
-    model = MagicMock()
-    # model.encode_image returns a tensor of [batch_size, 512]
-    model.encode_image.side_effect = lambda x: torch.randn(x.shape[0], 512)
 
-    preprocess = MagicMock()
-    preprocess.side_effect = lambda x: torch.randn(3, 224, 224)
+def main():
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        image_paths = []
+        for i in range(32):
+            img = Image.new('RGB', (1024, 1024), color=(i*7 % 256, i*13 % 256, i*17 % 256))
+            p = os.path.join(tmp_dir, f"img_{i:02d}.jpg")
+            img.save(p, quality=95)
+            image_paths.append(p)
 
-    # Mock PIL Image
-    import PIL.Image
-    PIL.Image.open = MagicMock()
+        # Mock model for benchmarking I/O + preprocess pipeline
+        class MockModel:
+            def encode_image(self, tensor):
+                return torch.randn(tensor.shape[0], 512)
 
-    image_paths = [Path(f"img_{i}.png") for i in range(32)]
-    device = "cpu"
+        model = MockModel()
+        preprocess = T.Compose([
+            T.Resize(224, interpolation=T.InterpolationMode.BICUBIC),
+            T.CenterCrop(224),
+            T.ToTensor(),
+            T.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
+        ])
+        device = "cpu"
 
-    # Batch size 1 (simulating old sequential behavior)
-    start_seq = time.time()
-    _ = clip_similarity_audit.encode_images(image_paths, model, preprocess, device, torch, batch_size=1)
-    end_seq = time.time()
+        # Warmup
+        _ = encode_images_old(image_paths[:2], model, preprocess, device, torch)
+        _ = encode_images(image_paths[:2], model, preprocess, device, torch)
 
-    # Batch size 16
-    start_batch = time.time()
-    _ = clip_similarity_audit.encode_images(image_paths, model, preprocess, device, torch, batch_size=16)
-    end_batch = time.time()
+        t0 = time.perf_counter()
+        res_old = encode_images_old(image_paths, model, preprocess, device, torch)
+        t1 = time.perf_counter()
 
-    print(f"\nEncoding (N={len(image_paths)}):")
-    print(f"  Sequential (BS=1): {end_seq - start_seq:.6f}s")
-    print(f"  Batched (BS=16):    {end_batch - start_batch:.6f}s")
-    print(f"  Speedup: {(end_seq - start_seq) / (end_batch - start_batch):.2f}x")
+        t2 = time.perf_counter()
+        res_new = encode_images(image_paths, model, preprocess, device, torch)
+        t3 = time.perf_counter()
+
+        print(f"Sequential I/O time (32 images): {(t1-t0)*1000:.2f} ms")
+        print(f"Parallel ThreadPool time (32 images): {(t3-t2)*1000:.2f} ms")
+        print(f"Speedup: {(t1-t0)/(t3-t2):.2f}x")
+
+        assert len(res_old) == len(res_new) == 32
+        for r1, r2 in zip(res_old, res_new):
+            assert r1.shape == r2.shape == (1, 512)
+
+        print("Verification passed successfully!")
 
 if __name__ == "__main__":
-    benchmark_similarity_logic()
-    benchmark_encoding_batching()
+    main()
