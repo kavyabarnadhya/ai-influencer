@@ -45,3 +45,39 @@ def test_expect_hands_zero_flagged(monkeypatch):
     _stub(monkeypatch, yolo_n=0, mp_n=0)
     r = hand_qc.score_image(Path("x.png"), expect_hands=True)
     assert "NO_HANDS_DETECTED" in r["flags"]
+
+
+def test_main_folder_candidate_picking(monkeypatch, tmp_path):
+    class MockBox:
+        def __init__(self, confs):
+            self._confs = confs
+
+        @property
+        def conf(self):
+            return self
+
+        def tolist(self):
+            return self._confs
+
+    class MockResult:
+        def __init__(self, path, confs):
+            self.path = path
+            self.boxes = MockBox(confs)
+
+    class MockYOLO:
+        def predict(self, paths, conf=0.40, verbose=False):
+            return [MockResult(p, [0.95, 0.90]) for p in paths]
+
+    monkeypatch.setattr(hand_qc, "_yolo", lambda: MockYOLO())
+    monkeypatch.setattr(hand_qc, "_HAVE_MP", False)
+
+    (tmp_path / "slide_00_cand_0.png").write_text("")
+    (tmp_path / "slide_00_cand_1.png").write_text("")
+
+    from click.testing import CliRunner
+
+    runner = CliRunner()
+    res = runner.invoke(hand_qc.main, [str(tmp_path), "--pick"])
+    assert res.exit_code == 0
+    assert "BEST cand0" in res.output or "BEST cand1" in res.output
+    assert "slide_00_cand_0.png" in res.output
