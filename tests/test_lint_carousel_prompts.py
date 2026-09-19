@@ -22,6 +22,12 @@ def test_cands_token_stripped():
     assert "cands=" not in stripped
 
 
+def test_token_with_spaces_stripped():
+    stripped = lint._strip_tokens("cands = 3 | denoise = 0.85 | ultra = 0.44 | rooftop portrait, golden hour, silk saree")
+    assert stripped == "rooftop portrait, golden hour, silk saree"
+    assert "cands" not in stripped
+
+
 # --- hand at waist on light garment ---
 
 def test_hand_at_waist_on_white_dress_errors():
