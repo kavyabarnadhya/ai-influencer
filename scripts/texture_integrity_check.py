@@ -34,22 +34,44 @@ SUPPORTED_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
 
 
 @functools.lru_cache(maxsize=16)
-def _get_unshifted_low_freq_mask(h: int, w: int, r_inner: int) -> np.ndarray:
+def _get_unshifted_corner_uint8_masks(r_inner: int) -> tuple[tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], tuple[int, int, int, int]]:
     """
-    Cached mask for unshifted DFT magnitude. Low frequencies are in the corners.
-    Returns uint8 mask [0, 255].
-    Optimization: Evaluates corner distances on localized r_inner x r_inner grids
-    instead of full H x W grids, achieving a ~238x speedup (~0.67ms vs ~160ms for 1080p).
+    Cached corner uint8 masks and pixel counts for unshifted DFT magnitude.
+    Low frequencies are in the 4 corners.
+    Returns ((m1, m2, m3, m4), (cnt1, cnt2, cnt3, cnt4)).
+    Optimization: Avoids allocating full H x W image masks, avoiding redundant 2D array slicing
+    and avoiding 4 cv2.countNonZero calls per image pass.
     """
-    mask = np.zeros((h, w), dtype=np.uint8)
     Y0 = np.arange(r_inner, dtype=np.int64)[:, None]
     X0 = np.arange(r_inner, dtype=np.int64)[None, :]
     r_sq = r_inner**2
 
-    mask[:r_inner, :r_inner] = ((Y0**2 + X0**2) < r_sq).astype(np.uint8) * 255
-    mask[:r_inner, w - r_inner:] = ((Y0**2 + (X0 - r_inner)**2) < r_sq).astype(np.uint8) * 255
-    mask[h - r_inner:, :r_inner] = (((Y0 - r_inner)**2 + X0**2) < r_sq).astype(np.uint8) * 255
-    mask[h - r_inner:, w - r_inner:] = (((Y0 - r_inner)**2 + (X0 - r_inner)**2) < r_sq).astype(np.uint8) * 255
+    m1 = ((Y0**2 + X0**2) < r_sq).astype(np.uint8) * 255
+    m2 = ((Y0**2 + (X0 - r_inner)**2) < r_sq).astype(np.uint8) * 255
+    m3 = (((Y0 - r_inner)**2 + X0**2) < r_sq).astype(np.uint8) * 255
+    m4 = (((Y0 - r_inner)**2 + (X0 - r_inner)**2) < r_sq).astype(np.uint8) * 255
+
+    cnt1 = cv2.countNonZero(m1)
+    cnt2 = cv2.countNonZero(m2)
+    cnt3 = cv2.countNonZero(m3)
+    cnt4 = cv2.countNonZero(m4)
+
+    return (m1, m2, m3, m4), (cnt1, cnt2, cnt3, cnt4)
+
+
+@functools.lru_cache(maxsize=16)
+def _get_unshifted_low_freq_mask(h: int, w: int, r_inner: int) -> np.ndarray:
+    """
+    Cached mask for unshifted DFT magnitude. Low frequencies are in the corners.
+    Returns uint8 mask [0, 255]. Kept for backward compatibility.
+    """
+    mask = np.zeros((h, w), dtype=np.uint8)
+    (m1, m2, m3, m4), _ = _get_unshifted_corner_uint8_masks(r_inner)
+
+    mask[:r_inner, :r_inner] = m1
+    mask[:r_inner, w - r_inner:] = m2
+    mask[h - r_inner:, :r_inner] = m3
+    mask[h - r_inner:, w - r_inner:] = m4
 
     return mask
 
@@ -107,22 +129,12 @@ def compute_texture_score(image_path: str | Path) -> dict:
         # Optimization: Use vectorized np.ogrid and inner-sum trick to avoid O(H*W) loops.
         r_inner = min(h, w) // 6
 
-        # Optimization: Use unshifted low-frequency mask matched to raw DFT corners.
-        low_freq_mask = _get_unshifted_low_freq_mask(h, w, r_inner)
+        # Optimization: Retrieve pre-sliced uint8 corner masks and pre-computed pixel counts directly.
+        # Avoids full 2MB H x W mask allocations, redundant 2D array slicing, and 4 cv2.countNonZero calls.
+        (m1, m2, m3, m4), (cnt1, cnt2, cnt3, cnt4) = _get_unshifted_corner_uint8_masks(r_inner)
 
         # Optimization: cv2.sumElems is slightly faster than NumPy .sum()
         total_magnitude = cv2.sumElems(magnitude)[0]
-        # Optimization: Evaluate corner submasks (m1, m2, m3, m4) directly on the 4 corner slices
-        # instead of evaluating full-image cv2.mean over 2M+ pixels (~12x faster for mask mean pass).
-        m1 = low_freq_mask[:r_inner, :r_inner]
-        m2 = low_freq_mask[:r_inner, w - r_inner:]
-        m3 = low_freq_mask[h - r_inner:, :r_inner]
-        m4 = low_freq_mask[h - r_inner:, w - r_inner:]
-
-        cnt1 = cv2.countNonZero(m1)
-        cnt2 = cv2.countNonZero(m2)
-        cnt3 = cv2.countNonZero(m3)
-        cnt4 = cv2.countNonZero(m4)
 
         s1 = cv2.mean(magnitude[:r_inner, :r_inner], mask=m1)[0] * cnt1
         s2 = cv2.mean(magnitude[:r_inner, w - r_inner:], mask=m2)[0] * cnt2
