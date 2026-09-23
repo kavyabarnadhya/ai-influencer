@@ -76,23 +76,23 @@ _NEG = re.compile(r"\b(no|not|without|away from|absolutely no)\b", re.I)
 _FORBIDDEN = [
     (re.compile(r"\b(back to camera|body turned away from camera|turned fully away)\b", re.I),
      "180 deg back-to-camera -> Kontext repaints scene, BG collapses. Use 'three-quarter facing toward camera, head over shoulder' (or an intentional faceless walk-away with faceswap=false).",
-     ("back", "turned", "away")),
+     ("back to camera", "turned away", "turned fully away", "body turned")),
     (re.compile(r"hand[s]?\b[^.|]{0,30}\b(?:touch|touching|on|at)\b[^.|]{0,20}"
                 r"\b(ribbon|tie|lace|button|zipper|strings?|clasp|knot)\b", re.I),
      "hand on a closure (ribbon/lace/button/zipper) -> Kontext reads as untying the garment. Use hand to cheek / collarbone / in hair.",
      ("ribbon", "tie", "lace", "button", "zipper", "string", "clasp", "knot")),
     (re.compile(r"\bwaist-?up (?:portrait |)framing\b", re.I),
      "'waist-up framing' is ignored by Kontext (stays full-body). Use 'chest-up portrait framing showing face neck shoulders and neckline only'.",
-     ("waist",)),
+     ("waist-up framing", "waistup framing", "waist-up portrait", "waistup portrait")),
     (re.compile(r"\bmirror\b", re.I),
      "mirror in BG -> Kontext portal artefact (figure emerging from frame). Use a non-reflective wall/sconce/panel.",
      ("mirror",)),
     (re.compile(r"\b(hair flip|hair flung|flinging hair|hair (?:in motion|across (?:the |her )?face))\b", re.I),
      "hair-flip across face -> rubbery artificial strands. Use walking-away or side-profile for hidden face.",
-     ("hair",)),
+     ("hair flip", "hair flung", "flinging hair", "hair in motion", "hair across")),
     (re.compile(r"\bboth arms raised straight overhead\b", re.I),
      "straight-overhead arms read stiff/'surrender' and Kontext won't raise them from a relaxed anchor. Bake an armsup: anchor with languid bent elbows.",
-     ("overhead", "raised")),
+     ("overhead",)),
     (re.compile(r"\bsitting\b", re.I),
      "'sitting' in a standing carousel -> BG/outfit drift. Sitting = separate post.",
      ("sitting",)),
@@ -155,6 +155,8 @@ def lint_text(text: str) -> tuple[list[str], list[str]]:
         def _positive(rx: re.Pattern, exclude: re.Pattern | None = None) -> str | None:
             """Return the matched text from the first NON-negated clause, else None.
             Clauses matching `exclude` (e.g. architectural 'glass panel') are skipped."""
+            if not rx.search(prompt):
+                return None
             for c in clauses:
                 m = rx.search(c)
                 if m and not _NEG.search(c) and not (exclude and exclude.search(c)):
