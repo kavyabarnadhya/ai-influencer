@@ -23,6 +23,7 @@ class Case:
     label: str
     swap: bool = True
     restore: float = 1.0
+    restore_model: str = "codeformer-v0.1.0.pth"
     lora: float = 0.9
     cfg: float = 8.0
 
@@ -33,7 +34,7 @@ def cases() -> list[Case]:
         Case("baseline | swap ON | CodeFormer 1 | LoRA .9 | CFG 8"),
         Case("swap OFF", swap=False),
         Case("CodeFormer .5", restore=0.5),
-        Case("CodeFormer OFF", restore=0.0),
+        Case("CodeFormer OFF", restore_model="none"),
         Case("LoRA .65", lora=0.65),
         Case("LoRA .75", lora=0.75),
         Case("LoRA .85", lora=0.85),
@@ -66,11 +67,14 @@ def generation_workflow(template: dict, config: dict, prompt: str, seed: int, ca
     return wf
 
 
-def swap_workflow(template: dict, face_name: str, target_name: str, restore: float) -> dict:
+def swap_workflow(template: dict, face_name: str, target_name: str, restore: float, restore_model: str) -> dict:
     wf = inject_workflow_values(template, {
         "_claude_inject_source_image": {"inputs.image": face_name},
         "_claude_inject_target_image": {"inputs.image": target_name},
-        "_claude_reactor_swap": {"inputs.face_restore_visibility": restore},
+        "_claude_reactor_swap": {
+            "inputs.face_restore_visibility": restore,
+            "inputs.face_restore_model": restore_model,
+        },
     })
     return wf
 
@@ -153,7 +157,7 @@ def main(face_ref: Path, seed: int, prompt: str, output_dir: Path,
             if case.swap:
                 # Unique upload name per generated image prevents remote-name collisions.
                 target = client.upload_image_data(generated, f"ablation_{seed}_{index:02d}.png")
-                final = run_image(client, swap_workflow(swap_template, source, target, case.restore),
+                final = run_image(client, swap_workflow(swap_template, source, target, case.restore, case.restore_model),
                                   config["comfyui"]["timeout"])
             else:
                 final = generated
