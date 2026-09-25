@@ -44,7 +44,8 @@ def cases() -> list[Case]:
     ]
 
 
-def generation_workflow(template: dict, config: dict, prompt: str, seed: int, case: Case) -> dict:
+def generation_workflow(template: dict, config: dict, prompt: str, seed: int, case: Case,
+                         width: int | None = None, height: int | None = None) -> dict:
     gen = config["generation"]
     char = config["characters"]["ananya"]
     wf = inject_workflow_values(template, {
@@ -56,7 +57,7 @@ def generation_workflow(template: dict, config: dict, prompt: str, seed: int, ca
         },
         "_claude_inject_prompt": {"inputs.text": prompt},
         "_claude_inject_negative": {"inputs.text": gen["negative_prompt"]},
-        "_claude_inject_latent": {"inputs.width": gen["width"], "inputs.height": gen["height"]},
+        "_claude_inject_latent": {"inputs.width": width or gen["width"], "inputs.height": height or gen["height"]},
         "_claude_inject_seed": {"inputs.seed": seed, "inputs.steps": gen["steps"], "inputs.cfg": case.cfg},
     })
     # Face and hand detailing are secondary samplers. Hold their seed, CFG and
@@ -129,8 +130,11 @@ def run_image(client: ComfyUIClient, workflow: dict, timeout: int) -> bytes:
 @click.option("--output-dir", type=click.Path(file_okay=False, path_type=Path), default=ROOT / "output" / "realism_ablation")
 @click.option("--crop", nargs=4, type=int, default=None, help="Optional same native-pixel crop: X Y WIDTH HEIGHT")
 @click.option("--port", type=int, default=None, help="ComfyUI port; auto-detect if omitted")
+@click.option("--width", type=int, default=None, help="Override config.yaml generation width (e.g. reels canvas)")
+@click.option("--height", type=int, default=None, help="Override config.yaml generation height (e.g. reels canvas)")
 def main(face_ref: Path, seed: int, prompt: str, output_dir: Path,
-         crop: tuple[int, int, int, int] | None, port: int | None) -> None:
+         crop: tuple[int, int, int, int] | None, port: int | None,
+         width: int | None, height: int | None) -> None:
     if seed < 0 or seed >= 2**64:
         raise click.BadParameter("Seed must be in [0, 2**64)", param_hint="--seed")
     if not prompt.strip():
@@ -152,7 +156,7 @@ def main(face_ref: Path, seed: int, prompt: str, output_dir: Path,
         results = []
         for index, case in enumerate(cases()):
             click.echo(f"[{index + 1}/{len(cases())}] {case.label}")
-            generated = run_image(client, generation_workflow(gen_template, config, full_prompt, seed, case),
+            generated = run_image(client, generation_workflow(gen_template, config, full_prompt, seed, case, width, height),
                                   config["comfyui"]["timeout"])
             if case.swap:
                 # Unique upload name per generated image prevents remote-name collisions.
@@ -170,6 +174,7 @@ def main(face_ref: Path, seed: int, prompt: str, output_dir: Path,
         (output_dir / "manifest.json").write_text(json.dumps({
             "seed": seed, "prompt": full_prompt, "face_ref": str(face_ref),
             "checkpoint": config["models"]["checkpoint"], "steps": config["generation"]["steps"],
+            "width": width or config["generation"]["width"], "height": height or config["generation"]["height"],
             "crop": crop, "postprocessing": "none (no skin_color_match or UltraSharp)",
             "cases": [{**asdict(case), "file": path.name} for case, path in results],
         }, indent=2), encoding="utf-8")

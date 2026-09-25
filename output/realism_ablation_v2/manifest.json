@@ -1,0 +1,103 @@
+{
+  "seed": 334521876,
+  "prompt": "AnanyaAI, medium-close portrait, facing camera directly, soft even daylight from the front, cream sweater, plain indoor wall background, sharp focus on face",
+  "face_ref": "character\\ananya\\seeds_v2\\face_ref_v2.png",
+  "checkpoint": "Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors",
+  "steps": 30,
+  "width": 768,
+  "height": 1360,
+  "crop": null,
+  "postprocessing": "none (no skin_color_match or UltraSharp)",
+  "cases": [
+    {
+      "label": "baseline | swap ON | CodeFormer 1 | LoRA .9 | CFG 8",
+      "swap": true,
+      "restore": 1.0,
+      "restore_model": "codeformer-v0.1.0.pth",
+      "lora": 0.9,
+      "cfg": 8.0,
+      "file": "00_swap.png"
+    },
+    {
+      "label": "swap OFF",
+      "swap": false,
+      "restore": 1.0,
+      "restore_model": "codeformer-v0.1.0.pth",
+      "lora": 0.9,
+      "cfg": 8.0,
+      "file": "01_raw.png"
+    },
+    {
+      "label": "CodeFormer .5",
+      "swap": true,
+      "restore": 0.5,
+      "restore_model": "codeformer-v0.1.0.pth",
+      "lora": 0.9,
+      "cfg": 8.0,
+      "file": "02_swap.png"
+    },
+    {
+      "label": "CodeFormer OFF",
+      "swap": true,
+      "restore": 1.0,
+      "restore_model": "none",
+      "lora": 0.9,
+      "cfg": 8.0,
+      "file": "03_swap.png"
+    },
+    {
+      "label": "LoRA .65",
+      "swap": true,
+      "restore": 1.0,
+      "restore_model": "codeformer-v0.1.0.pth",
+      "lora": 0.65,
+      "cfg": 8.0,
+      "file": "04_swap.png"
+    },
+    {
+      "label": "LoRA .75",
+      "swap": true,
+      "restore": 1.0,
+      "restore_model": "codeformer-v0.1.0.pth",
+      "lora": 0.75,
+      "cfg": 8.0,
+      "file": "05_swap.png"
+    },
+    {
+      "label": "LoRA .85",
+      "swap": true,
+      "restore": 1.0,
+      "restore_model": "codeformer-v0.1.0.pth",
+      "lora": 0.85,
+      "cfg": 8.0,
+      "file": "06_swap.png"
+    },
+    {
+      "label": "CFG 5",
+      "swap": true,
+      "restore": 1.0,
+      "restore_model": "codeformer-v0.1.0.pth",
+      "lora": 0.9,
+      "cfg": 5,
+      "file": "07_swap.png"
+    },
+    {
+      "label": "CFG 6",
+      "swap": true,
+      "restore": 1.0,
+      "restore_model": "codeformer-v0.1.0.pth",
+      "lora": 0.9,
+      "cfg": 6,
+      "file": "08_swap.png"
+    },
+    {
+      "label": "CFG 7",
+      "swap": true,
+      "restore": 1.0,
+      "restore_model": "codeformer-v0.1.0.pth",
+      "lora": 0.9,
+      "cfg": 7,
+      "file": "09_swap.png"
+    }
+  ]
+}
