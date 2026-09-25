@@ -32,6 +32,8 @@ def test_workflow_axes_and_secondary_samplers():
         assert changed[key]["inputs"]["seed"] == 42
         assert changed[key]["inputs"]["cfg"] == 5
     assert template["2"]["inputs"]["strength_model"] == .85
+    assert template["8"]["inputs"]["cfg"] == 7
+    assert template["8"]["inputs"]["seed"] == 0
 
 
 def test_swap_visibility():
