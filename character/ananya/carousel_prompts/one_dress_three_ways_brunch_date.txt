@@ -1,0 +1,18 @@
+# One Dress, Three Ways — brunch to date night, Delhi rooftop cafe
+# 5-slide restart batch (goal: tight / waist-up-equiv / full body / candid / one more full body)
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/one_dress_three_ways_brunch_date.yaml --prompts character/ananya/carousel_prompts/one_dress_three_ways_brunch_date.txt --name one_dress_three_ways_v1 --flux-dev --kontext
+
+# slide_00: full body hook, brunch mode - relaxed, coffee cup in hand (static-friendly action per forbidden-pattern table)
+anchor=default | same woman in same fitted terracotta wrap midi dress with modest V-neckline positioned high above the bust and tie waist belt and three-quarter sleeves, standing at the rattan cafe table with weight shifted onto right hip, right hand holding ONE single white ceramic coffee cup exactly one NOT two NOT duplicate raised partway to lips, left arm relaxed at side, warm confident gaze at camera, rattan furniture and potted plants around her, city skyline soft in background, keeping exact same wrap dress with modest V-neckline positioned high above the bust and tie waist belt
+
+# slide_01: chest-up portrait closeup - tight framing
+anchor=default | same woman in same terracotta wrap dress with modest V-neckline positioned high above the bust, change to chest-up portrait framing showing face neck shoulders and neckline only, direct camera gaze, warm relaxed smile, one hand lightly at collarbone, soft rooftop daylight, keeping exact same modest V-neckline positioned high above the bust and tie waist belt visible at frame edge
+
+# slide_02: full body alt angle, date-night mode - same dress styled up (heels implied by posture, cafe string lights token added for evening read without changing scene)
+anchor=default | same woman in same terracotta wrap dress with modest V-neckline positioned high above the bust, three-quarter angle facing slightly left toward camera, weight on left hip, left hand raised lightly to cheek with fingers near jawline, right arm relaxed at side, soft golden late-afternoon light suggesting evening transition, string lights visible switched on behind her, keeping exact same wrap dress modest V-neckline positioned high above the bust, tie waist belt and three-quarter sleeves
+
+# slide_03: full body candid - caught mid-laugh, not posed
+anchor=default | same woman in same terracotta wrap dress with modest V-neckline positioned high above the bust, stepping forward with one foot ahead, both hands relaxed at sides, head tilted back slightly mid-laugh looking off-camera to the right, candid unposed moment, natural genuine expression, rooftop cafe rattan furniture blurred around her, keeping exact same wrap dress with modest V-neckline positioned high above the bust and tie waist belt
+
+# slide_04: full body detail on styling - dress with jacket draped for the "date night" transformation beat
+anchor=default | same woman in same terracotta wrap dress with modest V-neckline positioned high above the bust and tie waist belt, wearing an added black fitted blazer draped open over her shoulders not buttoned, standing three-quarter facing slightly right toward camera, right hand raised pushing hair off face, left arm relaxed at side, confident evening-ready expression, warm ambient light, keeping exact same terracotta wrap dress underneath the open blazer
