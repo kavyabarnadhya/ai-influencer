@@ -60,10 +60,9 @@ def generation_workflow(template: dict, config: dict, prompt: str, seed: int, ca
     })
     # Face and hand detailing are secondary samplers. Hold their seed, CFG and
     # checkpoint constant except for the axis under test, or they confound it.
-    for node in wf.values():
+    for node_id, node in list(wf.items()):
         if isinstance(node, dict) and node.get("class_type") == "FaceDetailer":
-            node["inputs"]["seed"] = seed
-            node["inputs"]["cfg"] = case.cfg
+            wf[node_id] = {**node, "inputs": {**node["inputs"], "seed": seed, "cfg": case.cfg}}
     return wf
 
 
