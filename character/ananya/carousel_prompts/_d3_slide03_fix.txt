@@ -1,0 +1,9 @@
+# D3 fix: slide_03 (sunglasses + cap layer) failed post-processing on the first
+# Stage B run (base FLUX render succeeded, but ReActor/hand-detail/skin-lock
+# never produced a final file — read as GPU queue contention, not a content
+# defect; the base render itself was clean).
+# MAPPING: this single slide replaces output/2026-09-26/ananya/carousel_d3_coffee_run_v2/slide_03_cand_0.png
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/d3_coffee_run_outfit_math.yaml --prompts character/ananya/carousel_prompts/_d3_slide03_fix.txt --name d3_slide03_fix --flux-dev --kontext
+
+# add sunglasses and cap, full body candid
+anchor=default | same woman in same layered cream sweater denim jacket joggers and crossbody bag, now with added round tortoiseshell sunglasses and a cream baseball cap worn forward, stepping forward with one foot ahead, both hands relaxed at sides, candid unposed moment looking slightly off-camera, natural genuine expression, coffee cart blurred behind her, keeping exact same full layered outfit
