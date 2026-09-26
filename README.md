@@ -146,6 +146,16 @@ path/to/track.mp3` directly. Output defaults to `<carousel-dir>/reel.mp4`,
 h264/yuv420p, comfortably under 30MB for a typical 5-slide carousel (~2MB for
 13s, silent).
 
+The hook text is measured with real font metrics (PIL) before rendering, not
+guessed by character count: it word-wraps and shrinks the font size (72pt down
+to 28pt) until the **entire** hook fits the frame width and its placement zone
+— never truncated mid-sentence. Placement is face-aware: OpenCV's bundled Haar
+cascade (no model download, no new dependency) finds the largest face on the
+opening slide and the hook is placed above it if there's room, otherwise in
+the lower third, otherwise directly below it for a tight face-filling
+closeup — it never overlaps the detected face. No face detected -> defaults to
+the top band.
+
 **This is a stills-to-slideshow tool, not a substitute for real subject
 motion** (hair sway, fabric flow, blink) — that needs an actual image-to-video
 model, which this repo does not currently have (see
