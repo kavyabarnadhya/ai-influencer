@@ -1,0 +1,6 @@
+# D1 fix: add a genuinely distinct third styling — cardigan layer
+# MAPPING: this single slide becomes the carousel's 3rd distinct look
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/one_dress_three_ways_brunch_date.yaml --prompts character/ananya/carousel_prompts/_d1_cardigan_third_look.txt --name d1_cardigan_fix --flux-dev --kontext
+
+# cardigan third look: full body, distinct silhouette from both blazer and bare dress
+anchor=default | same woman in same terracotta wrap dress with modest V-neckline positioned high above the bust and tie waist belt, wearing an added long open oatmeal cream cardigan draped loosely over the shoulders reaching past the hips, cardigan worn open and unbelted with wide relaxed sleeves, standing three-quarter facing slightly right toward camera, right hand holding the cardigan's edge near the hip, left arm relaxed at side, soft cozy morning expression looking at camera, warm ambient light, keeping exact same terracotta wrap dress underneath the open cardigan

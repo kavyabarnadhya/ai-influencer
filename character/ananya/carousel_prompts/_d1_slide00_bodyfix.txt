@@ -1,0 +1,8 @@
+# D1 fix: slide_00 (candid laugh, full body) had disproportionate/foreshortened
+# torso vs legs per user review. Same pose intent, outfit, identity — added
+# explicit anatomical proportion guards.
+# MAPPING: this single slide replaces output/2026-09-27/ananya/d1_one_dress_three_ways/slide_00.png
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/one_dress_three_ways_brunch_date.yaml --prompts character/ananya/carousel_prompts/_d1_slide00_bodyfix.txt --name d1_slide00_bodyfix --flux-dev --kontext
+
+# candid laugh, full body head-to-shoe, proportion-corrected
+anchor=default | same woman in same terracotta wrap dress with modest V-neckline positioned high above the bust and tie waist belt, full body shot head to shoes both feet visible, natural realistic body proportions with anatomically correct torso-to-leg ratio matching a real 5-foot-5 adult woman, NOT foreshortened NOT compressed torso NOT oversized upper body NOT undersized legs, stepping forward with one foot ahead in a natural walking stride, both hands relaxed at sides, head tilted back slightly mid-laugh looking off-camera to the right, candid unposed moment, natural genuine expression, rooftop cafe rattan furniture blurred around her, keeping exact same wrap dress with modest V-neckline positioned high above the bust and tie waist belt
