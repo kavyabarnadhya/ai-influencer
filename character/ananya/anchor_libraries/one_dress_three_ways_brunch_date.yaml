@@ -1,0 +1,26 @@
+# Production anchor — One Dress, Three Ways (brunch -> date night)
+# Used with: --flux-dev --kontext flags (MANDATORY)
+# Restart batch 2026-09-26 — utility/story concept, not pure glam.
+
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
+
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure,
+  soft natural curves not slim editorial, not plus-size, average Indian build,
+  wearing fitted wrap midi dress in warm terracotta rust with modest V-neckline positioned high above the bust and thin tie waist belt,
+  dress follows natural body curves with fabric showing soft midsection and full hips,
+  smooth matte crepe fabric falling to mid-calf, three-quarter sleeves,
+  dark hair loosely down with soft natural waves over one shoulder,
+  delicate gold pendant necklace visible at collarbone, small gold hoop earrings,
+  photorealistic full body editorial fashion photograph,
+  asymmetric three-quarter pose weight on right hip, left hand resting at side,
+  confident warm expression looking directly at camera,
+  on a sunlit Delhi rooftop cafe terrace with rattan furniture and potted plants,
+  city skyline soft in background, string lights not yet lit,
+  bright overcast diffused daylight, warm ambient light, gentle shadow on one side of face,
+  shot on Sony A7IV 50mm f/2.0 shallow depth of field sharp focus on face,
+  authentic skin texture with visible pores, natural skin imperfections,
+  no plasticky skin, asymmetric facial features, slightly off-center composition,
+  candid moment not posed
