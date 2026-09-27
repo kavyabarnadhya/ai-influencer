@@ -1,0 +1,8 @@
+# D3 fix: slide_02 regenerated through the REAL pipeline (anchor + ReActor
+# identity lock) instead of the prior bypass script that skipped ReActor and
+# drifted hair/face. Hair explicitly locked to match the top-bun seen in
+# slides 00/01/03/04. Strap/necklace description matches the verified-correct
+# slide_03/04 wording exactly.
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/d3_coffee_run_outfit_math.yaml --prompts character/ananya/carousel_prompts/_d3_slide02_identity_fix.txt --name d3_slide02_identity_fix --flux-dev --kontext
+
+anchor=default | same woman with dark hair in the same top bun hairstyle with soft face-framing strands, keeping exact same hair up in a bun NOT down NOT loose NOT shoulder-length, WEARING a light-wash blue denim jacket open over her cream ribbed sweater, denim jacket falling to natural hip length, denim jacket sleeves visible on both arms, denim jacket lapels and collar clearly visible framing the sweater, black joggers, one small tan leather crossbody bag with a rectangular flap and a gold buckle clasp, bag strap is the SAME tan leather as the bag body NOT a metal chain NOT gold links, bag worn across the chest over the denim jacket, one single thin delicate gold chain necklace with one small rectangular pendant, NOT layered NOT double chain NOT a square pendant, small gold stud earrings, keeping exact same tan leather crossbody bag shape clasp color scale and leather strap, DO NOT remove the denim jacket, denim jacket is the outermost visible layer, three-quarter angle facing slightly left toward camera, weight on left leg, right hand resting on the bag strap, left arm relaxed at side showing the denim jacket sleeve, soft morning light
