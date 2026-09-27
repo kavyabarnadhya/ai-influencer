@@ -40,11 +40,18 @@ SHA-256: e99d06f5abab2dab733f2d8d359c1e56b2a34a0b027b1d59065918a05142aa54
 `carousel_AATEST_run2/anchor.png` — local generation output, not
 repository-tracked assets)
 
-**Finding:** this pipeline (`workflows/flux_dev.json`, FLUX dev + fixed
-seed + `euler`/`simple` sampler) is deterministic for identical inputs on
-this machine. Apparent differences between test runs in this
-investigation are attributable to the prompt/graph changes made between
-them, not to sampler or GPU nondeterminism.
+**Finding, scoped to these two trials:** this pipeline
+(`workflows/flux_dev.json`, FLUX dev + fixed seed + `euler`/`simple`
+sampler) produced identical output across these two identical-input runs
+on this machine — it was deterministic in this pair of trials. This is
+not a general claim of pipeline determinism across all conditions (only
+two runs were compared, both under identical inputs; no run varying only
+hardware/timing/queue state was tested). Within that scope, the
+differences seen between the *other* test runs in this investigation
+(which had deliberate prompt/graph changes) are more plausibly
+attributable to those changes than to run-to-run noise, but that
+inference rests on this two-trial result, not on a broader
+nondeterminism study.
 
 ## 2. Negative-prompt edit: different file hash, zero decoded-pixel difference
 
@@ -76,16 +83,36 @@ SHA-256: 1ce30851ac7f95b5fb4abec4bc3fe295fe020e948230960da7074b06269e099e
 directly** (`numpy` array diff, both images loaded as RGB, `max abs
 pixel difference = 0` across all channels).
 
-**Cause, inspected in `workflows/flux_dev.json` node `"7"`
-(`_claude_inject_seed`, a `KSampler`) `inputs.cfg`: value `1.0`.**
-Classifier-free guidance combines the conditional (positive) and
-unconditional (negative) noise predictions as
-`noise_pred = uncond + cfg_scale * (cond - uncond)`. At `cfg_scale = 1.0`
-this algebraically reduces to `noise_pred = cond` — the negative/uncond
-branch's contribution cancels out regardless of its content. This is a
-property of the classifier-free guidance formula as implemented by
-ComfyUI's standard `KSampler`, not something specific to this project's
-code.
+**Cause, confirmed at two levels:**
+
+1. `workflows/flux_dev.json` node `"7"` (`_claude_inject_seed`, a
+   `KSampler`) `inputs.cfg`: value `1.0`.
+2. Inspected the actual sampler source shipped with this machine's local
+   ComfyUI Desktop install (version `0.22.3`, per
+   `comfyui_version.py`, path `comfy/samplers.py` inside the app's
+   bundled resources — not a GitHub permalink; the exact upstream commit
+   for this pinned version was not independently confirmed against
+   `comfyanonymous/ComfyUI` and is not cited as one). In
+   `sampling_function()`:
+
+   ```python
+   def sampling_function(model, x, timestep, uncond, cond, cond_scale, model_options={}, seed=None):
+       if math.isclose(cond_scale, 1.0) and model_options.get("disable_cfg1_optimization", False) == False:
+           uncond_ = None
+       else:
+           uncond_ = uncond
+       conds = [cond, uncond_]
+       ...
+   ```
+
+   When `cond_scale` (i.e. the workflow's `cfg` field) is `1.0` and the
+   `disable_cfg1_optimization` model option is not set (it is not, in
+   this graph), the unconditional/negative branch is set to `None`
+   **before** the model's forward pass — the negative prompt's encoded
+   conditioning is never evaluated by the model at all for this sampling
+   call, not merely algebraically cancelled downstream. This is a named,
+   default-on optimization in ComfyUI's own sampler, not a project-
+   specific behavior.
 
 **Caveat, stated explicitly per instruction: this finding is scoped to
 this graph and this KSampler configuration (`cfg=1.0`), not a universal
@@ -145,22 +172,26 @@ equality) was established by diffing the two YAML configs at generation
 time and was reported in-session, but has not been independently
 re-verified against the current repo state as part of writing this
 document — cite it as session-reported, not independently re-confirmed
-here. The pixel outcome (feet visible, face/body drift) was reviewed
-directly against the rendered PNG by both the agent and the user
-separately in-session; that part is independently pixel-reviewed, not
-merely asserted.
+here. The pixel outcome (feet visible, face/body drift) was independently
+pixel-reviewed by Instinct against the rendered PNG. The image was also
+sent to Kavya for review; no separate pixel-review findings or approval
+were received back in-session — no owner approval or lock should be
+inferred from having sent the file.
 
 ## 5. Recommended next path, if resumed (not tested, not authorized)
 
 This is a recommendation only — none of it has been tested or authorized
 as work to perform:
 
-1. **Face-swap using the approved canonical face reference**
+1. **Face-swap using the existing face reference**
    (`character/ananya/seeds_v2/face_ref_v2.png`) for near-term identity
    consistency across any body/framing fix — this repo's existing ReActor
-   faceswap stage already does this for every carousel slide; the
-   open question from this investigation is body/framing, not identity
-   lock, which already has a working mechanism.
+   faceswap stage already runs this reference against every carousel
+   slide as a pipeline stage. This investigation did not test or validate
+   its reliability; it's an existing mechanism that would need its own
+   verification, not a proven identity lock. The open question from this
+   investigation was body/framing, not identity — but "not tested here"
+   is not the same as "known to work."
 2. **Consider a dedicated persona/body LoRA only after accumulating
    enough curated, consistent images** to train one properly, rather than
    continuing to patch the existing generic body LoRA
