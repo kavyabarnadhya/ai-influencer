@@ -1,0 +1,27 @@
+# D3 pipeline-hardening pass: shared verbatim outfit-lock block + canonical
+# reference discipline. Slide_02/03 generated from this file (front/candid
+# angles, image-conditioned off the SAME canonical anchor per Kontext's
+# existing image-editing mechanism). Slide_04 (rear view) is NOT generated
+# from this file — it is produced separately via img2img directly off the
+# approved slide_03 output (see D3_PIPELINE_HARDENING.md), not an
+# independent text-only generation.
+#
+# SHARED_OUTFIT_LOCK (verbatim, reused unchanged in every slide below):
+#   "WEARING a light-wash blue denim jacket open over her cream ribbed
+#   sweater, denim jacket falling to natural hip length, denim jacket
+#   sleeves visible on both arms, denim jacket lapels and collar clearly
+#   visible framing the sweater, black joggers, one small tan leather
+#   crossbody bag with a rectangular flap and a gold buckle clasp and gold
+#   chain-link strap hardware, bag worn across the chest over the denim
+#   jacket, delicate gold pendant necklace, small gold stud earrings,
+#   keeping exact same tan leather crossbody bag shape clasp color and
+#   scale in every slide, DO NOT remove the denim jacket, denim jacket is
+#   the outermost visible layer"
+#
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/d3_coffee_run_outfit_math.yaml --prompts character/ananya/carousel_prompts/_d3_cumulative_fix_v3.txt --name d3_cumulative_fix_v3 --flux-dev --kontext
+
+# slide_02: three-quarter angle, pose/angle only varies
+anchor=default | same woman WEARING a light-wash blue denim jacket open over her cream ribbed sweater, denim jacket falling to natural hip length, denim jacket sleeves visible on both arms, denim jacket lapels and collar clearly visible framing the sweater, black joggers, one small tan leather crossbody bag with a rectangular flap and a gold buckle clasp and gold chain-link strap hardware, bag worn across the chest over the denim jacket, delicate gold pendant necklace, small gold stud earrings, keeping exact same tan leather crossbody bag shape clasp color and scale in every slide, DO NOT remove the denim jacket, denim jacket is the outermost visible layer, three-quarter angle facing slightly left toward camera, weight on left leg, right hand resting on the bag strap, left arm relaxed at side showing the denim jacket sleeve, soft morning light
+
+# slide_03: full body candid, pose/angle only varies -- this is the canonical front reference for slide_04's img2img derivation
+anchor=default | same woman WEARING a light-wash blue denim jacket open over her cream ribbed sweater, denim jacket falling to natural hip length, denim jacket sleeves visible on both arms, denim jacket lapels and collar clearly visible framing the sweater, black joggers, one small tan leather crossbody bag with a rectangular flap and a gold buckle clasp and gold chain-link strap hardware, bag worn across the chest over the denim jacket, delicate gold pendant necklace, small gold stud earrings, keeping exact same tan leather crossbody bag shape clasp color and scale in every slide, DO NOT remove the denim jacket, denim jacket is the outermost visible layer, round tortoiseshell sunglasses, cream baseball cap worn forward, stepping forward with one foot ahead, both hands relaxed at sides, candid unposed moment looking slightly off-camera, natural genuine expression, coffee cart blurred behind her

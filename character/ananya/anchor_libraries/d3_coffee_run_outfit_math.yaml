@@ -1,0 +1,26 @@
+# Production anchor — D3: Coffee-run outfit math (30-day content test)
+# Used with: --flux-dev --kontext flags (MANDATORY)
+# Comfy base + escalating styling layers concept, Delhi neighborhood cafe street.
+
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
+
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure,
+  soft natural curves not slim editorial, not plus-size, average Indian build,
+  wearing oversized cream ribbed knit crewneck sweater with sleeves pushed up to forearms,
+  fitted high-waisted black joggers with tapered ankle,
+  dark hair loosely tied in a low bun with soft face-framing strands,
+  small gold stud earrings, thin gold chain necklace,
+  photorealistic full body candid street photograph,
+  relaxed casual stance weight on right leg, left hand tucked in sweater pocket,
+  easy natural expression looking at camera with soft smile,
+  on a quiet Delhi neighborhood street with a small Indian chai and coffee cart stall,
+  wooden stools beside the cart, Hindi and English signage visible on shopfronts behind,
+  potted plants, auto-rickshaw parked soft in background, Indian residential street architecture,
+  bright overcast morning light, even cool tones, gentle shadow on one side of face,
+  shot on Sony A7IV 50mm f/2.0 shallow depth of field sharp focus on face,
+  authentic skin texture with visible pores, natural skin imperfections,
+  no plasticky skin, asymmetric facial features, slightly off-center composition,
+  candid moment not posed

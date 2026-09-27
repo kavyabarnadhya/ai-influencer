@@ -1,0 +1,18 @@
+# D3: Coffee-run outfit math — comfy base + escalating styling layers
+# 5-slide carousel, 30-day content test (Tue 29 Sep 2026)
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/d3_coffee_run_outfit_math.yaml --prompts character/ananya/carousel_prompts/d3_coffee_run_outfit_math.txt --name d3_coffee_run_v1 --flux-dev --kontext
+
+# slide_00: comfy base, full body, step 1
+anchor=default | same woman in same oversized cream ribbed knit crewneck sweater with sleeves pushed up and fitted high-waisted black joggers, standing at the small coffee cart with weight on right leg, left hand tucked in sweater pocket, right hand holding ONE single small paper coffee cup exactly one NOT two NOT duplicate, easy morning expression looking at camera, coffee cart and wooden stools around her, keeping exact same cream ribbed sweater and black joggers
+
+# slide_01: add denim jacket, chest-up portrait
+anchor=default | same woman in same cream ribbed sweater and black joggers, now with an added light-wash denim jacket worn open over the sweater, change to chest-up portrait framing showing face neck shoulders and neckline only, direct camera gaze, warm relaxed smile, one hand at collarbone, soft morning daylight, keeping exact same cream sweater underneath the open denim jacket
+
+# slide_02: add crossbody bag, full body alt angle
+anchor=default | same woman in same cream sweater and black joggers with the light-wash denim jacket worn open, now with an added small tan leather crossbody bag worn across the chest, three-quarter angle facing slightly left toward camera, weight on left leg, right hand resting on the bag strap, left arm relaxed at side, soft morning light, keeping exact same layered sweater denim jacket and joggers
+
+# slide_03: add sunglasses and cap, full body candid
+anchor=default | same woman in same layered cream sweater denim jacket joggers and crossbody bag, now with added round tortoiseshell sunglasses and a cream baseball cap worn forward, stepping forward with one foot ahead, both hands relaxed at sides, candid unposed moment looking slightly off-camera, natural genuine expression, coffee cart blurred behind her, keeping exact same full layered outfit
+
+# slide_04: full look, walking away toward the cafe entrance, faceless
+anchor=default | faceswap=false | same woman in same full layered outfit cream sweater denim jacket black joggers crossbody bag sunglasses and cap, captured from behind walking slowly toward the painted cafe shopfront, mid-stride one foot forward, body and head facing away face NOT visible, both arms relaxed at sides, bright morning daylight, keeping exact same full layered outfit from behind

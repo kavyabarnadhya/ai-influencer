@@ -1,0 +1,37 @@
+C:\Users\barna\Projects\ai-influencer\.venv\Lib\site-packages\open_clip\factory.py:450: UserWarning: QuickGELU mismatch between final model config (quick_gelu=False) and pretrained tag 'openai' (quick_gelu=True).
+  warnings.warn(
+              Accessory continuity vs slide_03.png               
++---------------------------------------------------------------+
+| Slide            | Region   | Cosine sim | Threshold | Result |
+|------------------+----------+------------+-----------+--------|
+| old_slide_02.png | necklace | 0.7996     | 0.85      | FAIL   |
++---------------------------------------------------------------+
+
+GATE FAILED — 1 check(s) below threshold: old_slide_02.png/necklace
+Coarse automated check — does not replace full-resolution human review.
+
+--- strap region (documented limitation, does NOT reliably fail) ---
+  warnings.warn(
+                     Accessory continuity vs slide_03.png                      
++-----------------------------------------------------------------------------+
+| Slide            | Region                 | Cosine sim | Threshold | Result |
+|------------------+------------------------+------------+-----------+--------|
+| old_slide_02.png | strap (unreliable, see | 0.8777     | 0.80      | PASS   |
+|                  | docstring)             |            |           |        |
++-----------------------------------------------------------------------------+
+
+GATE PASSED — all compared regions within threshold of the canonical.
+Coarse automated check — does not replace full-resolution human review.
+
+--- necklace region on the FIXED slide_02 (should pass) ---
+  warnings.warn(
+            Accessory continuity vs slide_03.png             
++-----------------------------------------------------------+
+| Slide        | Region   | Cosine sim | Threshold | Result |
+|--------------+----------+------------+-----------+--------|
+| slide_02.png | necklace | 0.9190     | 0.85      | PASS   |
+| slide_04.png | necklace | 0.7990     | 0.85      | FAIL   |
++-----------------------------------------------------------+
+
+GATE FAILED — 1 check(s) below threshold: slide_04.png/necklace
+Coarse automated check — does not replace full-resolution human review.
