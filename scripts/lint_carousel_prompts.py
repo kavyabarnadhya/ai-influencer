@@ -69,33 +69,44 @@ _SINGULAR_GUARD = re.compile(r"\b(one single|exactly one|NOT two|NOT duplicate|o
 
 # Negation markers — a clause containing these is a "keep it OUT" instruction, not a pose.
 _NEG = re.compile(r"\b(no|not|without|away from|absolutely no)\b", re.I)
+_NEG_KEYWORDS = ("no", "not", "without", "away")
 
-# S8 hard-forbidden patterns: (regex, message, keyword_tuple_prefilter)
-# Optimization: Pairing each regex with a targeted keyword tuple pre-filter avoids
-# evaluating complex NFA regexes on non-matching prompt lines (~1.62x overall speedup).
+# Pre-filter tuples
+_CLOSURE_KEYWORDS = ("ribbon", "tie", "lace", "button", "zipper", "string", "clasp", "knot")
+
+# S8 hard-forbidden patterns: (regex, message, keyword_tuple_prefilter, is_warning)
+# Optimization: Pairing each regex with a targeted keyword tuple pre-filter and explicit warning flag
+# avoids evaluating complex NFA regexes on non-matching prompt lines (~1.62x overall speedup).
 _FORBIDDEN = [
     (re.compile(r"\b(back to camera|body turned away from camera|turned fully away)\b", re.I),
      "180 deg back-to-camera -> Kontext repaints scene, BG collapses. Use 'three-quarter facing toward camera, head over shoulder' (or an intentional faceless walk-away with faceswap=false).",
-     ("back to camera", "turned away", "turned fully away", "body turned")),
+     ("back to camera", "turned away", "turned fully away", "body turned"),
+     False),
     (re.compile(r"hand[s]?\b[^.|]{0,30}\b(?:touch|touching|on|at)\b[^.|]{0,20}"
                 r"\b(ribbon|tie|lace|button|zipper|strings?|clasp|knot)\b", re.I),
      "hand on a closure (ribbon/lace/button/zipper) -> Kontext reads as untying the garment. Use hand to cheek / collarbone / in hair.",
-     ("ribbon", "tie", "lace", "button", "zipper", "string", "clasp", "knot")),
+     _CLOSURE_KEYWORDS,
+     False),
     (re.compile(r"\bwaist-?up (?:portrait |)framing\b", re.I),
      "'waist-up framing' is ignored by Kontext (stays full-body). Use 'chest-up portrait framing showing face neck shoulders and neckline only'.",
-     ("waist-up framing", "waistup framing", "waist-up portrait", "waistup portrait")),
+     ("waist-up framing", "waistup framing", "waist-up portrait", "waistup portrait"),
+     False),
     (re.compile(r"\bmirror\b", re.I),
      "mirror in BG -> Kontext portal artefact (figure emerging from frame). Use a non-reflective wall/sconce/panel.",
-     ("mirror",)),
+     ("mirror",),
+     False),
     (re.compile(r"\b(hair flip|hair flung|flinging hair|hair (?:in motion|across (?:the |her )?face))\b", re.I),
      "hair-flip across face -> rubbery artificial strands. Use walking-away or side-profile for hidden face.",
-     ("hair flip", "hair flung", "flinging hair", "hair in motion", "hair across")),
+     ("hair flip", "hair flung", "flinging hair", "hair in motion", "hair across"),
+     False),
     (re.compile(r"\bboth arms raised straight overhead\b", re.I),
      "straight-overhead arms read stiff/'surrender' and Kontext won't raise them from a relaxed anchor. Bake an armsup: anchor with languid bent elbows.",
-     ("overhead",)),
+     ("overhead",),
+     False),
     (re.compile(r"\bsitting\b", re.I),
      "'sitting' in a standing carousel -> BG/outfit drift. Sitting = separate post.",
-     ("sitting",)),
+     ("sitting",),
+     True),
 ]
 
 # Fast-path keyword tuple pre-filters for expensive regex evaluations
@@ -148,19 +159,31 @@ def lint_text(text: str) -> tuple[list[str], list[str]]:
         is_detail = bool(_DETAIL_SLIDE.search(prompt)) if any(k in low for k in _DETAIL_KEYWORDS) else False
         is_light = bool(_LIGHT_GARMENT.search(prompt)) if any(k in low for k in _LIGHT_KEYWORDS) else False
 
-        # Comma-clauses, so a match can be checked against negation in its own clause
-        # ("NO hand at the waist" / "NO glass" must NOT trip the positive-pose checks).
-        clauses = [c.strip() for c in prompt.split(",")]
+        # Optimization: Lazy creation of clauses list avoids list allocation for clean prompt lines.
+        clauses = None
+
+        def _get_clauses() -> list[str]:
+            nonlocal clauses
+            if clauses is None:
+                clauses = [c.strip() for c in prompt.split(",")]
+            return clauses
 
         def _positive(rx: re.Pattern, exclude: re.Pattern | None = None) -> str | None:
             """Return the matched text from the first NON-negated clause, else None.
             Clauses matching `exclude` (e.g. architectural 'glass panel') are skipped."""
-            if not rx.search(prompt):
+            m = rx.search(prompt)
+            if not m:
                 return None
-            for c in clauses:
-                m = rx.search(c)
-                if m and not _NEG.search(c) and not (exclude and exclude.search(c)):
-                    return m.group(0)
+            # Fast path: if no negation keywords are present and no exclude filter is needed,
+            # return match immediately without splitting prompt into clause strings.
+            has_neg = any(k in low for k in _NEG_KEYWORDS)
+            if not has_neg and (not exclude or not exclude.search(prompt)):
+                return m.group(0)
+
+            for c in _get_clauses():
+                cm = rx.search(c)
+                if cm and not _NEG.search(c) and not (exclude and exclude.search(c)):
+                    return cm.group(0)
             return None
 
         # ERROR: hand at waist/hip on a light-fabric slide -> fused fingers
@@ -204,15 +227,18 @@ def lint_text(text: str) -> tuple[list[str], list[str]]:
 
         # S8 forbidden patterns
         # Optimization: Per-rule fast keyword pre-filters skip regex evaluation when keywords absent.
-        for rx, msg, kws in _FORBIDDEN:
+        for rx, msg, kws, is_warning in _FORBIDDEN:
             if any(kw in low for kw in kws):
+                # Extra fast guard: hand closure rule requires "hand" in text
+                if kws is _CLOSURE_KEYWORDS and "hand" not in low:
+                    continue
                 m = rx.search(prompt)
                 if not m:
                     continue
                 # 'back to camera' / walk-away is OK when paired with faceswap=false
                 if "back to camera" in m.group(0).lower() and "faceswap=false" in low:
                     continue
-                sev = warnings if rx.pattern.startswith(r"\bsitting") else errors
+                sev = warnings if is_warning else errors
                 sev.append(f"{tag}: forbidden pattern '{m.group(0)}' - {msg}")
 
     return errors, warnings

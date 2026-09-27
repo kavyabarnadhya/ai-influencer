@@ -15,7 +15,7 @@ def test_cases_change_one_axis():
     assert len(variants) == 9
     for case in variants:
         assert sum(getattr(case, field) != getattr(baseline, field)
-                   for field in ("swap", "restore", "lora", "cfg")) == 1
+                   for field in ("swap", "restore", "restore_model", "lora", "cfg")) == 1
 
 
 def test_workflow_axes_and_secondary_samplers():
@@ -38,7 +38,7 @@ def test_workflow_axes_and_secondary_samplers():
 
 def test_swap_visibility():
     template = load_workflow(str(ab.ROOT / "workflows/faceswap_reactor.json"))
-    off = ab.swap_workflow(template, "source.png", "target.png", 0)
+    off = ab.swap_workflow(template, "source.png", "target.png", 0, "codeformer-v0.1.0.pth")
     assert off["3"]["inputs"]["face_restore_visibility"] == 0
     assert off["3"]["inputs"]["swap_model"] == "inswapper_128.onnx"
     assert template["3"]["inputs"]["face_restore_visibility"] == 1
