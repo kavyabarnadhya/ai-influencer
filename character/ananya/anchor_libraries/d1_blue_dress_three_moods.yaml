@@ -1,0 +1,33 @@
+# Production anchor — D1 replacement: One Blue Dress, Three Moods
+# Used with: --flux-dev --kontext flags (MANDATORY)
+# Approved 2026-09-27 replacement for the original D1 concept. Indoor
+# getting-ready scene, cobalt-blue dress — deliberately distinct from the
+# old terracotta/rooftop post (pre-test baseline, not reused), from D3's
+# outdoor coffee-run street scene, and from D5's desk-to-dinner concept.
+
+face_ref: character/ananya/seeds_v2/face_ref_v2.png
+anchor_seed: 334521876
+anchor_body_lora_strength: 0.5
+
+anchor_prompt: >
+  23-year-old South Asian woman with M-size hourglass figure,
+  soft natural curves not slim editorial, not plus-size, average Indian build,
+  wearing fitted cobalt-blue midi dress with a round crew neckline lying flat at the base of the throat,
+  fully closed solid fabric across the entire chest with no opening no slit no cutout,
+  three-quarter sleeves, dress follows natural body curves with fabric showing soft midsection and full hips,
+  smooth matte jersey fabric falling to mid-calf,
+  dark hair loosely tied in a low bun with soft face-framing strands,
+  small gold stud earrings, delicate thin gold chain necklace with one small pendant,
+  photorealistic full body editorial fashion photograph,
+  asymmetric three-quarter pose weight on right hip, left hand resting at side,
+  warm relaxed expression looking directly at camera,
+  smooth bare forehead, Western casual makeup look, minimal everyday jewelry only:
+  simple gold stud earrings and one thin gold chain necklace,
+  in a bright modern apartment bedroom corner with a wooden dresser shelf with folded clothes stacked on top,
+  a plain wooden chair beside it, soft cream curtains beside a large window,
+  plain wall behind with NO mirror NO glass NO reflective surface anywhere in the frame,
+  warm golden window light streaming in from one side, gentle shadow on one side of face,
+  shot on Sony A7IV 50mm f/2.0 shallow depth of field sharp focus on face,
+  authentic skin texture with visible pores, natural skin imperfections,
+  no plasticky skin, asymmetric facial features, slightly off-center composition,
+  candid moment not posed

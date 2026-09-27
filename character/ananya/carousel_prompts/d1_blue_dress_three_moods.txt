@@ -1,0 +1,20 @@
+# D1 replacement: One Blue Dress, Three Moods
+# Approved concept (Sept 27): cobalt-blue midi dress, indoor getting-ready
+# corner, warm window light, NO rooftop. Distinct "moods" (choice framing),
+# not cumulative layering -- each slide is its own styling option.
+# Run: python scripts/faceswap_carousel.py --anchor-config character/ananya/anchor_libraries/d1_blue_dress_three_moods.yaml --prompts character/ananya/carousel_prompts/d1_blue_dress_three_moods.txt --name d1_blue_dress_v1 --flux-dev --kontext
+
+# slide_00: clean opening hook still, full body, plain readable pose for text overlay
+anchor=default | same woman in same fitted cobalt-blue midi dress with round crew neckline lying flat at the base of the throat and fully closed solid fabric across the chest, dark hair in same low bun with face-framing strands, standing facing camera directly weight even on both feet, both hands relaxed at sides, warm open expression looking at camera, plain upper-body area clear of clutter for text overlay, soft cream curtains and warm window light behind her, keeping exact same cobalt-blue dress crew neckline and low bun
+
+# slide_01: mood one -- sneakers and tote, full body candid
+anchor=default | same woman in same cobalt-blue midi dress with round crew neckline lying flat at the base of the throat and fully closed solid fabric across the chest, dark hair in same low bun with face-framing strands, now wearing white canvas sneakers, holding ONE single small beige canvas tote bag exactly one NOT two NOT duplicate in her right hand at her side, left arm relaxed, casual candid stance weight on left leg, easy natural smile looking at camera, same indoor getting-ready corner warm window light, keeping exact same cobalt-blue dress and low bun
+
+# slide_02: mood two -- denim jacket, chest-up portrait
+anchor=default | same woman in same cobalt-blue midi dress with round crew neckline lying flat at the base of the throat, dark hair in same low bun with face-framing strands, now wearing a light-wash blue denim jacket worn open over the dress with denim jacket sleeves visible on both arms and denim jacket lapels and collar clearly visible framing the dress neckline, change to chest-up portrait framing showing face neck shoulders and neckline only, direct camera gaze, warm relaxed smile, one hand lightly at the denim jacket lapel, same warm window light, keeping exact same cobalt-blue dress underneath the open denim jacket and low bun
+
+# slide_03: mood three -- gold earrings and heels, full body alt angle
+anchor=default | same woman in same cobalt-blue midi dress with round crew neckline lying flat at the base of the throat and fully closed solid fabric across the chest, dark hair in same low bun with face-framing strands, now wearing a pair of statement gold drop earrings and nude block heels, no jacket no bag, three-quarter angle facing slightly left toward camera, weight on right hip, right hand resting lightly on the wooden dresser shelf edge, left arm relaxed at side, confident warm expression, same indoor getting-ready corner warm window light, keeping exact same cobalt-blue dress and low bun
+
+# slide_04: recap -- full body, all three mood cues visible together for the closing "which one wins" ask
+anchor=default | same woman in same cobalt-blue midi dress with round crew neckline lying flat at the base of the throat and fully closed solid fabric across the chest, dark hair in same low bun with face-framing strands, standing facing camera directly weight even on both feet, both hands relaxed at sides, warm inviting smile looking directly at camera asking a question, same indoor getting-ready corner warm window light, plain upper-body area clear of clutter for text overlay, keeping exact same cobalt-blue dress crew neckline and low bun
